@@ -1,0 +1,10 @@
+/* Google Fonts - Jerarquía Tipográfica */
+
+/* Nunito - Solo para títulos principales (H1, H2) - Redondeada y amigable */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap');
+
+/* Work Sans - Para subtítulos (H3-H6) - Geométrica y clara */
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@500;600;700&display=swap');
+
+/* Inter - Para textos y UI - Moderna y legible */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
