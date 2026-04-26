@@ -19,12 +19,11 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
   const [allSigns, setAllSigns] = useState<SignPattern[]>([]);
 
   useEffect(() => {
-    // Load all signs from recognition service
+    // Carga todas las señas (que ahora ya incluyen las URLs de lscData.ts)
     const signs = signRecognitionService.getAllSigns();
     setAllSigns(signs);
   }, []);
 
-  // Calculate category counts
   const categoryCounts = allSigns.reduce((acc, sign) => {
     acc[sign.category] = (acc[sign.category] || 0) + 1;
     return acc;
@@ -50,6 +49,7 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
       case 'Fácil': return 'success';
       case 'Intermedio': return 'warning';
       case 'Avanzado': return 'error';
+      default: return 'neutral';
     }
   };
 
@@ -65,30 +65,27 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
   };
 
   return (
-    <div className="h-[calc(100vh-5rem)] flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-5rem)] flex flex-col overflow-hidden bg-[var(--color-neutral-50)]">
       {/* Header compacto */}
-      <div className="flex-shrink-0 px-4 sm:px-6 py-4 border-b border-[var(--color-neutral-200)] bg-white">
+      <div className="flex-shrink-0 px-4 sm:px-6 py-4 border-b border-[var(--color-neutral-200)] bg-white shadow-sm">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-4"
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Diccionario Visual LSC</h1>
-              <Badge variant="accent">{allSigns.length} señas</Badge>
-            </div>
-            <p className="text-sm text-[var(--color-text-secondary)]">
-              Vocabulario disponible para la comunidad
-            </p>
-          </motion.div>
+          <div className="flex items-center justify-between mb-4">
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Diccionario Visual LSC</h1>
+                <Badge variant="accent">{allSigns.length} señas</Badge>
+              </div>
+            </motion.div>
+            {onNavigateHome && <BackToHome onClick={onNavigateHome} />}
+          </div>
 
-          <div className="mb-3">
+          <div className="mb-4">
             <Input
-              placeholder="Buscar señas..."
+              placeholder="Buscar señas por nombre..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              leftIcon={<Search size={20} />}
+              leftIcon={<Search size={20} className="text-[var(--color-text-secondary)]" />}
+              className="bg-[var(--color-neutral-50)]"
             />
           </div>
 
@@ -98,16 +95,16 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
                 className={`
-                  flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium text-sm whitespace-nowrap transition-all
+                  flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all
                   ${selectedCategory === category.id
-                    ? 'bg-[var(--color-primary-600)] text-white shadow-md'
+                    ? 'bg-[var(--color-primary-600)] text-white shadow-lg scale-105'
                     : 'bg-white text-[var(--color-text-secondary)] border border-[var(--color-neutral-200)] hover:border-[var(--color-primary-300)]'
                   }
                 `}
               >
                 <span>{category.emoji}</span>
                 {category.label}
-                <Badge variant={selectedCategory === category.id ? 'primary' : 'neutral'} className="text-xs">
+                <Badge variant={selectedCategory === category.id ? 'primary' : 'neutral'} className="ml-1">
                   {category.count}
                 </Badge>
               </button>
@@ -116,45 +113,38 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
         </div>
       </div>
 
-      {/* Content scrollable */}
+      {/* Content Grid */}
       <div className="flex-1 overflow-auto p-4 sm:p-6">
         <div className="max-w-6xl mx-auto">
           {filteredSigns.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {filteredSigns.map((sign, index) => (
                 <motion.div
                   key={sign.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.01 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.02 }}
                 >
                   <Card
                     hoverable
-                    className="overflow-hidden cursor-pointer"
+                    className="overflow-hidden cursor-pointer h-full border-[var(--color-neutral-200)]"
                     onClick={() => setSelectedSign(sign)}
                   >
-                    <div className="aspect-square bg-gradient-to-br from-[var(--color-primary-100)] to-[var(--color-accent-100)] flex items-center justify-center relative group">
-                      <span className="text-4xl">{getCategoryEmoji(sign.category)}</span>
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-xl">
-                          <Hand size={18} className="text-[var(--color-accent-500)]" />
+                    <div className="aspect-square bg-gradient-to-br from-[var(--color-primary-50)] to-[var(--color-accent-50)] flex items-center justify-center relative group">
+                      <span className="text-4xl group-hover:scale-110 transition-transform duration-300">
+                        {getCategoryEmoji(sign.category)}
+                      </span>
+                      <div className="absolute inset-0 bg-[var(--color-primary-600)]/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-xl">
+                          <Play size={20} className="text-[var(--color-primary-600)] ml-1" />
                         </div>
                       </div>
                     </div>
-                    <CardBody className="p-2">
-                      <div className="mb-1 relative group/name">
-                        <h3 className="font-semibold text-[var(--color-text-primary)] text-xs truncate">
-                          {sign.name}
-                        </h3>
-                        {/* Tooltip para palabras largas */}
-                        {sign.name.length > 12 && (
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[var(--color-neutral-900)] text-white text-xs rounded opacity-0 group-hover/name:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-lg">
-                            {sign.name}
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[var(--color-neutral-900)]"></div>
-                          </div>
-                        )}
-                      </div>
-                      <Badge variant={getDifficultyColor(sign.difficulty)} className="text-xs px-2 py-0">
+                    <CardBody className="p-3">
+                      <h3 className="font-bold text-[var(--color-text-primary)] text-sm mb-2 truncate uppercase">
+                        {sign.name}
+                      </h3>
+                      <Badge variant={getDifficultyColor(sign.difficulty)} className="text-[10px] uppercase tracking-tighter">
                         {sign.difficulty}
                       </Badge>
                     </CardBody>
@@ -163,94 +153,84 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
               ))}
             </div>
           ) : (
-            <Card>
-              <CardBody>
-                <EmptyState
-                  icon={<BookOpen size={40} />}
-                  title="No se encontraron señas"
-                  description="Intenta con otro término de búsqueda o categoría"
-                />
-              </CardBody>
-            </Card>
+            <EmptyState
+              icon={<BookOpen size={48} className="text-[var(--color-neutral-300)]" />}
+              title="No encontramos esa seña"
+              description="Intenta buscar con otra palabra o cambia de categoría."
+            />
           )}
         </div>
       </div>
 
-      {/* Sign Detail Modal */}
+      {/* Detail Modal / Video Player */}
       <AnimatePresence>
         {selectedSign && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setSelectedSign(null)}
-          >
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-[var(--color-neutral-900)]/80 backdrop-blur-md"
+              onClick={() => setSelectedSign(null)}
+            />
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden relative z-10"
             >
-              <div className="relative">
-                <div className="aspect-video bg-gradient-to-br from-[var(--color-primary-200)] to-[var(--color-accent-200)] flex items-center justify-center">
-                  <span className="text-8xl">{getCategoryEmoji(selectedSign.category)}</span>
-                </div>
-                <button
-                  onClick={() => setSelectedSign(null)}
-                  className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h2 className="text-3xl font-bold text-[var(--color-text-primary)] mb-2">
-                      {selectedSign.name}
-                    </h2>
-                    <p className="text-[var(--color-text-secondary)]">
-                      {selectedSign.description}
-                    </p>
-                  </div>
+              <button 
+                onClick={() => setSelectedSign(null)}
+                className="absolute top-4 right-4 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-transform active:scale-90"
+              >
+                <X size={20} className="text-[var(--color-neutral-900)]" />
+              </button>
+
+              <div className="flex flex-col md:flex-row">
+                <div className="w-full md:w-3/5 bg-black aspect-video flex items-center justify-center">
+                  {selectedSign.videoUrl ? (
+                    <video
+                      key={selectedSign.videoUrl}
+                      src={selectedSign.videoUrl}
+                      autoPlay loop controls playsInline
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <div className="text-white text-center p-10">
+                      <Play size={48} className="mx-auto mb-4 opacity-20" />
+                      <p className="text-sm opacity-60">Video cargando...</p>
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="bg-[var(--color-neutral-50)] rounded-lg p-4">
-                    <p className="text-xs text-[var(--color-text-tertiary)] mb-1">Categoría</p>
-                    <p className="font-semibold text-[var(--color-text-primary)] capitalize">
-                      {categories.find(c => c.id === selectedSign.category)?.label || selectedSign.category}
-                    </p>
-                  </div>
-                  <div className="bg-[var(--color-neutral-50)] rounded-lg p-4">
-                    <p className="text-xs text-[var(--color-text-tertiary)] mb-1">Dificultad</p>
+                <div className="p-8 flex-1 bg-white">
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-2xl">{getCategoryEmoji(selectedSign.category)}</span>
+                      <Badge variant="accent" className="uppercase tracking-widest text-[10px]">
+                        {selectedSign.category}
+                      </Badge>
+                    </div>
+                    <h2 className="text-3xl font-black text-[var(--color-neutral-900)] uppercase mb-2">
+                      {selectedSign.name}
+                    </h2>
                     <Badge variant={getDifficultyColor(selectedSign.difficulty)}>
                       {selectedSign.difficulty}
                     </Badge>
                   </div>
-                  <div className="bg-[var(--color-neutral-50)] rounded-lg p-4">
-                    <p className="text-xs text-[var(--color-text-tertiary)] mb-1">Manos</p>
-                    <p className="font-semibold text-[var(--color-text-primary)]">
-                      {selectedSign.requiredHands === 1 ? '1 mano' : '2 manos'}
-                    </p>
-                  </div>
-                  <div className="bg-[var(--color-neutral-50)] rounded-lg p-4">
-                    <p className="text-xs text-[var(--color-text-tertiary)] mb-1">Estado</p>
-                    <Badge variant="success">Disponible</Badge>
-                  </div>
-                </div>
 
-                <div className="bg-gradient-to-r from-[var(--color-primary-50)] to-[var(--color-accent-50)] rounded-lg p-4">
-                  <p className="text-sm text-[var(--color-text-secondary)]">
-                    💡 <strong>Tip:</strong> Esta seña se reconoce automáticamente en el Asistente.
-                    Mejora tu precisión completando ejercicios en Práctica.
+                  <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed mb-8">
+                    Observa detenidamente la forma de la mano y el movimiento. Esta seña es fundamental para el contexto de {selectedSign.category}.
                   </p>
+
+                  <button 
+                    className="w-full py-4 bg-[var(--color-primary-600)] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-[var(--color-primary-700)] transition-all shadow-xl active:scale-95"
+                  >
+                    <Hand size={20} />
+                    Practicar con Cámara
+                  </button>
                 </div>
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
