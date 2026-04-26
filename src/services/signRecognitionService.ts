@@ -3,7 +3,7 @@
  * Recognizes LSC signs from hand landmarks using pattern matching and ML models
  */
 
-import { HandLandmarks } from './handDetectionService';
+import { LSC_VOCABULARY } from '../lib/lscData';
 // Importamos tus URLs desde el archivo de datos que creamos
 import { LSC_VOCABULARY } from '../lib/lscData';
 
