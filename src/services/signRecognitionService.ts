@@ -20,13 +20,10 @@ export interface SignPattern {
   category: string;
   difficulty: 'Fácil' | 'Intermedio' | 'Avanzado';
   requiredHands: 1 | 2;
-  videoUrl?: string; // Propiedad para vincular tus videos de GitHub
+  videoUrl?: string; 
   pattern: (landmarks: HandLandmarks[]) => number;
 }
 
-/**
- * Sign Recognition Service
- */
 export class SignRecognitionService {
   private patterns: Map<string, SignPattern> = new Map();
   private recognitionHistory: RecognizedSign[] = [];
@@ -34,7 +31,7 @@ export class SignRecognitionService {
 
   constructor() {
     this.initializePatterns();
-    this.linkVideosFromData(); // Vinculamos las URLs al inicializar
+    this.linkVideosFromData(); 
   }
 
   /**
@@ -45,19 +42,17 @@ export class SignRecognitionService {
     const allVideoData = Object.values(LSC_VOCABULARY).flat();
     
     allVideoData.forEach(item => {
-      // Buscamos si existe un patrón con ese nombre (ej: "A", "AMARILLO", "LÁPIZ")
-      const pattern = this.patterns.get(item.label);
+      // Buscamos si existe un patrón con ese nombre
+      // Usamos .toUpperCase() para asegurar que "Amarillo" coincida con "AMARILLO"
+      const pattern = this.patterns.get(item.label.toUpperCase());
       if (pattern) {
         pattern.videoUrl = item.url;
       }
     });
   }
 
-  /**
-   * Initialize sign patterns for LSC
-   */
   private initializePatterns(): void {
-    // CATEGORÍA: COLORES
+    // CATEGORÍA: COLORES (Id: colors)
     const colorSigns = [
       { name: 'COLORES', sub: 'Concepto' }, { name: 'MEZCLAR', sub: 'Concepto' },
       { name: 'AMARILLO', sub: 'Primario' }, { name: 'ROJO', sub: 'Primario' }, 
@@ -75,14 +70,14 @@ export class SignRecognitionService {
       this.patterns.set(name, {
         name,
         description: `${sub} ${name} en LSC`,
-        category: 'colors',
+        category: 'colors', // Coincide con el filtro de DictionaryView
         difficulty: 'Fácil',
         requiredHands: 1,
-        pattern: (landmarks) => 0.8 // Placeholder hasta integrar ONNX
+        pattern: () => 0.8 
       });
     });
 
-    // CATEGORÍA: SALUDOS
+    // CATEGORÍA: SALUDOS (Id: greetings)
     const greetingSigns = [
       { name: 'HOLA', hands: 1 }, { name: 'MI NOMBRE', hands: 2 },
       { name: 'MI SEÑA', hands: 2 }, { name: 'GRACIAS', hands: 1 },
@@ -96,11 +91,11 @@ export class SignRecognitionService {
         category: 'greetings',
         difficulty: 'Fácil',
         requiredHands: hands as 1 | 2,
-        pattern: (landmarks) => 0.8
+        pattern: () => 0.8
       });
     });
 
-    // CATEGORÍA: ABECEDARIO
+    // CATEGORÍA: ABECEDARIO (Id: alphabet)
     const alphabet = [
       'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'LL', 
       'M', 'N', 'Ñ', 'O', 'P', 'Q', 'R', 'RR', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
@@ -113,11 +108,11 @@ export class SignRecognitionService {
         category: 'alphabet',
         difficulty: 'Fácil',
         requiredHands: 1,
-        pattern: (landmarks) => 0.8
+        pattern: () => 0.8
       });
     });
 
-    // CATEGORÍA: OFICINA
+    // CATEGORÍA: OFICINA (Id: office)
     const officeSigns = [
       'HORARIO', 'HORARIO DE CLASE', 'HORARIO DE MATERIA', 'PROCESO DE MATRÍCULA',
       'MATRÍCULA ACADÉMICA', 'MATRICULA FINANCIERA', 'MATRÍCULA MATERIAS',
@@ -131,11 +126,11 @@ export class SignRecognitionService {
         category: 'office',
         difficulty: 'Intermedio',
         requiredHands: 2,
-        pattern: (landmarks) => 0.8
+        pattern: () => 0.8
       });
     });
 
-    // CATEGORÍA: DISEÑO
+    // CATEGORÍA: DISEÑO (Id: design)
     const designSigns = [
       'MATERIALES', 'LÁPIZ', 'PINCEL', 'AGUA', 'HOJAS', 
       'TEXTURA', 'VOLUMEN', 'PERSPECTIVA', 'CAPAS', 'SEPARAR'
@@ -148,7 +143,7 @@ export class SignRecognitionService {
         category: 'design',
         difficulty: 'Intermedio',
         requiredHands: 2,
-        pattern: (landmarks) => 0.8
+        pattern: () => 0.8
       });
     });
   }
