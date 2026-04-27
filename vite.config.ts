@@ -20,6 +20,6 @@ export default defineConfig({
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 
-  // GitHub Pages configuration
-  base: '/Manos-Abiertas/',
+  // Configuración para Vercel: La base debe ser '/' para que encuentre los assets en la raíz
+  base: '/',
 })

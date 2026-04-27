@@ -18,7 +18,7 @@ export class HandDetectionService {
       this.hands = new Hands({
         locateFile: (file) => {
           // Forzamos la carga desde un CDN confiable y rápido
-          return `https://jsdelivr.net{file}`;
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
         },
       });
 
