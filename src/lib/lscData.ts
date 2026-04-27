@@ -1,10 +1,10 @@
 export const LSC_VOCABULARY = {
   Abecedario: [
-    { label: "A", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/A00_FINAL.mp4" },
-    { label: "B", url: "https://github.com/user-attachments/assets/edf93026-218a-4e4b-b576-d882321bf8f2" },
-    { label: "C", url: "https://github.com/user-attachments/assets/d4d5c8c9-8d54-4809-b487-f010f9128bfd" },
-    { label: "D", url: "https://github.com/user-attachments/assets/975b3060-21fe-4bf3-b823-ba69098f3e25" },
-    { label: "E", url: "https://github.com/user-attachments/assets/9d55ad26-edd5-4ae6-ab9c-a3acf711bde1" },
+    { label: "A", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/A.mp4" },
+    { label: "B", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/B.mp4" },
+    { label: "C", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/C.mp4" },
+    { label: "D", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/D.mp4" },
+    { label: "E", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/E.mp4" },
     { label: "F", url: "https://github.com/user-attachments/assets/1de40610-5894-4bd9-addf-c730a868199d" },
     { label: "G", url: "https://github.com/user-attachments/assets/f166d3f0-ac54-43a2-a5f3-163699883346" },
     { label: "H", url: "https://github.com/user-attachments/assets/0cfb4a61-bed9-4c8f-a5e7-3fe9327a78ca" },
