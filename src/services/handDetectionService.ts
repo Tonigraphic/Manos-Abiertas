@@ -1,9 +1,4 @@
-/**
- * Hand Detection Service using MediaPipe Hands
- * Detects hands in real-time from webcam feed
- */
-
-import { Hands, Results } from '@mediapipe/hands';
+import { Hands, Results, HAND_CONNECTIONS } from '@mediapipe/hands';
 
 export interface HandLandmarks {
   landmarks: number[][];
@@ -11,35 +6,27 @@ export interface HandLandmarks {
   timestamp: number;
 }
 
-export interface DetectionResult {
-  success: boolean;
-  hands: HandLandmarks[];
-  error?: string;
-}
-
 export class HandDetectionService {
   private hands: Hands | null = null;
   private isInitialized = false;
   private onResultsCallback: ((results: Results) => void) | null = null;
 
-  /**
-   * Initialize MediaPipe Hands
-   */
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
     try {
       this.hands = new Hands({
         locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+          // Forzamos la carga desde un CDN confiable y rápido
+          return `https://jsdelivr.net{file}`;
         },
       });
 
       this.hands.setOptions({
         maxNumHands: 2,
-        modelComplexity: 1,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5,
+        modelComplexity: 1, // 1 es ideal para web/móvil por velocidad
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.6,
       });
 
       this.hands.onResults((results) => {
@@ -48,75 +35,42 @@ export class HandDetectionService {
         }
       });
 
+      // Pequeño truco: hacemos una detección "vacía" para despertar al modelo
+      await this.hands.initialize();
       this.isInitialized = true;
+      console.log("MediaPipe: Detección de manos lista.");
     } catch (error) {
-      console.error('Error initializing MediaPipe Hands:', error);
-      throw new Error('Failed to initialize hand detection');
+      console.error('Error MediaPipe:', error);
+      throw new Error('No se pudo iniciar la detección de manos');
     }
   }
 
-  /**
-   * Process a video frame
-   */
   async detectHands(videoElement: HTMLVideoElement): Promise<void> {
-    if (!this.hands || !this.isInitialized) {
-      throw new Error('Hand detection service not initialized');
+    if (!this.hands || !this.isInitialized) return;
+    
+    // Solo enviamos si el video realmente tiene datos (evita que la pantalla se ponga gris)
+    if (videoElement.readyState >= 2) {
+      await this.hands.send({ image: videoElement });
     }
-
-    await this.hands.send({ image: videoElement });
   }
 
-  /**
-   * Set callback for detection results
-   */
   onResults(callback: (results: Results) => void): void {
     this.onResultsCallback = callback;
   }
 
-  /**
-   * Extract landmarks from results
-   */
   extractLandmarks(results: Results): HandLandmarks[] {
-    if (!results.multiHandLandmarks || !results.multiHandedness) {
-      return [];
-    }
+    if (!results.multiHandLandmarks) return [];
 
-    return results.multiHandLandmarks.map((handLandmarks, index) => {
-      const landmarks = handLandmarks.map((landmark) => [
-        landmark.x,
-        landmark.y,
-        landmark.z,
-      ]);
-
-      const handedness = results.multiHandedness[index].label as 'Left' | 'Right';
-
-      return {
-        landmarks,
-        handedness,
-        timestamp: Date.now(),
-      };
-    });
+    return results.multiHandLandmarks.map((handLandmarks, index) => ({
+      landmarks: handLandmarks.map((l) => [l.x, l.y, l.z]),
+      handedness: results.multiHandedness[index].label as 'Left' | 'Right',
+      timestamp: Date.now(),
+    }));
   }
 
-  /**
-   * Clean up resources
-   */
-  dispose(): void {
-    if (this.hands) {
-      this.hands.close();
-      this.hands = null;
-    }
-    this.isInitialized = false;
-    this.onResultsCallback = null;
-  }
-
-  /**
-   * Check if service is initialized
-   */
   get initialized(): boolean {
     return this.isInitialized;
   }
 }
 
-// Singleton instance
 export const handDetectionService = new HandDetectionService();
