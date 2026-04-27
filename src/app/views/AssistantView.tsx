@@ -97,16 +97,31 @@ export function AssistantView({ onNavigateHome }: AssistantViewProps = {}) {
               {/* Columna Cámara */}
               <div className="lg:col-span-2 space-y-4">
                 <div className="relative aspect-video bg-neutral-900 rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
-                  <video ref={videoRef} className="hidden" playsInline muted />
+                  
+                  {/* SOLUCIÓN: El video ahora NO es hidden, solo es transparente y está detrás */}
+                  <video 
+                    ref={videoRef} 
+                    className="absolute opacity-0 pointer-events-none" 
+                    playsInline 
+                    muted 
+                  />
+                  
+                  {/* El Canvas es el que mostrará todo */}
                   <canvas ref={canvasRef} className="w-full h-full object-cover" />
                   
                   {!recState.isActive && !recState.isLoading && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900/90 text-white p-6 text-center">
                       <Camera size={48} className="mb-4 opacity-20" />
-                      <p className="mb-6 font-medium">Selecciona un vocabulario para iniciar el reconocimiento</p>
-                      <div className="flex flex-wrap justify-center gap-2">
+                      <p className="mb-6 font-medium text-lg">Selecciona una categoría para iniciar</p>
+                      <div className="flex flex-wrap justify-center gap-3">
                         {['Abecedario', 'Colores', 'Saludos', 'Diseño', 'Oficina'].map(cat => (
-                          <Button key={cat} variant="outline" size="sm" onClick={() => startRecognition(cat)} className="bg-white/10 hover:bg-white hover:text-black border-white/20">
+                          <Button 
+                            key={cat} 
+                            variant="outline" 
+                            size="lg" 
+                            onClick={() => startRecognition(cat)} 
+                            className="bg-white/10 hover:bg-white hover:text-black border-white/20 px-8 py-6 text-lg font-bold"
+                          >
                             {cat}
                           </Button>
                         ))}
@@ -122,8 +137,8 @@ export function AssistantView({ onNavigateHome }: AssistantViewProps = {}) {
                 </div>
 
                 {recState.isActive && (
-                  <Button variant="error" onClick={stopRecognition} className="w-full py-4 rounded-2xl">
-                    <CameraOff size={18} className="mr-2" /> Finalizar Sesión
+                  <Button variant="error" onClick={stopRecognition} className="w-full py-6 rounded-2xl text-lg font-bold">
+                    <CameraOff size={20} className="mr-2" /> Finalizar Interpretación
                   </Button>
                 )}
               </div>
@@ -147,20 +162,20 @@ export function AssistantView({ onNavigateHome }: AssistantViewProps = {}) {
                         </motion.div>
                       ) : (
                         <div className="flex flex-col items-center opacity-40 px-6">
-                           <Hand size={40} className="mb-2" />
-                           <p className="text-sm font-medium">Esperando detección de manos...</p>
+                           <Hand size={40} className="mb-2 text-neutral-400" />
+                           <p className="text-sm font-medium">Mueve tus manos frente a la cámara</p>
                         </div>
                       )}
                     </div>
 
                     <div>
-                      <p className="text-[10px] font-black text-neutral-400 uppercase mb-3 tracking-widest">Historial de señas</p>
+                      <p className="text-[10px] font-black text-neutral-400 uppercase mb-3 tracking-widest">Historial reciente</p>
                       <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                         {recState.recognizedSigns.length > 0 ? (
                           recState.recognizedSigns.slice(0, 8).map((s, i) => (
                             <motion.div initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} key={i} className="flex justify-between items-center p-3 bg-white border border-neutral-100 rounded-xl shadow-sm">
                               <span className="font-bold text-neutral-700">{s.sign}</span>
-                              <span className="text-[9px] font-bold text-neutral-400 bg-neutral-50 px-2 py-1 rounded-md">
+                              <span className="text-[9px] font-bold text-neutral-400 bg-neutral-50 px-2 py-1 rounded-md uppercase">
                                 {new Date(s.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}
                               </span>
                             </motion.div>
