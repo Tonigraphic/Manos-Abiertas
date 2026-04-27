@@ -1,6 +1,6 @@
 export const LSC_VOCABULARY = {
   Abecedario: [
-    { label: "A", url: "https://github.com/user-attachments/assets/6707b4d2-6351-4c27-9041-db4e17f99828" },
+    { label: "A", url: "https://github.com/user-attachments/assets/4f0257da-415a-4ffc-a912-f153b5f656c9" },
     { label: "B", url: "https://github.com/user-attachments/assets/853abcbd-7d28-4038-93a2-91a88bdbd111" },
     { label: "C", url: "https://github.com/user-attachments/assets/25983d37-9bdc-4586-94b6-3825136382af" },
     { label: "D", url: "https://github.com/user-attachments/assets/f05ad933-b1e8-4c46-b459-07a0857d5a61" },
