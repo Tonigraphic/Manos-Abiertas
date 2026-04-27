@@ -1,11 +1,11 @@
 export const LSC_VOCABULARY = {
   Abecedario: [
-    { label: "A", url: "https://github.com/user-attachments/assets/a16f46ee-f79d-4ccc-8fa7-c22ab5a2ab5d" },
-    { label: "B", url: "https://github.com/user-attachments/assets/12a8ceca-8a47-4589-86c3-2d0683304468" },
-    { label: "C", url: "https://github.com/user-attachments/assets/b8b15e30-2621-4acb-8b6c-7cc85c14a0c7" },
-    { label: "D", url: "https://github.com/user-attachments/assets/40e92bf2-036d-4108-a338-75b16d2d133f" },
-    { label: "E", url: "https://github.com/user-attachments/assets/0cee5dae-d0fb-43d9-90bb-1cf4fb1c9cda" },
-    { label: "F", url: "https://github.com/user-attachments/assets/3a77e798-30cb-4368-ba92-dd791c85c8ee" },
+    { label: "A", url: "https://github.com/user-attachments/assets/6707b4d2-6351-4c27-9041-db4e17f99828" },
+    { label: "B", url: "https://github.com/user-attachments/assets/853abcbd-7d28-4038-93a2-91a88bdbd111" },
+    { label: "C", url: "https://github.com/user-attachments/assets/25983d37-9bdc-4586-94b6-3825136382af" },
+    { label: "D", url: "https://github.com/user-attachments/assets/f05ad933-b1e8-4c46-b459-07a0857d5a61" },
+    { label: "E", url: "https://github.com/user-attachments/assets/6b0dcc65-f923-4470-805f-61d5f92daf45" },
+    { label: "F", url: "https://github.com/user-attachments/assets/f7acabc9-8bfc-4a8e-a8b4-6fe924ecac32" },
     { label: "G", url: "https://github.com/user-attachments/assets/c69c1c0a-dd0f-4827-90d5-c08cc999b815" },
     { label: "H", url: "https://github.com/user-attachments/assets/aa8f1342-3adf-4365-bdc7-973d64dc846f" },
     { label: "I", url: "https://github.com/user-attachments/assets/0e482f5d-883a-48a3-9ff2-6dbd6647f12c" },
