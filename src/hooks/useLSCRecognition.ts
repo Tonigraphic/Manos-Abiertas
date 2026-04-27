@@ -3,59 +3,35 @@ import { handDetectionService } from '../services/handDetectionService';
 import { signRecognitionService, RecognizedSign } from '../services/signRecognitionService';
 import { Results } from '@mediapipe/hands';
 
-export interface RecognitionState {
-  isActive: boolean;
-  isLoading: boolean;
-  error: string | null;
-  currentSign: RecognizedSign | null;
-  recognizedSigns: RecognizedSign[];
-  handsDetected: number;
-}
-
 export function useLSCRecognition() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isActiveRef = useRef(false);
-  const requestRef = useRef<number>();
 
-  const [state, setState] = useState<RecognitionState>({
+  const [state, setState] = useState({
     isActive: false,
     isLoading: false,
-    error: null,
-    currentSign: null,
-    recognizedSigns: [],
+    error: null as string | null,
+    currentSign: null as RecognizedSign | null,
+    recognizedSigns: [] as RecognizedSign[],
     handsDetected: 0,
   });
 
-  const drawResults = useCallback((results: Results) => {
+  // DIBUJO: Ahora solo dibuja los puntos, no el video (el video se ve por sí solo)
+  const onResults = useCallback((results: Results) => {
     const canvas = canvasRef.current;
-    const video = videoRef.current;
-    if (!canvas || !video || !isActiveRef.current) return;
+    if (!canvas || !isActiveRef.current) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Sincronización forzada de dimensiones
-    if (video.videoWidth > 0 && (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight)) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-    }
-
-    ctx.save();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // EFECTO ESPEJO (Mirror)
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
-    
-    // DIBUJAR VIDEO (Esto asegura la imagen en pantalla)
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // DIBUJAR PUNTOS Y RECONOCER
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
       setState(prev => ({ ...prev, handsDetected: results.multiHandLandmarks.length }));
       
       for (const landmarks of results.multiHandLandmarks) {
+        // Dibujamos solo los puntos naranjas sobre la mano
         ctx.fillStyle = '#f97316';
         for (const point of landmarks) {
           ctx.beginPath();
@@ -64,95 +40,79 @@ export function useLSCRecognition() {
         }
       }
 
-      // ENVIAR A IA
+      // Procesar con IA
       const extracted = handDetectionService.extractLandmarks(results);
       if (extracted.length > 0) {
-        // Pasamos el objeto completo de la mano detectada
-        signRecognitionService.predict(extracted[0]).then(recognized => {
-          if (recognized && recognized.confidence > 0.8) {
+        signRecognitionService.predict(extracted).then(recognized => {
+          if (recognized && recognized.confidence > 0.75) {
             setState(prev => ({
               ...prev,
               currentSign: recognized,
-              recognizedSigns: [recognized, ...prev.recognizedSigns.slice(0, 15)]
+              recognizedSigns: [recognized, ...prev.recognizedSigns.slice(0, 9)]
             }));
           }
         });
       }
     } else {
-      setState(prev => ({ ...prev, handsDetected: 0, currentSign: null }));
+      setState(prev => ({ ...prev, handsDetected: 0 }));
     }
-    ctx.restore();
   }, []);
 
-  const startRecognition = async (category: string = 'Abecedario') => {
+  const startRecognition = async (category: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      // 1. Cargar IA
-      await signRecognitionService.loadModel(category);
-
-      // 2. Configurar Cámara
+      // 1. Iniciar cámara primero (más rápido)
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" }
+        video: { width: 1280, height: 720 }
       });
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        
-        // Esperar a que el video tenga datos reales
+        // Esperamos a que el video realmente tenga imagen
         await new Promise((resolve) => {
           if (!videoRef.current) return;
-          videoRef.current.onloadeddata = () => resolve(true);
+          videoRef.current.onloadeddata = () => {
+            if (canvasRef.current && videoRef.current) {
+              canvasRef.current.width = videoRef.current.videoWidth;
+              canvasRef.current.height = videoRef.current.videoHeight;
+            }
+            resolve(true);
+          };
         });
-
         await videoRef.current.play();
       }
 
-      // 3. MediaPipe
+      // 2. Cargar IA mientras la cámara ya se ve
+      await signRecognitionService.loadModel(category);
       await handDetectionService.initialize();
-      handDetectionService.onResults(drawResults);
+      handDetectionService.onResults(onResults);
 
       isActiveRef.current = true;
       setState(prev => ({ ...prev, isActive: true, isLoading: false }));
 
-      // Bucle de detección estable
-      const runDetection = async () => {
+      const run = async () => {
         if (!isActiveRef.current) return;
-        if (videoRef.current && videoRef.current.readyState >= 2) {
+        if (videoRef.current?.readyState === 4) {
           await handDetectionService.detectHands(videoRef.current);
         }
-        requestRef.current = requestAnimationFrame(runDetection);
+        requestAnimationFrame(run);
       };
-
-      runDetection();
+      run();
 
     } catch (err) {
-      console.error("Error LSC:", err);
-      setState(prev => ({ 
-        ...prev, 
-        error: "No se pudo activar la cámara.", 
-        isLoading: false,
-        isActive: false 
-      }));
+      console.error(err);
+      setState(prev => ({ ...prev, error: "Error de acceso", isLoading: false }));
     }
   };
 
   const stopRecognition = useCallback(() => {
     isActiveRef.current = false;
-    if (requestRef.current) cancelAnimationFrame(requestRef.current);
-    
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    
-    setState(prev => ({ ...prev, isActive: false, currentSign: null, handsDetected: 0 }));
+    const stream = videoRef.current?.srcObject as MediaStream;
+    stream?.getTracks().forEach(t => t.stop());
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setState(prev => ({ ...prev, isActive: false, currentSign: null }));
   }, []);
-
-  useEffect(() => {
-    return () => stopRecognition();
-  }, [stopRecognition]);
 
   return { state, videoRef, canvasRef, startRecognition, stopRecognition };
 }
