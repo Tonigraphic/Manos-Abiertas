@@ -1,8 +1,9 @@
 import { Home, Bot, Target, BookOpen } from 'lucide-react';
 
-// 1. Importamos las imágenes desde la carpeta assets
-import logoPrincipal from '../../assets/logo.png';
-import iconoProyecto from '../../assets/icon.png';
+// 1. Corregimos agregando un "../" extra para subir un nivel más
+import logoPrincipal from '../../../assets/logo.png';
+import iconoProyecto from '../../../assets/icon.png';
+
 
 interface NavigationProps {
   currentView: string;
