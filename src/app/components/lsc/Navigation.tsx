@@ -1,9 +1,8 @@
 import { Home, Bot, Target, BookOpen } from 'lucide-react';
 
-// 1. Corregimos agregando un "../" extra para subir un nivel más
+// Importaciones con la profundidad de ruta correcta para tu estructura de carpetas
 import logoPrincipal from '../../../assets/logo.png';
 import iconoProyecto from '../../../assets/icon.png';
-
 
 interface NavigationProps {
   currentView: string;
@@ -19,37 +18,37 @@ export function DesktopNavbar({ currentView, onNavigate }: NavigationProps) {
   ];
 
   return (
-    <nav className="bg-white border-b border-[var(--color-neutral-200)] shadow-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="flex items-center justify-between h-20">
+    <nav className="bg-white border-b border-[var(--color-neutral-200)] shadow-sm sticky top-0 z-50 w-full overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-16 md:h-20">
           
-          {/* SECCIÓN DE MARCA: REEMPLAZADA POR LOGO E ICONO */}
+          {/* SECCIÓN DE MARCA: AJUSTADA PARA MÓVIL */}
           <div 
-            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
             onClick={() => onNavigate('home')}
           >
-            {/* El Icono del Proyecto */}
+            {/* El Icono: Visible siempre (Laptop y Móvil) */}
             <img 
               src={iconoProyecto} 
               alt="Icono LSC" 
-              className="w-10 h-10 object-contain" 
+              className="w-8 h-8 md:w-10 md:h-10 object-contain" 
             />
             
-            <div className="flex flex-col">
-              {/* El Logo de "Manos Abiertas" */}
+            {/* El Logo y Texto: SE OCULTAN EN MÓVIL (hidden) y aparecen en PC (md:flex) */}
+            <div className="hidden md:flex flex-col">
               <img 
                 src={logoPrincipal} 
                 alt="Manos Abiertas" 
                 className="h-6 w-auto object-contain" 
               />
-              <p className="text-[10px] font-bold text-[var(--color-text-secondary)] uppercase tracking-tighter mt-1">
+              <p className="text-[9px] font-bold text-[var(--color-text-secondary)] uppercase tracking-tighter mt-0.5">
                 Universidad de Nariño
               </p>
             </div>
           </div>
 
-          {/* Menú de Navegación */}
-          <div className="flex gap-2">
+          {/* Menú de Navegación Superior */}
+          <div className="flex gap-1 md:gap-2">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentView === item.id;
@@ -58,15 +57,16 @@ export function DesktopNavbar({ currentView, onNavigate }: NavigationProps) {
                   key={item.id}
                   onClick={() => onNavigate(item.id)}
                   className={`
-                    flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-150
+                    flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-medium transition-all duration-150 text-sm
                     ${isActive
                       ? 'bg-[var(--color-primary-600)] text-white shadow-md'
                       : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-neutral-100)]'
                     }
                   `}
                 >
-                  <Icon size={20} />
-                  {item.label}
+                  <Icon size={18} />
+                  {/* El texto desaparece en pantallas muy pequeñas para evitar el scroll lateral */}
+                  <span className="hidden sm:inline">{item.label}</span>
                 </button>
               );
             })}
@@ -92,7 +92,6 @@ export function MobileBottomNav({ currentView, onNavigate }: NavigationProps) {
           const Icon = item.icon;
           const isActive = currentView === item.id;
           
-          // Para el botón de Inicio en móvil, podemos usar el icono personalizado
           return (
             <button
               key={item.id}
@@ -105,8 +104,13 @@ export function MobileBottomNav({ currentView, onNavigate }: NavigationProps) {
                 }
               `}
             >
+              {/* Usamos el icono del proyecto para el botón de inicio en móvil */}
               {item.id === 'home' ? (
-                 <img src={iconoProyecto} className={`w-6 h-6 object-contain ${isActive ? '' : 'grayscale opacity-70'}`} alt="Home" />
+                 <img 
+                   src={iconoProyecto} 
+                   className={`w-6 h-6 object-contain ${isActive ? '' : 'grayscale opacity-60'}`} 
+                   alt="Inicio" 
+                 />
               ) : (
                  <Icon size={24} className="flex-shrink-0" />
               )}
