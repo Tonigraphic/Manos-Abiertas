@@ -4,6 +4,10 @@
  */
 
 import * as ort from 'onnxruntime-web';
+
+// Configurar la ruta de los archivos WASM para que ONNX Runtime los encuentre en public/
+ort.env.wasm.wasmPaths = import.meta.env.BASE_URL;
+
 import { HandLandmarks } from './handDetectionService';
 import { LSC_VOCABULARY } from '../lib/lscData';
 

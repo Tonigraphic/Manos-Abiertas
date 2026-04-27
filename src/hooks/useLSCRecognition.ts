@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { handDetectionService } from '../services/handDetectionService';
 import { signRecognitionService, RecognizedSign } from '../services/signRecognitionService';
-import { Results } from '@mediapipe/hands';
+import { Results } from '@mediapipe/holistic';
 
 export function useLSCRecognition() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -17,7 +17,7 @@ export function useLSCRecognition() {
     handsDetected: 0,
   });
 
-  // DIBUJO: Solo dibuja los puntos, el video se ve por sí solo en el HTML
+  // DIBUJO: Dibuja puntos para manos y pose
   const onResults = useCallback((results: Results) => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
@@ -34,33 +34,58 @@ export function useLSCRecognition() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-      setState(prev => ({ ...prev, handsDetected: results.multiHandLandmarks.length }));
-      
-      for (const landmarks of results.multiHandLandmarks) {
-        ctx.fillStyle = '#f97316'; // Puntos naranjas
-        for (const point of landmarks) {
+    let detectedCount = 0;
+    
+    // Dibujar mano izquierda
+    if (results.leftHandLandmarks) {
+      detectedCount++;
+      ctx.fillStyle = '#f97316'; // Naranja
+      for (const point of results.leftHandLandmarks) {
+        ctx.beginPath();
+        ctx.arc(point.x * canvas.width, point.y * canvas.height, 4, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    }
+
+    // Dibujar mano derecha
+    if (results.rightHandLandmarks) {
+      detectedCount++;
+      ctx.fillStyle = '#f97316'; // Naranja
+      for (const point of results.rightHandLandmarks) {
+        ctx.beginPath();
+        ctx.arc(point.x * canvas.width, point.y * canvas.height, 4, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    }
+
+    // Dibujar pose (cuerpo)
+    if (results.poseLandmarks) {
+      ctx.fillStyle = '#3b82f6'; // Azul
+      // Solo dibujamos los puntos de los brazos y hombros (indices 11 a 22 aproximadamente)
+      for (let i = 11; i <= 22; i++) {
+        const point = results.poseLandmarks[i];
+        if (point && point.visibility && point.visibility > 0.5) {
           ctx.beginPath();
-          ctx.arc(point.x * canvas.width, point.y * canvas.height, 4, 0, 2 * Math.PI);
+          ctx.arc(point.x * canvas.width, point.y * canvas.height, 5, 0, 2 * Math.PI);
           ctx.fill();
         }
       }
+    }
 
-      // Enviar a la IA
-      const extracted = handDetectionService.extractLandmarks(results);
-      if (extracted.length > 0) {
-        signRecognitionService.predict(extracted[0]).then(recognized => {
-          if (recognized && recognized.confidence > 0.7) {
-            setState(prev => ({
-              ...prev,
-              currentSign: recognized,
-              recognizedSigns: [recognized, ...prev.recognizedSigns.slice(0, 9)]
-            }));
-          }
-        });
-      }
-    } else {
-      setState(prev => ({ ...prev, handsDetected: 0 }));
+    setState(prev => ({ ...prev, handsDetected: detectedCount }));
+
+    // Enviar a la IA (mantenemos la compatibilidad enviando los landmarks de las manos)
+    const extracted = handDetectionService.extractLandmarks(results);
+    if (extracted.length > 0) {
+      signRecognitionService.predict(extracted[0]).then(recognized => {
+        if (recognized && recognized.confidence > 0.7) {
+          setState(prev => ({
+            ...prev,
+            currentSign: recognized,
+            recognizedSigns: [recognized, ...prev.recognizedSigns.slice(0, 9)]
+          }));
+        }
+      });
     }
   }, []);
 

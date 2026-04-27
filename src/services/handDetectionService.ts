@@ -1,4 +1,4 @@
-import { Hands, Results, HAND_CONNECTIONS } from '@mediapipe/hands';
+import { Holistic, Results } from '@mediapipe/holistic';
 
 export interface HandLandmarks {
   landmarks: number[][];
@@ -6,8 +6,16 @@ export interface HandLandmarks {
   timestamp: number;
 }
 
+export interface HolisticLandmarks {
+  leftHand?: number[][];
+  rightHand?: number[][];
+  pose?: number[][];
+  face?: number[][];
+  timestamp: number;
+}
+
 export class HandDetectionService {
-  private hands: Hands | null = null;
+  private holistic: Holistic | null = null;
   private isInitialized = false;
   private onResultsCallback: ((results: Results) => void) | null = null;
 
@@ -15,42 +23,43 @@ export class HandDetectionService {
     if (this.isInitialized) return;
 
     try {
-      this.hands = new Hands({
+      this.holistic = new Holistic({
         locateFile: (file) => {
-          // Forzamos la carga desde un CDN confiable y rápido
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`;
         },
       });
 
-      this.hands.setOptions({
-        maxNumHands: 2,
-        modelComplexity: 1, // 1 es ideal para web/móvil por velocidad
+      this.holistic.setOptions({
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        enableSegmentation: false,
+        smoothSegmentation: false,
+        refineFaceLandmarks: true,
         minDetectionConfidence: 0.6,
         minTrackingConfidence: 0.6,
       });
 
-      this.hands.onResults((results) => {
+      this.holistic.onResults((results) => {
         if (this.onResultsCallback) {
           this.onResultsCallback(results);
         }
       });
 
-      // Pequeño truco: hacemos una detección "vacía" para despertar al modelo
-      await this.hands.initialize();
+      // Inicialización inicial
+      await this.holistic.initialize();
       this.isInitialized = true;
-      console.log("MediaPipe: Detección de manos lista.");
+      console.log("MediaPipe: Holistic tracking listo.");
     } catch (error) {
-      console.error('Error MediaPipe:', error);
-      throw new Error('No se pudo iniciar la detección de manos');
+      console.error('Error MediaPipe Holistic:', error);
+      throw new Error('No se pudo iniciar la detección holística');
     }
   }
 
   async detectHands(videoElement: HTMLVideoElement): Promise<void> {
-    if (!this.hands || !this.isInitialized) return;
+    if (!this.holistic || !this.isInitialized) return;
     
-    // Solo enviamos si el video realmente tiene datos (evita que la pantalla se ponga gris)
     if (videoElement.readyState >= 2) {
-      await this.hands.send({ image: videoElement });
+      await this.holistic.send({ image: videoElement });
     }
   }
 
@@ -59,13 +68,37 @@ export class HandDetectionService {
   }
 
   extractLandmarks(results: Results): HandLandmarks[] {
-    if (!results.multiHandLandmarks) return [];
+    // Para mantener retrocompatibilidad con la firma existente
+    const hands: HandLandmarks[] = [];
+    const timestamp = Date.now();
 
-    return results.multiHandLandmarks.map((handLandmarks, index) => ({
-      landmarks: handLandmarks.map((l) => [l.x, l.y, l.z]),
-      handedness: results.multiHandedness[index].label as 'Left' | 'Right',
-      timestamp: Date.now(),
-    }));
+    if (results.leftHandLandmarks) {
+      hands.push({
+        landmarks: results.leftHandLandmarks.map((l) => [l.x, l.y, l.z]),
+        handedness: 'Left',
+        timestamp
+      });
+    }
+
+    if (results.rightHandLandmarks) {
+      hands.push({
+        landmarks: results.rightHandLandmarks.map((l) => [l.x, l.y, l.z]),
+        handedness: 'Right',
+        timestamp
+      });
+    }
+
+    return hands;
+  }
+
+  extractHolistic(results: Results): HolisticLandmarks {
+    return {
+      leftHand: results.leftHandLandmarks?.map((l) => [l.x, l.y, l.z]),
+      rightHand: results.rightHandLandmarks?.map((l) => [l.x, l.y, l.z]),
+      pose: results.poseLandmarks?.map((l) => [l.x, l.y, l.z]),
+      face: results.faceLandmarks?.map((l) => [l.x, l.y, l.z]),
+      timestamp: Date.now()
+    };
   }
 
   get initialized(): boolean {
