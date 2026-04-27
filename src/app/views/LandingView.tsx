@@ -5,7 +5,7 @@ import { Bot, Target, BookOpen, Sparkles, Video, CheckCircle, Users, Award, Grad
 import { motion } from 'motion/react';
 
 // 1. IMPORTACIÓN DEL LOGO (Vite gestionará la ruta correcta para GitHub)
-import logoPrincipal from '../assets/logo.png'; 
+import logoPrincipal from '../../assets/logo.png'; 
 
 interface LandingViewProps {
   onNavigate: (view: string) => void;
