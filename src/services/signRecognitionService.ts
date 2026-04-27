@@ -26,12 +26,13 @@ export interface SignPattern {
 
 // URLs de tus modelos en Hugging Face
 const MODEL_URLS: Record<string, string> = {
-  alphabet: "https://huggingface.co",
-  colors: "https://huggingface.co",
-  design: "https://huggingface.co",
-  office: "https://huggingface.co",
-  greetings: "https://huggingface.co"
+  "Abecedario": "https://huggingface.co",
+  "Colores": "https://huggingface.co",
+  "Diseño": "https://huggingface.co",
+  "Oficina": "https://huggingface.co",
+  "Saludos": "https://huggingface.co"
 };
+
 
 export class SignRecognitionService {
   private patterns: Map<string, SignPattern> = new Map();
