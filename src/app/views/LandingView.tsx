@@ -4,6 +4,9 @@ import { Badge } from '../components/lsc/Badge';
 import { Bot, Target, BookOpen, Sparkles, Video, CheckCircle, Users, Award, GraduationCap } from 'lucide-react';
 import { motion } from 'motion/react';
 
+// 1. IMPORTACIÓN DEL LOGO (Vite gestionará la ruta correcta para GitHub)
+import logoPrincipal from '../assets/logo.png'; 
+
 interface LandingViewProps {
   onNavigate: (view: string) => void;
 }
@@ -63,10 +66,10 @@ export function LandingView({ onNavigate }: LandingViewProps) {
               </span>
             </div>
 
-            {/* LOGO PRINCIPAL */}
+            {/* 2. REEMPLAZO DEL TEXTO POR EL LOGO IMPORTADO */}
             <div className="flex justify-center mb-6">
               <img 
-                src="/logo.png" 
+                src={logoPrincipal} 
                 alt="Logo Manos Abiertas" 
                 className="h-28 sm:h-36 lg:h-48 w-auto object-contain" 
               />
@@ -164,7 +167,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                     <p className="text-[var(--color-text-secondary)] mb-6 leading-relaxed">
                       {feature.description}
                     </p>
-                    <ul className="space-y-2">
+                    <ul className="space-y-2 mb-8">
                       {feature.highlights.map((h, i) => (
                         <li key={i} className="flex items-center gap-2 text-sm font-medium text-[var(--color-text-primary)]">
                           <CheckCircle size={16} className="text-green-500" />
@@ -174,7 +177,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                     </ul>
                     <Button 
                       variant="primary" 
-                      className="w-full mt-8" 
+                      className="w-full" 
                       onClick={() => onNavigate(feature.id)}
                     >
                       Explorar módulo
