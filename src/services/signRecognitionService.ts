@@ -24,13 +24,13 @@ export interface SignPattern {
   pattern?: (landmarks: HandLandmarks[]) => number;
 }
 
-// URLs de tus modelos en Hugging Face
+// Rutas locales a los archivos ONNX (Deben estar en public/models/)
 const MODEL_URLS: Record<string, string> = {
-  "Abecedario": "https://huggingface.co",
-  "Colores": "https://huggingface.co",
-  "Diseño": "https://huggingface.co",
-  "Oficina": "https://huggingface.co",
-  "Saludos": "https://huggingface.co"
+  "Abecedario": "/models/alphabet.onnx",
+  "Colores": "/models/colors.onnx",
+  "Diseño": "/models/design.onnx",
+  "Oficina": "/models/office.onnx",
+  "Saludos": "/models/greetings.onnx"
 };
 
 
@@ -85,10 +85,10 @@ export class SignRecognitionService {
       const url = MODEL_URLS[category];
       if (!url) throw new Error(`La categoría ${category} no tiene un modelo asignado.`);
 
-      console.log(`Cargando modelo IA para ${category}...`);
+      console.log(`Cargando modelo IA local para ${category} desde: ${url}`);
       this.session = await ort.InferenceSession.create(url);
       this.currentCategory = category;
-      console.log("Modelo ONNX cargado exitosamente desde Hugging Face.");
+      console.log("Modelo ONNX cargado exitosamente.");
     } catch (error) {
       console.error("Error al cargar el modelo de IA:", error);
     }
