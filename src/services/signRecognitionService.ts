@@ -25,12 +25,13 @@ export interface SignPattern {
 }
 
 // Rutas locales a los archivos ONNX (Deben estar en public/models/)
+const BASE_URL = import.meta.env.BASE_URL;
 const MODEL_URLS: Record<string, string> = {
-  "Abecedario": "/models/alphabet.onnx",
-  "Colores": "/models/colors.onnx",
-  "Diseño": "/models/design.onnx",
-  "Oficina": "/models/office.onnx",
-  "Saludos": "/models/greetings.onnx"
+  "Abecedario": `${BASE_URL}models/alphabet.onnx`,
+  "Colores": `${BASE_URL}models/colors.onnx`,
+  "Diseño": `${BASE_URL}models/design.onnx`,
+  "Oficina": `${BASE_URL}models/office.onnx`,
+  "Saludos": `${BASE_URL}models/greetings.onnx`
 };
 
 
