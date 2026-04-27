@@ -1,6 +1,6 @@
 export const LSC_VOCABULARY = {
   Abecedario: [
-    { label: "A", url: "https://github.com/user-attachments/assets/fb08ab28-c31f-450c-86ba-8591d623d288" },
+    { label: "A", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/A00_FINAL.mp4" },
     { label: "B", url: "https://github.com/user-attachments/assets/edf93026-218a-4e4b-b576-d882321bf8f2" },
     { label: "C", url: "https://github.com/user-attachments/assets/d4d5c8c9-8d54-4809-b487-f010f9128bfd" },
     { label: "D", url: "https://github.com/user-attachments/assets/975b3060-21fe-4bf3-b823-ba69098f3e25" },
