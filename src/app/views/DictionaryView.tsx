@@ -28,6 +28,19 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
     return acc;
   }, {} as Record<string, number>);
 
+  // Mapeo para mostrar nombres en español en las etiquetas de los recuadros
+  const getCategoryLabel = (category: string) => {
+    const labels: Record<string, string> = {
+      'colors': 'Colores',
+      'alphabet': 'Abecedario',
+      'greetings': 'Saludos',
+      'office': 'Oficina',
+      'design': 'Diseño',
+      'all': 'Todas'
+    };
+    return labels[category] || category;
+  };
+
   const categories = [
     { id: 'all', label: 'Todas', count: allSigns.length, emoji: '📚' },
     { id: 'colors', label: 'Colores', count: categoryCounts['colors'] || 0, emoji: '🎨' },
@@ -65,6 +78,7 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
 
   return (
     <div className="h-[calc(100vh-5rem)] flex flex-col overflow-hidden bg-[var(--color-neutral-50)]">
+      {/* Header */}
       <div className="flex-shrink-0 px-4 sm:px-6 py-4 border-b border-[var(--color-neutral-200)] bg-white shadow-sm">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-4">
@@ -105,6 +119,7 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
         </div>
       </div>
 
+      {/* Grid de Señas */}
       <div className="flex-1 overflow-auto p-4 sm:p-6">
         <div className="max-w-6xl mx-auto">
           {filteredSigns.length > 0 ? (
@@ -122,7 +137,11 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
                     </div>
                     <CardBody className="p-3">
                       <h3 className="font-bold text-[var(--color-text-primary)] text-sm mb-2 truncate uppercase">{sign.name}</h3>
-                      <Badge variant={getDifficultyColor(sign.difficulty)} className="text-[10px] uppercase tracking-tighter">{sign.difficulty}</Badge>
+                      {/* ETIQUETA TRADUCIDA */}
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant="neutral" className="text-[9px] uppercase">{getCategoryLabel(sign.category)}</Badge>
+                        <Badge variant={getDifficultyColor(sign.difficulty)} className="text-[9px] uppercase">{sign.difficulty}</Badge>
+                      </div>
                     </CardBody>
                   </Card>
                 </motion.div>
@@ -134,6 +153,7 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
         </div>
       </div>
 
+      {/* Modal de Detalle */}
       <AnimatePresence>
         {selectedSign && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -148,17 +168,13 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
                     <video
                       key={selectedSign.videoUrl}
                       src={selectedSign.videoUrl}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      controls
+                      autoPlay loop muted playsInline controls
                       className="w-full h-full object-contain"
                     />
                   ) : (
                     <div className="text-white text-center p-10">
                       <Play size={48} className="mx-auto mb-4 opacity-20" />
-                      <p className="text-sm opacity-60">Video cargando...</p>
+                      <p className="text-sm opacity-60">Cargando video de Hugging Face...</p>
                     </div>
                   )}
                 </div>
@@ -166,13 +182,13 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
                   <div className="mb-6">
                     <div className="flex items-center gap-2 mb-3">
                       <span className="text-2xl">{getCategoryEmoji(selectedSign.category)}</span>
-                      <Badge variant="accent" className="uppercase tracking-widest text-[10px]">{selectedSign.category}</Badge>
+                      <Badge variant="accent" className="uppercase tracking-widest text-[10px]">{getCategoryLabel(selectedSign.category)}</Badge>
                     </div>
                     <h2 className="text-3xl font-black text-[var(--color-neutral-900)] uppercase mb-2">{selectedSign.name}</h2>
                     <Badge variant={getDifficultyColor(selectedSign.difficulty)}>{selectedSign.difficulty}</Badge>
                   </div>
                   <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed mb-8">
-                    Observa detenidamente la forma de la mano y el movimiento. Esta seña es fundamental para el contexto de {selectedSign.category}.
+                    Observa el movimiento y la configuración manual. Esta seña es parte del vocabulario de {getCategoryLabel(selectedSign.category).toLowerCase()}.
                   </p>
                   <button className="w-full py-4 bg-[var(--color-primary-600)] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-[var(--color-primary-700)] transition-all shadow-xl active:scale-95">
                     <Hand size={20} /> Practicar con Cámara
