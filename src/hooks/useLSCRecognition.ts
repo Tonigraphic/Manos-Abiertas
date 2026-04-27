@@ -17,13 +17,20 @@ export function useLSCRecognition() {
     handsDetected: 0,
   });
 
-  // DIBUJO: Ahora solo dibuja los puntos, no el video (el video se ve por sí solo)
+  // DIBUJO: Solo dibuja los puntos, el video se ve por sí solo en el HTML
   const onResults = useCallback((results: Results) => {
     const canvas = canvasRef.current;
-    if (!canvas || !isActiveRef.current) return;
+    const video = videoRef.current;
+    if (!canvas || !video || !isActiveRef.current) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // Ajuste de tamaño del lienzo al video real
+    if (canvas.width !== video.videoWidth) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -31,8 +38,7 @@ export function useLSCRecognition() {
       setState(prev => ({ ...prev, handsDetected: results.multiHandLandmarks.length }));
       
       for (const landmarks of results.multiHandLandmarks) {
-        // Dibujamos solo los puntos naranjas sobre la mano
-        ctx.fillStyle = '#f97316';
+        ctx.fillStyle = '#f97316'; // Puntos naranjas
         for (const point of landmarks) {
           ctx.beginPath();
           ctx.arc(point.x * canvas.width, point.y * canvas.height, 4, 0, 2 * Math.PI);
@@ -40,11 +46,11 @@ export function useLSCRecognition() {
         }
       }
 
-      // Procesar con IA
+      // Enviar a la IA
       const extracted = handDetectionService.extractLandmarks(results);
       if (extracted.length > 0) {
-        signRecognitionService.predict(extracted).then(recognized => {
-          if (recognized && recognized.confidence > 0.75) {
+        signRecognitionService.predict(extracted[0]).then(recognized => {
+          if (recognized && recognized.confidence > 0.7) {
             setState(prev => ({
               ...prev,
               currentSign: recognized,
@@ -60,31 +66,21 @@ export function useLSCRecognition() {
 
   const startRecognition = async (category: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
     try {
-      // 1. Iniciar cámara primero (más rápido)
+      // 1. Cargar el modelo ONNX
+      await signRecognitionService.loadModel(category);
+
+      // 2. Pedir cámara con configuración estándar
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720 }
+        video: { width: { ideal: 640 }, height: { ideal: 480 } } // Resolución baja para fluidez
       });
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        // Esperamos a que el video realmente tenga imagen
-        await new Promise((resolve) => {
-          if (!videoRef.current) return;
-          videoRef.current.onloadeddata = () => {
-            if (canvasRef.current && videoRef.current) {
-              canvasRef.current.width = videoRef.current.videoWidth;
-              canvasRef.current.height = videoRef.current.videoHeight;
-            }
-            resolve(true);
-          };
-        });
         await videoRef.current.play();
       }
 
-      // 2. Cargar IA mientras la cámara ya se ve
-      await signRecognitionService.loadModel(category);
+      // 3. Iniciar MediaPipe
       await handDetectionService.initialize();
       handDetectionService.onResults(onResults);
 
@@ -92,8 +88,8 @@ export function useLSCRecognition() {
       setState(prev => ({ ...prev, isActive: true, isLoading: false }));
 
       const run = async () => {
-        if (!isActiveRef.current) return;
-        if (videoRef.current?.readyState === 4) {
+        if (!isActiveRef.current || !videoRef.current) return;
+        if (videoRef.current.readyState === 4) {
           await handDetectionService.detectHands(videoRef.current);
         }
         requestAnimationFrame(run);
@@ -101,8 +97,8 @@ export function useLSCRecognition() {
       run();
 
     } catch (err) {
-      console.error(err);
-      setState(prev => ({ ...prev, error: "Error de acceso", isLoading: false }));
+      console.error("Error cámara:", err);
+      setState(prev => ({ ...prev, error: "No se pudo activar la cámara", isLoading: false }));
     }
   };
 
