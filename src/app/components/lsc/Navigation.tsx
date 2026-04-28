@@ -1,13 +1,15 @@
 import { Home, Bot, Target, BookOpen } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 
 // Importaciones con la profundidad de ruta correcta para tu estructura de carpetas
 import logoPrincipal from '../../../assets/logo.png';
 import iconoProyecto from '../../../assets/icon.png';
 
-export function DesktopNavbar() {
-  const pathname = usePathname();
+interface NavigationProps {
+  currentView: string;
+  onNavigate: (view: string) => void;
+}
+
+export function DesktopNavbar({ currentView, onNavigate }: NavigationProps) {
   const navItems = [
     { id: '/', label: 'Inicio', icon: Home },
     { id: '/asistente', label: 'Asistente', icon: Bot },
@@ -21,9 +23,9 @@ export function DesktopNavbar() {
         <div className="flex items-center justify-between h-16 md:h-20">
           
           {/* SECCIÓN DE MARCA: AJUSTADA PARA MÓVIL */}
-          <Link 
-            href="/"
-            className="flex items-center gap-2 md:gap-3 hover:opacity-80 transition-opacity flex-shrink-0"
+          <div 
+            className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+            onClick={() => onNavigate('home')}
           >
             {/* El Icono: Visible siempre (Laptop y Móvil) */}
             <img 
@@ -43,17 +45,17 @@ export function DesktopNavbar() {
                 Universidad de Nariño
               </p>
             </div>
-          </Link>
+          </div>
 
           {/* Menú de Navegación Superior */}
           <div className="flex gap-1 md:gap-2">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.id;
+              const isActive = currentView === item.id;
               return (
-                <Link
+                <button
                   key={item.id}
-                  href={item.id}
+                  onClick={() => onNavigate(item.id)}
                   className={`
                     flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-medium transition-all duration-150 text-sm
                     ${isActive
@@ -65,7 +67,7 @@ export function DesktopNavbar() {
                   <Icon size={18} />
                   {/* El texto desaparece en pantallas muy pequeñas para evitar el scroll lateral */}
                   <span className="hidden sm:inline">{item.label}</span>
-                </Link>
+                </button>
               );
             })}
           </div>
