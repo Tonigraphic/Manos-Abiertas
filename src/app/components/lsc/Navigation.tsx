@@ -1,20 +1,18 @@
 import { Home, Bot, Target, BookOpen } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 // Importaciones con la profundidad de ruta correcta para tu estructura de carpetas
 import logoPrincipal from '../../../assets/logo.png';
 import iconoProyecto from '../../../assets/icon.png';
 
-interface NavigationProps {
-  currentView: string;
-  onNavigate: (view: string) => void;
-}
-
-export function DesktopNavbar({ currentView, onNavigate }: NavigationProps) {
+export function DesktopNavbar() {
+  const pathname = usePathname();
   const navItems = [
-    { id: 'home', label: 'Inicio', icon: Home },
-    { id: 'assistant', label: 'Asistente', icon: Bot },
-    { id: 'practice', label: 'Práctica', icon: Target },
-    { id: 'dictionary', label: 'Diccionario', icon: BookOpen },
+    { id: '/', label: 'Inicio', icon: Home },
+    { id: '/asistente', label: 'Asistente', icon: Bot },
+    { id: '/practica', label: 'Práctica', icon: Target },
+    { id: '/diccionario', label: 'Diccionario', icon: BookOpen },
   ];
 
   return (
@@ -23,9 +21,9 @@ export function DesktopNavbar({ currentView, onNavigate }: NavigationProps) {
         <div className="flex items-center justify-between h-16 md:h-20">
           
           {/* SECCIÓN DE MARCA: AJUSTADA PARA MÓVIL */}
-          <div 
-            className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
-            onClick={() => onNavigate('home')}
+          <Link 
+            href="/"
+            className="flex items-center gap-2 md:gap-3 hover:opacity-80 transition-opacity flex-shrink-0"
           >
             {/* El Icono: Visible siempre (Laptop y Móvil) */}
             <img 
@@ -45,17 +43,17 @@ export function DesktopNavbar({ currentView, onNavigate }: NavigationProps) {
                 Universidad de Nariño
               </p>
             </div>
-          </div>
+          </Link>
 
           {/* Menú de Navegación Superior */}
           <div className="flex gap-1 md:gap-2">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = currentView === item.id;
+              const isActive = pathname === item.id;
               return (
-                <button
+                <Link
                   key={item.id}
-                  onClick={() => onNavigate(item.id)}
+                  href={item.id}
                   className={`
                     flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-medium transition-all duration-150 text-sm
                     ${isActive
@@ -67,7 +65,7 @@ export function DesktopNavbar({ currentView, onNavigate }: NavigationProps) {
                   <Icon size={18} />
                   {/* El texto desaparece en pantallas muy pequeñas para evitar el scroll lateral */}
                   <span className="hidden sm:inline">{item.label}</span>
-                </button>
+                </Link>
               );
             })}
           </div>
