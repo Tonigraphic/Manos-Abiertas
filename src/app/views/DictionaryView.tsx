@@ -3,17 +3,15 @@ import { Card, CardBody } from '../components/lsc/Card';
 import { Input } from '../components/lsc/Input';
 import { Badge } from '../components/lsc/Badge';
 import { EmptyState } from '../components/lsc/LoadingState';
-import { BackToHome } from '../components/lsc/BackToHome';
 import { Search, BookOpen, Play, X, Hand } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { signRecognitionService, SignPattern } from '../../services/signRecognitionService';
 
 interface DictionaryViewProps {
-  onNavigateHome?: () => void;
   onNavigate?: (view: string) => void;
 }
 
-export function DictionaryView({ onNavigateHome, onNavigate }: DictionaryViewProps = {}) {
+export function DictionaryView({ onNavigate }: DictionaryViewProps = {}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSign, setSelectedSign] = useState<SignPattern | null>(null);
@@ -89,7 +87,6 @@ export function DictionaryView({ onNavigateHome, onNavigate }: DictionaryViewPro
                 <Badge variant="accent">{allSigns.length} señas</Badge>
               </div>
             </motion.div>
-            {onNavigateHome && <BackToHome onClick={onNavigateHome} />}
           </div>
 
           <div className="mb-4">
