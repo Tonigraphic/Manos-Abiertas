@@ -1,7 +1,15 @@
 /**
  * Sign Recognition Service - Manos Abiertas LSC
- * Carga modelos ONNX y ejecuta inferencia en tiempo real sobre secuencias
- * de landmarks de manos (30 frames × 63 features).
+ * Carga modelos ONNX (Holistic LSTM) y ejecuta inferencia en tiempo real.
+ *
+ * Estructura del modelo (MediaPipe Holistic + Keras LSTM):
+ *   Input:  [1, 30, 1662]  →  1 batch, 30 frames, 1662 features/frame
+ *   Features por frame (1662 total):
+ *     - Pose:      33 landmarks × 4 (x, y, z, visibility) = 132
+ *     - Face:     468 landmarks × 3 (x, y, z)             = 1404
+ *     - Left hand:  21 landmarks × 3 (x, y, z)            = 63
+ *     - Right hand: 21 landmarks × 3 (x, y, z)            = 63
+ *   Output: probabilidades por clase (softmax)
  */
 
 import * as ort from 'onnxruntime-web';
@@ -11,7 +19,7 @@ ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/di
 ort.env.wasm.numThreads = 1;
 ort.env.wasm.proxy = false;
 
-import { HandLandmarks } from './handDetectionService';
+import { HolisticLandmarks } from './handDetectionService';
 import { LSC_VOCABULARY } from '../lib/lscData';
 
 // ── Interfaces ─────────────────────────────────────────────────────────
@@ -29,24 +37,35 @@ export interface SignPattern {
   difficulty: 'Fácil' | 'Intermedio' | 'Avanzado';
   requiredHands: 1 | 2;
   videoUrl?: string;
-  pattern?: (landmarks: HandLandmarks[]) => number;
 }
 
 // ── Constantes del modelo ──────────────────────────────────────────────
-const SEQUENCE_LENGTH = 30;       // Frames que el modelo espera
-const LANDMARKS_PER_HAND = 21;    // Puntos de referencia por mano
-const COORDS_PER_LANDMARK = 3;    // x, y, z
-const FEATURES_PER_FRAME = LANDMARKS_PER_HAND * COORDS_PER_LANDMARK; // 63
-const TOTAL_INPUT_SIZE = SEQUENCE_LENGTH * FEATURES_PER_FRAME;        // 1890
-const CONFIDENCE_THRESHOLD = 0.80; // Solo mostrar si la IA está ≥80% segura
+const SEQUENCE_LENGTH = 30;
+const POSE_LANDMARKS = 33;
+const POSE_COORDS = 4;           // x, y, z, visibility
+const FACE_LANDMARKS = 468;
+const HAND_LANDMARKS = 21;
+const LANDMARK_COORDS = 3;       // x, y, z
 
-// ── Etiquetas por categoría (orden = salida del modelo) ────────────────
+const FEATURES_PER_FRAME =
+  (POSE_LANDMARKS * POSE_COORDS) +       // 132
+  (FACE_LANDMARKS * LANDMARK_COORDS) +    // 1404
+  (HAND_LANDMARKS * LANDMARK_COORDS) +    // 63 (left hand)
+  (HAND_LANDMARKS * LANDMARK_COORDS);     // 63 (right hand)
+  // Total: 1662
+
+const TOTAL_INPUT_SIZE = SEQUENCE_LENGTH * FEATURES_PER_FRAME; // 49860
+const CONFIDENCE_THRESHOLD = 0.75;
+
+// ── Etiquetas por categoría ────────────────────────────────────────────
 const CATEGORY_LABELS: Record<string, string[]> = {};
 Object.entries(LSC_VOCABULARY).forEach(([category, signs]) => {
-  CATEGORY_LABELS[category] = signs.map(s => s.label);
+  // .sort() es crítico porque Python asigna los índices de clase
+  // en orden alfabético (ej. Ñ va después de la Z por su código Unicode)
+  CATEGORY_LABELS[category] = signs.map(s => s.label).sort();
 });
 
-// ── Rutas a los modelos ONNX en public/models/ ────────────────────────
+// ── Rutas a modelos ────────────────────────────────────────────────────
 const BASE_URL = import.meta.env.BASE_URL;
 const MODEL_URLS: Record<string, string> = {
   "Abecedario": `${BASE_URL}models/alphabet.onnx`,
@@ -64,7 +83,7 @@ export class SignRecognitionService {
   private inputName: string = '';
   private outputName: string = '';
   private frameBuffer: Float32Array[] = [];
-  private isPredicting = false; // Evitar inferencias simultáneas
+  private isPredicting = false;
 
   constructor() {
     this.initializePatterns();
@@ -73,11 +92,8 @@ export class SignRecognitionService {
   private initializePatterns(): void {
     Object.entries(LSC_VOCABULARY).forEach(([category, signs]) => {
       const catIdMap: Record<string, string> = {
-        'Abecedario': 'alphabet',
-        'Colores': 'colors',
-        'Saludos': 'greetings',
-        'Oficina': 'office',
-        'Diseño': 'design'
+        'Abecedario': 'alphabet', 'Colores': 'colors',
+        'Saludos': 'greetings', 'Oficina': 'office', 'Diseño': 'design'
       };
       const categoryId = catIdMap[category] || 'all';
 
@@ -89,31 +105,25 @@ export class SignRecognitionService {
           difficulty: categoryId === 'office' || categoryId === 'design' ? 'Intermedio' : 'Fácil',
           requiredHands: 1,
           videoUrl: sign.url,
-          pattern: () => 0
         });
       });
     });
-    console.log(`Servicio LSC: ${this.patterns.size} señas cargadas en el diccionario.`);
+    console.log(`Servicio LSC: ${this.patterns.size} señas cargadas.`);
   }
 
-  /**
-   * Carga el modelo ONNX correspondiente a una categoría
-   */
   public async loadModel(category: string): Promise<void> {
     if (this.currentCategory === category && this.session) return;
 
     try {
       const url = MODEL_URLS[category];
-      if (!url) throw new Error(`La categoría ${category} no tiene un modelo asignado.`);
+      if (!url) throw new Error(`Categoría ${category} sin modelo`);
 
-      console.log(`Cargando modelo IA para "${category}"...`);
-
-      // Descargar como ArrayBuffer para evitar problemas de MIME type
+      console.log(`Cargando modelo Holistic para "${category}"...`);
       const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status} al descargar el modelo`);
-      const modelBuffer = await response.arrayBuffer();
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const buffer = await response.arrayBuffer();
 
-      this.session = await ort.InferenceSession.create(modelBuffer, {
+      this.session = await ort.InferenceSession.create(buffer, {
         executionProviders: ['wasm'],
       });
 
@@ -123,9 +133,9 @@ export class SignRecognitionService {
       this.frameBuffer = [];
       this.isPredicting = false;
 
-      console.log(`✓ Modelo ONNX cargado: input="${this.inputName}" [1,${SEQUENCE_LENGTH},${FEATURES_PER_FRAME}], output="${this.outputName}"`);
+      console.log(`✓ Modelo cargado: "${this.inputName}" [1,${SEQUENCE_LENGTH},${FEATURES_PER_FRAME}] → "${this.outputName}"`);
     } catch (error) {
-      console.error("Error al cargar el modelo de IA:", error);
+      console.error("Error al cargar modelo:", error);
       this.session = null;
       this.currentCategory = null;
     }
@@ -136,102 +146,128 @@ export class SignRecognitionService {
   }
 
   /**
-   * Agrega un frame de landmarks al buffer y predice cuando hay 30 frames.
-   *
-   * IMPORTANTE según especificación del modelo:
-   * - Los landmarks deben ser valores normalizados de MediaPipe (0.0 a 1.0)
-   * - NO se deben multiplicar por ancho/alto del canvas
-   * - El modelo fue entrenado con right_hand_landmarks
-   * - Si se detecta mano izquierda, se flipea el eje X
+   * Construye un frame de 1662 features a partir de los datos de MediaPipe Holistic.
+   * Orden: pose(132) + face(1404) + leftHand(63) + rightHand(63)
    */
-  public async predict(hand: HandLandmarks): Promise<RecognizedSign | null> {
+  private buildFrame(holistic: HolisticLandmarks): Float32Array {
+    const frame = new Float32Array(FEATURES_PER_FRAME);
+    let offset = 0;
+
+    // 1. Pose: 33 landmarks × 4 (x, y, z, visibility)
+    for (let i = 0; i < POSE_LANDMARKS; i++) {
+      if (holistic.pose && i < holistic.pose.length) {
+        frame[offset + 0] = holistic.pose[i][0]; // x
+        frame[offset + 1] = holistic.pose[i][1]; // y
+        frame[offset + 2] = holistic.pose[i][2]; // z
+        frame[offset + 3] = holistic.pose[i][3] ?? 0; // visibility
+      }
+      offset += POSE_COORDS;
+    }
+
+    // 2. Face: 468 landmarks × 3 (x, y, z)
+    for (let i = 0; i < FACE_LANDMARKS; i++) {
+      if (holistic.face && i < holistic.face.length) {
+        frame[offset + 0] = holistic.face[i][0];
+        frame[offset + 1] = holistic.face[i][1];
+        frame[offset + 2] = holistic.face[i][2];
+      }
+      offset += LANDMARK_COORDS;
+    }
+
+    // 3. Left hand: 21 landmarks × 3 (x, y, z)
+    for (let i = 0; i < HAND_LANDMARKS; i++) {
+      if (holistic.leftHand && i < holistic.leftHand.length) {
+        frame[offset + 0] = holistic.leftHand[i][0];
+        frame[offset + 1] = holistic.leftHand[i][1];
+        frame[offset + 2] = holistic.leftHand[i][2];
+      }
+      offset += LANDMARK_COORDS;
+    }
+
+    // 4. Right hand: 21 landmarks × 3 (x, y, z)
+    for (let i = 0; i < HAND_LANDMARKS; i++) {
+      if (holistic.rightHand && i < holistic.rightHand.length) {
+        frame[offset + 0] = holistic.rightHand[i][0];
+        frame[offset + 1] = holistic.rightHand[i][1];
+        frame[offset + 2] = holistic.rightHand[i][2];
+      }
+      offset += LANDMARK_COORDS;
+    }
+
+    return frame;
+  }
+
+  /**
+   * Agrega un frame holístico al buffer y predice al completar 30 frames.
+   * Input: [1, 30, 1662] — todos los landmarks de MediaPipe Holistic.
+   */
+  public async predictHolistic(holistic: HolisticLandmarks): Promise<RecognizedSign | null> {
     if (!this.session || !this.currentCategory || this.isPredicting) return null;
 
-    // 1. Extraer 63 valores brutos normalizados (NO multiplicar por canvas)
-    const frame = new Float32Array(FEATURES_PER_FRAME);
-    for (let i = 0; i < Math.min(hand.landmarks.length, LANDMARKS_PER_HAND); i++) {
-      let x = hand.landmarks[i][0]; // Valor normalizado 0.0 - 1.0
-      const y = hand.landmarks[i][1];
-      const z = hand.landmarks[i][2];
+    // 1. Construir frame de 1662 features
+    const frame = this.buildFrame(holistic);
 
-      // Si es mano izquierda, flipear X para simular mano derecha
-      // (el modelo fue entrenado solo con right_hand_landmarks)
-      if (hand.handedness === 'Left') {
-        x = 1.0 - x;
-      }
-
-      frame[i * 3 + 0] = x;
-      frame[i * 3 + 1] = y;
-      frame[i * 3 + 2] = z;
-    }
-
-    // 2. Sliding window: agregar frame, mantener máximo 30
+    // 2. Sliding window
     this.frameBuffer.push(frame);
     if (this.frameBuffer.length > SEQUENCE_LENGTH) {
-      this.frameBuffer.shift(); // Quitar el frame más viejo
+      this.frameBuffer.shift();
     }
 
-    // 3. Solo predecir cuando tenemos exactamente 30 frames
-    if (this.frameBuffer.length < SEQUENCE_LENGTH) {
-      return null;
-    }
+    // 3. Solo predecir con 30 frames completos
+    if (this.frameBuffer.length < SEQUENCE_LENGTH) return null;
 
     try {
       this.isPredicting = true;
 
-      // 4. Construir tensor [1, 30, 63] = Float32Array de 1890 números
-      const sequenceData = new Float32Array(TOTAL_INPUT_SIZE);
+      // 4. Tensor [1, 30, 1662]
+      const data = new Float32Array(TOTAL_INPUT_SIZE);
       for (let f = 0; f < SEQUENCE_LENGTH; f++) {
-        sequenceData.set(this.frameBuffer[f], f * FEATURES_PER_FRAME);
+        data.set(this.frameBuffer[f], f * FEATURES_PER_FRAME);
       }
-      const inputTensor = new ort.Tensor('float32', sequenceData, [1, SEQUENCE_LENGTH, FEATURES_PER_FRAME]);
+      const inputTensor = new ort.Tensor('float32', data, [1, SEQUENCE_LENGTH, FEATURES_PER_FRAME]);
 
-      // 5. Ejecutar inferencia
+      // 5. Inferencia
       const results = await this.session.run({ [this.inputName]: inputTensor });
-      const output = results[this.outputName];
-      const probabilities = output.data as Float32Array;
+      const probs = results[this.outputName].data as Float32Array;
 
       // 6. Argmax
-      let maxIdx = 0;
-      let maxVal = -Infinity;
-      for (let i = 0; i < probabilities.length; i++) {
-        if (probabilities[i] > maxVal) {
-          maxVal = probabilities[i];
-          maxIdx = i;
-        }
+      let maxIdx = 0, maxVal = -Infinity;
+      for (let i = 0; i < probs.length; i++) {
+        if (probs[i] > maxVal) { maxVal = probs[i]; maxIdx = i; }
       }
 
-      // 7. Softmax si son logits (fuera de rango 0-1)
+      // 7. Softmax si son logits
       let confidence = maxVal;
       if (maxVal > 1 || maxVal < 0) {
-        const maxLogit = Math.max(...Array.from(probabilities));
-        const exps = Array.from(probabilities).map(v => Math.exp(v - maxLogit));
-        const sumExps = exps.reduce((a, b) => a + b, 0);
-        confidence = exps[maxIdx] / sumExps;
+        const maxL = Math.max(...Array.from(probs));
+        const exps = Array.from(probs).map(v => Math.exp(v - maxL));
+        const sum = exps.reduce((a, b) => a + b, 0);
+        confidence = exps[maxIdx] / sum;
       }
 
-      // 8. Mapear índice a etiqueta
+      // 8. Threshold + label
       const labels = CATEGORY_LABELS[this.currentCategory];
-      if (!labels || maxIdx >= labels.length) return null;
+      if (!labels || maxIdx >= labels.length || confidence < CONFIDENCE_THRESHOLD) return null;
 
-      // 9. Aplicar threshold de confianza
-      if (confidence < CONFIDENCE_THRESHOLD) return null;
+      // Detectar qué mano(s) están presentes
+      const hasLeft = holistic.leftHand && holistic.leftHand.length > 0;
+      const hasRight = holistic.rightHand && holistic.rightHand.length > 0;
+      const handedness = hasLeft && hasRight ? 'Both' : hasRight ? 'Right' : 'Left';
 
       return {
         sign: labels[maxIdx],
         confidence,
         timestamp: Date.now(),
-        handedness: hand.handedness,
+        handedness: handedness as 'Left' | 'Right' | 'Both',
       };
     } catch (error) {
-      console.error("Error en la predicción:", error);
+      console.error("Error en predicción:", error);
       return null;
     } finally {
       this.isPredicting = false;
     }
   }
 
-  /** Número de frames acumulados en el buffer (para UI feedback) */
   public get bufferProgress(): number {
     return this.frameBuffer.length / SEQUENCE_LENGTH;
   }

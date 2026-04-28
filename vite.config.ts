@@ -17,18 +17,16 @@ export default defineConfig({
     },
   },
 
+  // Configuración del servidor local
+  server: {
+    port: 5173,      // Define el puerto fijo
+    strictPort: true, // Si el puerto está ocupado, no cambia a otro automáticamente
+    open: true,       // Abre el navegador automáticamente al iniciar
+  },
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 
-  // Configuración para Vercel
+  // Configuración para Vercel: La base debe ser '/' para que encuentre los assets en la raíz
   base: '/',
-
-  // ── Optimizaciones para ONNX Runtime ──────────────────────────────
-  optimizeDeps: {
-    exclude: ['onnxruntime-web'],  // No pre-bundlear, deja que resuelva dinámicamente
-  },
-
-  build: {
-    chunkSizeWarningLimit: 1000, // Los chunks de IA son grandes por naturaleza
-  },
 })

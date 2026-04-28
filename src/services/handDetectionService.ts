@@ -35,8 +35,8 @@ export class HandDetectionService {
         enableSegmentation: false,
         smoothSegmentation: false,
         refineFaceLandmarks: true,
-        minDetectionConfidence: 0.6,
-        minTrackingConfidence: 0.6,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5,
       });
 
       this.holistic.onResults((results) => {
@@ -95,7 +95,8 @@ export class HandDetectionService {
     return {
       leftHand: results.leftHandLandmarks?.map((l) => [l.x, l.y, l.z]),
       rightHand: results.rightHandLandmarks?.map((l) => [l.x, l.y, l.z]),
-      pose: results.poseLandmarks?.map((l) => [l.x, l.y, l.z]),
+      // El modelo espera 4 valores para pose: x, y, z, visibility
+      pose: results.poseLandmarks?.map((l) => [l.x, l.y, l.z, l.visibility || 0]),
       face: results.faceLandmarks?.map((l) => [l.x, l.y, l.z]),
       timestamp: Date.now()
     };

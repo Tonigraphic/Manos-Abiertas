@@ -4,8 +4,8 @@ import { signRecognitionService, RecognizedSign } from '../services/signRecognit
 import { Results } from '@mediapipe/holistic';
 
 // ── Configuración de rendimiento ───────────────────────────────────────
-// El modelo necesita ~30 frames para predecir. A 20fps → ~1.5s para primera predicción.
-const DETECTION_INTERVAL_MS = 50; // ~20 fps de detección MediaPipe
+// El modelo necesita ~30 frames para predecir. A 30fps → ~1s para primera predicción.
+const DETECTION_INTERVAL_MS = 33; // ~30 fps de detección MediaPipe para coincidir con el entrenamiento
 
 export function useLSCRecognition() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -81,8 +81,8 @@ export function useLSCRecognition() {
 
     drawLandmarks(ctx, results, canvas.width, canvas.height);
 
-    // Extraer landmarks (valores normalizados 0-1, SIN multiplicar por canvas)
-    const extracted = handDetectionService.extractLandmarks(results);
+    // Extraer landmarks holísticos (valores normalizados 0-1, SIN multiplicar por canvas)
+    const holisticData = handDetectionService.extractHolistic(results);
 
     // Actualizar conteo de manos y progreso del buffer
     setState(prev => ({
@@ -92,23 +92,17 @@ export function useLSCRecognition() {
     }));
 
     // Enviar CADA frame al servicio (sin throttle).
-    // El servicio maneja el buffer de 30 frames internamente.
-    if (extracted.length > 0) {
-      // Priorizar mano derecha (el modelo fue entrenado con right_hand_landmarks)
-      const rightHand = extracted.find(h => h.handedness === 'Right');
-      const hand = rightHand || extracted[0];
-
-      signRecognitionService.predict(hand).then(recognized => {
-        if (recognized) {
-          setState(prev => ({
-            ...prev,
-            currentSign: recognized,
-            bufferProgress: signRecognitionService.bufferProgress,
-            recognizedSigns: [recognized, ...prev.recognizedSigns.slice(0, 9)]
-          }));
-        }
-      });
-    }
+    // El servicio maneja el buffer de 30 frames internamente y arma el tensor de 1662 features.
+    signRecognitionService.predictHolistic(holisticData).then(recognized => {
+      if (recognized) {
+        setState(prev => ({
+          ...prev,
+          currentSign: recognized,
+          bufferProgress: signRecognitionService.bufferProgress,
+          recognizedSigns: [recognized, ...prev.recognizedSigns.slice(0, 9)]
+        }));
+      }
+    });
   }, [drawLandmarks]);
 
   // ── Iniciar reconocimiento ────────────────────────────────────────────
