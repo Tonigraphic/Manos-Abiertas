@@ -89,7 +89,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                 variant="primary"
                 size="lg"
                 onClick={() => onNavigate('assistant')}
-                className="w-full sm:w-auto px-8 py-6 text-lg font-bold shadow-xl hover:scale-105 transition-transform"
+                className="w-full sm:w-auto px-6 py-4 text-base sm:px-8 sm:py-6 sm:text-lg font-bold shadow-xl hover:scale-105 transition-transform"
               >
                 Probar Asistente
               </Button>
@@ -99,7 +99,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                 onClick={() => {
                   document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="w-full sm:w-auto border-2 border-[var(--color-neutral-300)] px-8 py-6 text-lg font-bold bg-white/50"
+                className="w-full sm:w-auto border-2 border-[var(--color-neutral-300)] px-6 py-4 text-base sm:px-8 sm:py-6 sm:text-lg font-bold bg-white/50"
               >
                 Ver Características
               </Button>
