@@ -20,6 +20,15 @@ export default defineConfig({
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 
-  // Configuración para Vercel: La base debe ser '/' para que encuentre los assets en la raíz
+  // Configuración para Vercel
   base: '/',
+
+  // ── Optimizaciones para ONNX Runtime ──────────────────────────────
+  optimizeDeps: {
+    exclude: ['onnxruntime-web'],  // No pre-bundlear, deja que resuelva dinámicamente
+  },
+
+  build: {
+    chunkSizeWarningLimit: 1000, // Los chunks de IA son grandes por naturaleza
+  },
 })
