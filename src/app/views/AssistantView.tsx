@@ -117,17 +117,17 @@ export function AssistantView({ onNavigateHome }: AssistantViewProps = {}) {
                   
                   {/* Overlay de Inicio */}
                   {!recState.isActive && !recState.isLoading && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900/90 text-white p-6 text-center z-20">
-                      <Camera size={48} className="mb-4 opacity-20" />
-                      <p className="mb-6 font-medium text-lg">Selecciona un vocabulario para iniciar</p>
-                      <div className="flex flex-wrap justify-center gap-3">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900/95 text-white p-4 sm:p-6 text-center z-20">
+                      <Camera size={32} className="mb-2 sm:mb-4 opacity-20" />
+                      <p className="mb-4 sm:mb-6 font-medium text-sm sm:text-lg">Selecciona un vocabulario para iniciar</p>
+                      <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-2 sm:gap-3 w-full max-w-md">
                         {['Abecedario', 'Colores', 'Saludos', 'Diseño', 'Oficina'].map(cat => (
                           <Button 
                             key={cat} 
                             variant="outline" 
-                            size="lg" 
+                            size="sm" 
                             onClick={() => startRecognition(cat)} 
-                            className="bg-white/10 hover:bg-white hover:text-black border-white/20 px-6 py-4 text-base font-bold transition-all"
+                            className="bg-white/10 hover:bg-white hover:text-black border-white/20 px-2 py-3 sm:px-6 sm:py-4 text-xs sm:text-base font-bold transition-all"
                           >
                             {cat}
                           </Button>

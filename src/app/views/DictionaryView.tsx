@@ -10,9 +10,10 @@ import { signRecognitionService, SignPattern } from '../../services/signRecognit
 
 interface DictionaryViewProps {
   onNavigateHome?: () => void;
+  onNavigate?: (view: string) => void;
 }
 
-export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
+export function DictionaryView({ onNavigateHome, onNavigate }: DictionaryViewProps = {}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSign, setSelectedSign] = useState<SignPattern | null>(null);
@@ -190,7 +191,10 @@ export function DictionaryView({ onNavigateHome }: DictionaryViewProps = {}) {
                   <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed mb-8">
                     Observa el movimiento y la configuración manual. Esta seña es parte del vocabulario de {getCategoryLabel(selectedSign.category).toLowerCase()}.
                   </p>
-                  <button className="w-full py-4 bg-[var(--color-primary-600)] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-[var(--color-primary-700)] transition-all shadow-xl active:scale-95">
+                  <button 
+                    onClick={() => onNavigate?.('assistant')}
+                    className="w-full py-4 bg-[var(--color-primary-600)] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-[var(--color-primary-700)] transition-all shadow-xl active:scale-95"
+                  >
                     <Hand size={20} /> Practicar con Cámara
                   </button>
                 </div>
