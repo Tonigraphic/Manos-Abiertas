@@ -16,7 +16,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   // Use SpeechRecognition API for Voice-to-Text
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  const SpeechRecognition = typeof window !== 'undefined' ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) : null;
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
