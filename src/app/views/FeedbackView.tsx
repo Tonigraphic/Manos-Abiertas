@@ -12,9 +12,16 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
   const [userType, setUserType] = useState<'oyente' | 'sordo' | null>(null);
   const [feedbackType, setFeedbackType] = useState<'general' | 'correction' | 'new_word'>('general');
   const [feedbackText, setFeedbackText] = useState('');
-  const [wordSuggestion, setWordSuggestion] = useState('');
-  const [gifFile, setGifFile] = useState<File | null>(null);
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -22,18 +29,17 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
     e.preventDefault();
     setIsSubmitting(true);
 
-    let gifBase64 = null;
-    let gifName = null;
+    let videoBase64 = null;
+    let videoName = null;
 
-    if (gifFile) {
-      // Convertir el archivo a Base64 para enviarlo a la API
+    if (recordedBlob) {
       const reader = new FileReader();
       const base64Promise = new Promise<string>((resolve) => {
         reader.onloadend = () => resolve(reader.result as string);
       });
-      reader.readAsDataURL(gifFile);
-      gifBase64 = await base64Promise;
-      gifName = gifFile.name;
+      reader.readAsDataURL(recordedBlob);
+      videoBase64 = await base64Promise;
+      videoName = `grabacion_${Date.now()}.webm`;
     }
 
     try {
@@ -43,10 +49,12 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
         body: JSON.stringify({
           userType,
           feedbackType,
+          userName,
+          userEmail,
           text: feedbackText,
           wordSuggestion,
-          gifBase64,
-          gifName
+          gifBase64: videoBase64,
+          gifName: videoName
         })
       });
 
@@ -67,8 +75,64 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
     setIsSubmitted(false);
     setFeedbackText('');
     setWordSuggestion('');
-    setGifFile(null);
+    setUserName('');
+    setUserEmail('');
+    setRecordedBlob(null);
     setUserType(null);
+    stopCamera();
+  };
+
+  const startCamera = async () => {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: true });
+      setStream(s);
+      if (videoRef.current) {
+        videoRef.current.srcObject = s;
+      }
+    } catch (err) {
+      alert("No se pudo acceder a la cámara.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      setStream(null);
+    }
+  };
+
+  const startRecording = () => {
+    if (!stream) return;
+    chunksRef.current = [];
+    const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+      setRecordedBlob(blob);
+    };
+    mediaRecorderRef.current = mediaRecorder;
+    mediaRecorder.start();
+    setIsRecording(true);
+    
+    // Auto-stop after 6 seconds to prevent huge files
+    setTimeout(() => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        stopRecording();
+      }
+    }, 6000);
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const retakeVideo = () => {
+    setRecordedBlob(null);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,8 +170,13 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
             {isSubmitted ? (
               <motion.div key="success" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center text-center py-20">
                 <CheckCircle2 size={80} className="text-green-500 mb-6" />
-                <h2 className="text-3xl font-bold text-neutral-800 mb-4">¡Gracias por tu aporte!</h2>
-                <p className="text-neutral-500 mb-8 max-w-md">Tu retroalimentación es vital para seguir mejorando la comunicación inclusiva en la Universidad.</p>
+                <h2 className="text-3xl font-bold text-neutral-800 mb-4">¡Gracias por tu aporte, {userName || 'compañero'}!</h2>
+                <p className="text-neutral-500 mb-4 max-w-md">Tu retroalimentación es vital para seguir mejorando la comunicación inclusiva en la Universidad.</p>
+                {userType === 'sordo' && (
+                  <div className="bg-yellow-100 text-yellow-800 p-4 rounded-xl mb-8 font-bold border border-yellow-200">
+                    🏆 ¡Has ganado +50 puntos de contribuidor por ayudar a la comunidad!
+                  </div>
+                )}
                 <Button onClick={resetForm} variant="outline" className="font-bold border-2">Enviar otra respuesta</Button>
               </motion.div>
             ) : (
@@ -194,21 +263,68 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
                             />
 
                             {userType === 'sordo' && (
-                              <div className="mt-4 p-4 border-2 border-dashed border-neutral-300 rounded-xl bg-neutral-50">
-                                <label className="flex flex-col items-center justify-center cursor-pointer text-neutral-500 hover:text-purple-600 transition-colors">
-                                  <Camera size={32} className="mb-2" />
-                                  <span className="font-bold text-sm">Adjuntar GIF de demostración</span>
-                                  <span className="text-xs text-neutral-400 mt-1">(Máximo 6 segundos / 5MB)</span>
+                              <div className="space-y-4 pt-4 border-t border-neutral-100">
+                                <label className="text-sm font-bold text-neutral-400 uppercase tracking-widest">Tus Datos (Para darte puntos)</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <input 
-                                    type="file" 
-                                    accept=".gif" 
-                                    onChange={handleFileChange} 
-                                    className="hidden" 
+                                    type="text" 
+                                    value={userName}
+                                    onChange={(e) => setUserName(e.target.value)}
+                                    placeholder="Tu Nombre"
+                                    className="w-full p-4 bg-neutral-50 border-2 rounded-xl focus:bg-white focus:border-purple-400 outline-none transition-colors border-neutral-100 text-neutral-800"
+                                    required
                                   />
-                                </label>
-                                {gifFile && (
-                                  <div className="mt-3 bg-purple-100 text-purple-700 p-2 rounded-lg text-xs font-bold text-center">
-                                    Archivo seleccionado: {gifFile.name}
+                                  <input 
+                                    type="email" 
+                                    value={userEmail}
+                                    onChange={(e) => setUserEmail(e.target.value)}
+                                    placeholder="Tu Correo (Opcional)"
+                                    className="w-full p-4 bg-neutral-50 border-2 rounded-xl focus:bg-white focus:border-purple-400 outline-none transition-colors border-neutral-100 text-neutral-800"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {userType === 'sordo' && (
+                              <div className="mt-4 p-4 border-2 border-neutral-200 rounded-xl bg-neutral-50 text-center">
+                                <h4 className="font-bold text-neutral-700 mb-2">Demostración en Video</h4>
+                                <p className="text-xs text-neutral-500 mb-4">Graba un clip corto (máximo 6 segundos) mostrando la seña correcta.</p>
+                                
+                                {!stream && !recordedBlob && (
+                                  <Button type="button" onClick={startCamera} variant="outline" className="mx-auto">
+                                    <Camera size={18} className="mr-2" /> Encender Cámara
+                                  </Button>
+                                )}
+
+                                {stream && !recordedBlob && (
+                                  <div className="flex flex-col items-center">
+                                    <div className="relative w-full max-w-sm rounded-lg overflow-hidden bg-black aspect-video mb-4 shadow-inner">
+                                      <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }}></video>
+                                      {isRecording && (
+                                        <div className="absolute top-2 right-2 flex items-center gap-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold animate-pulse">
+                                          <div className="w-2 h-2 bg-white rounded-full"></div> Grabando...
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex gap-2">
+                                      {isRecording ? (
+                                        <Button type="button" onClick={stopRecording} variant="error">Detener Grabación</Button>
+                                      ) : (
+                                        <Button type="button" onClick={startRecording} variant="primary">Iniciar Grabación</Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {recordedBlob && (
+                                  <div className="flex flex-col items-center">
+                                    <div className="w-full max-w-sm rounded-lg overflow-hidden bg-black aspect-video mb-4 shadow-inner">
+                                      <video src={URL.createObjectURL(recordedBlob)} controls className="w-full h-full object-cover"></video>
+                                    </div>
+                                    <div className="flex items-center gap-4 bg-green-100 text-green-800 px-4 py-2 rounded-lg font-bold text-sm mb-4">
+                                      <CheckCircle2 size={18} /> Video listo para enviar
+                                    </div>
+                                    <Button type="button" onClick={retakeVideo} variant="ghost" className="text-sm border-2">Volver a grabar</Button>
                                   </div>
                                 )}
                               </div>

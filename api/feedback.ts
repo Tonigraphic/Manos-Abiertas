@@ -12,7 +12,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { userType, feedbackType, text, wordSuggestion, gifBase64, gifName } = req.body;
+    const { userType, feedbackType, userName, userEmail, text, wordSuggestion, gifBase64, gifName } = req.body;
     
     // El token debe configurarse en Vercel > Settings > Environment Variables como HF_TOKEN
     const HF_TOKEN = process.env.HF_TOKEN;
@@ -32,6 +32,8 @@ export default async function handler(req: any, res: any) {
 
     // 1. Añadir el archivo de texto con la información de la sugerencia
     const reportText = `
+Nombre del Colaborador: ${userName || 'Anónimo'}
+Email: ${userEmail || 'No proporcionado'}
 Tipo de Usuario: ${userType}
 Tipo de Feedback: ${feedbackType}
 ${wordSuggestion ? `Sugerencia de Seña: ${wordSuggestion}\n` : ''}
