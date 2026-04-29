@@ -86,8 +86,22 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
   }, [recognitionState.recognizedSigns]);
 
   const handleStartExercise = async (exerciseId: string) => {
+    const exercise = exercises.find(ex => ex.id === exerciseId);
+    if (!exercise) return;
+    
     startExercise(exerciseId);
-    await startRecognition();
+    
+    // Map exercise category to ONNX Model URL category
+    const onnxCategoryMap: Record<string, string> = {
+      'alphabet': 'Abecedario',
+      'colors': 'Colores',
+      'greetings': 'Saludos',
+      'office': 'Oficina',
+      'design': 'Diseño'
+    };
+    
+    const onnxCat = onnxCategoryMap[exercise.category] || 'Abecedario';
+    await startRecognition(onnxCat);
   };
 
   const handleCancelExercise = () => {

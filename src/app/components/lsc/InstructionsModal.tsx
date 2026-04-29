@@ -13,15 +13,11 @@ export function InstructionsModal({ id, title, instructions }: InstructionsModal
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    // Check if the user has seen the instructions for this specific view
-    const hasSeen = localStorage.getItem(`has_seen_instructions_${id}`);
-    if (!hasSeen) {
-      setIsOpen(true);
-    }
+    // Show instructions every time the user accesses the view
+    setIsOpen(true);
   }, [id]);
 
   const handleClose = () => {
-    localStorage.setItem(`has_seen_instructions_${id}`, 'true');
     setIsOpen(false);
   };
 

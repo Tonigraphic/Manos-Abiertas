@@ -13,6 +13,7 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
   const [feedbackType, setFeedbackType] = useState<'general' | 'correction' | 'new_word'>('general');
   const [feedbackText, setFeedbackText] = useState('');
   const [wordSuggestion, setWordSuggestion] = useState('');
+  const [gifFile, setGifFile] = useState<File | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -27,7 +28,23 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
     setIsSubmitted(false);
     setFeedbackText('');
     setWordSuggestion('');
+    setGifFile(null);
     setUserType(null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.type === 'image/gif') {
+        if (file.size <= 5 * 1024 * 1024) { // Max 5MB aprox para 6s
+          setGifFile(file);
+        } else {
+          alert('El archivo es muy pesado. Por favor sube un GIF de máximo 5MB (aprox. 6 segundos).');
+        }
+      } else {
+        alert('Solo se permiten archivos en formato GIF.');
+      }
+    }
   };
 
   return (
@@ -136,6 +153,27 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
                               className="w-full h-32 p-4 bg-neutral-50 border-2 rounded-xl focus:bg-white focus:border-[var(--color-primary-400)] outline-none resize-none transition-colors border-neutral-100 text-neutral-800"
                               required
                             />
+
+                            {userType === 'sordo' && (
+                              <div className="mt-4 p-4 border-2 border-dashed border-neutral-300 rounded-xl bg-neutral-50">
+                                <label className="flex flex-col items-center justify-center cursor-pointer text-neutral-500 hover:text-purple-600 transition-colors">
+                                  <Camera size={32} className="mb-2" />
+                                  <span className="font-bold text-sm">Adjuntar GIF de demostración</span>
+                                  <span className="text-xs text-neutral-400 mt-1">(Máximo 6 segundos / 5MB)</span>
+                                  <input 
+                                    type="file" 
+                                    accept=".gif" 
+                                    onChange={handleFileChange} 
+                                    className="hidden" 
+                                  />
+                                </label>
+                                {gifFile && (
+                                  <div className="mt-3 bg-purple-100 text-purple-700 p-2 rounded-lg text-xs font-bold text-center">
+                                    Archivo seleccionado: {gifFile.name}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           <Button type="submit" className="w-full py-5 text-lg font-bold shadow-lg" variant={userType === 'sordo' ? 'primary' : 'primary'}>
