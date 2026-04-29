@@ -18,7 +18,7 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
   const [isRecording, setIsRecording] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -115,7 +115,7 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
     mediaRecorderRef.current = mediaRecorder;
     mediaRecorder.start();
     setIsRecording(true);
-    
+
     // Auto-stop after 6 seconds to prevent huge files
     setTimeout(() => {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -173,12 +173,12 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
               <motion.div key="form" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <Card className="border-none shadow-xl bg-white overflow-hidden">
                   <CardBody className="p-6 sm:p-8 space-y-8">
-                    
+
                     {/* Paso 1: Tipo de Usuario */}
                     <div className="space-y-4">
                       <label className="text-sm font-bold text-neutral-400 uppercase tracking-widest">Paso 1: ¿Cómo te identificas?</label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <button 
+                        <button
                           type="button"
                           onClick={() => { setUserType('oyente'); setFeedbackType('general'); }}
                           className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${userType === 'oyente' ? 'border-blue-500 bg-blue-50' : 'border-neutral-100 hover:border-blue-200'}`}
@@ -190,7 +190,7 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
                           </div>
                         </button>
 
-                        <button 
+                        <button
                           type="button"
                           onClick={() => { setUserType('sordo'); setFeedbackType('correction'); }}
                           className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${userType === 'sordo' ? 'border-purple-500 bg-purple-50' : 'border-neutral-100 hover:border-purple-200'}`}
@@ -207,9 +207,9 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
                     {/* Paso 2: Formulario dinámico */}
                     <AnimatePresence>
                       {userType && (
-                        <motion.form 
-                          initial={{ opacity: 0, height: 0 }} 
-                          animate={{ opacity: 1, height: 'auto' }} 
+                        <motion.form
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
                           className="space-y-6 pt-4 border-t border-neutral-100"
                           onSubmit={handleSubmit}
                         >
@@ -229,13 +229,13 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
 
                           <div className="space-y-4">
                             <label className="text-sm font-bold text-neutral-400 uppercase tracking-widest">
-                              {userType === 'oyente' ? 'Tus comentarios o sugerencias' : 
-                               (feedbackType === 'correction' ? '¿Qué seña debemos corregir y por qué?' : '¿Qué palabra nueva deberíamos agregar?')}
+                              {userType === 'oyente' ? 'Tus comentarios o sugerencias' :
+                                (feedbackType === 'correction' ? '¿Qué seña debemos corregir y por qué?' : '¿Qué palabra nueva deberíamos agregar?')}
                             </label>
-                            
+
                             {feedbackType === 'new_word' && (
-                              <input 
-                                type="text" 
+                              <input
+                                type="text"
                                 value={wordSuggestion}
                                 onChange={(e) => setWordSuggestion(e.target.value)}
                                 placeholder="Escribe la palabra (Ej. Universidad)"
@@ -256,16 +256,16 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
                               <div className="space-y-4 pt-4 border-t border-neutral-100">
                                 <label className="text-sm font-bold text-neutral-400 uppercase tracking-widest">Tus Datos (Para darte puntos)</label>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                  <input 
-                                    type="text" 
+                                  <input
+                                    type="text"
                                     value={userName}
                                     onChange={(e) => setUserName(e.target.value)}
                                     placeholder="Tu Nombre"
                                     className="w-full p-4 bg-neutral-50 border-2 rounded-xl focus:bg-white focus:border-purple-400 outline-none transition-colors border-neutral-100 text-neutral-800"
                                     required
                                   />
-                                  <input 
-                                    type="email" 
+                                  <input
+                                    type="email"
                                     value={userEmail}
                                     onChange={(e) => setUserEmail(e.target.value)}
                                     placeholder="Tu Correo (Opcional)"
@@ -279,7 +279,7 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
                               <div className="mt-4 p-4 border-2 border-neutral-200 rounded-xl bg-neutral-50 text-center">
                                 <h4 className="font-bold text-neutral-700 mb-2">Demostración en Video</h4>
                                 <p className="text-xs text-neutral-500 mb-4">Graba un clip corto (máximo 6 segundos) mostrando la seña correcta.</p>
-                                
+
                                 {!stream && !recordedBlob && (
                                   <Button type="button" onClick={startCamera} variant="outline" className="mx-auto">
                                     <Camera size={18} className="mr-2" /> Encender Cámara
