@@ -16,12 +16,51 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
   const [gifFile, setGifFile] = useState<File | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitted(true);
-    }, 500);
+    setIsSubmitting(true);
+
+    let gifBase64 = null;
+    let gifName = null;
+
+    if (gifFile) {
+      // Convertir el archivo a Base64 para enviarlo a la API
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onloadend = () => resolve(reader.result as string);
+      });
+      reader.readAsDataURL(gifFile);
+      gifBase64 = await base64Promise;
+      gifName = gifFile.name;
+    }
+
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userType,
+          feedbackType,
+          text: feedbackText,
+          wordSuggestion,
+          gifBase64,
+          gifName
+        })
+      });
+
+      if (response.ok) {
+        setIsSubmitted(true);
+      } else {
+        alert("Hubo un error enviando la retroalimentación. Inténtalo más tarde.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Error de conexión al enviar el formulario.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -176,8 +215,8 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
                             )}
                           </div>
 
-                          <Button type="submit" className="w-full py-5 text-lg font-bold shadow-lg" variant={userType === 'sordo' ? 'primary' : 'primary'}>
-                            <Send size={20} className="mr-2" /> Enviar Retroalimentación
+                          <Button type="submit" className="w-full py-5 text-lg font-bold shadow-lg" variant={userType === 'sordo' ? 'primary' : 'primary'} disabled={isSubmitting}>
+                            <Send size={20} className="mr-2" /> {isSubmitting ? 'Enviando...' : 'Enviar Retroalimentación'}
                           </Button>
                         </motion.form>
                       )}
