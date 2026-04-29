@@ -135,19 +135,9 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
     setRecordedBlob(null);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.type === 'image/gif') {
-        if (file.size <= 5 * 1024 * 1024) { // Max 5MB aprox para 6s
-          setGifFile(file);
-        } else {
-          alert('El archivo es muy pesado. Por favor sube un GIF de máximo 5MB (aprox. 6 segundos).');
-        }
-      } else {
-        alert('Solo se permiten archivos en formato GIF.');
-      }
-    }
+  const cancelVideo = () => {
+    setRecordedBlob(null);
+    stopCamera();
   };
 
   return (
@@ -324,7 +314,10 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
                                     <div className="flex items-center gap-4 bg-green-100 text-green-800 px-4 py-2 rounded-lg font-bold text-sm mb-4">
                                       <CheckCircle2 size={18} /> Video listo para enviar
                                     </div>
-                                    <Button type="button" onClick={retakeVideo} variant="ghost" className="text-sm border-2">Volver a grabar</Button>
+                                    <div className="flex gap-2">
+                                      <Button type="button" onClick={retakeVideo} variant="ghost" className="text-sm border-2">Reintentar</Button>
+                                      <Button type="button" onClick={cancelVideo} variant="ghost" className="text-sm text-red-500 hover:bg-red-50">Cancelar</Button>
+                                    </div>
                                   </div>
                                 )}
                               </div>
