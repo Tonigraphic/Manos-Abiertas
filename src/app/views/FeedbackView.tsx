@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
-import { MessageSquare, Ear, Hand, Send, CheckCircle2 } from 'lucide-react';
+import { MessageSquare, Ear, Hand, Send, CheckCircle2, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface FeedbackViewProps {
