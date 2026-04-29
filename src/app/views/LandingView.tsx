@@ -14,22 +14,22 @@ interface LandingViewProps {
 export function LandingView({ onNavigate }: LandingViewProps) {
   const features = [
     {
-      id: 'assistant',
-      title: 'Asistente Inteligente',
-      description: 'Reconocimiento en tiempo real de Lengua de Señas Colombiana para apoyo en clase',
+      id: 'translator',
+      title: 'Traductor a Glosa LSC',
+      description: 'Convierte texto o voz en español a la estructura gramatical de la Lengua de Señas Colombiana',
       icon: Bot,
       gradient: 'from-blue-500 to-blue-600',
       badge: 'Módulo Principal',
-      highlights: ['Colores', 'Abecedario', 'Oficina', 'Saludos'],
+      highlights: ['Traducción instantánea', 'Reconocimiento de voz', 'Síntesis de voz'],
     },
     {
-      id: 'practice',
-      title: 'Práctica Gamificada',
-      description: 'Sistema de puntos, rachas diarias y ejercicios progresivos para mejorar habilidades',
-      icon: Target,
-      gradient: 'from-orange-500 to-orange-600',
-      badge: 'Popular',
-      highlights: ['Sistema de puntos', 'Racha de días', 'Logros'],
+      id: 'assistant',
+      title: 'Reconocimiento LSC',
+      description: 'Reconocimiento en tiempo real de señas utilizando Inteligencia Artificial y la cámara de tu dispositivo',
+      icon: Video,
+      gradient: 'from-purple-500 to-purple-600',
+      badge: 'Innovación',
+      highlights: ['Detección en tiempo real', 'Precisión avanzada', 'Múltiples categorías'],
     },
     {
       id: 'dictionary',
@@ -39,6 +39,15 @@ export function LandingView({ onNavigate }: LandingViewProps) {
       gradient: 'from-green-500 to-green-600',
       badge: 'Complementario',
       highlights: ['Búsqueda avanzada', 'Categorización', 'Videos HD'],
+    },
+    {
+      id: 'practice',
+      title: 'Práctica Gamificada',
+      description: 'Sistema de puntos, rachas diarias y ejercicios progresivos para mejorar habilidades',
+      icon: Target,
+      gradient: 'from-orange-500 to-orange-600',
+      badge: 'Popular',
+      highlights: ['Sistema de puntos', 'Racha de días', 'Logros'],
     },
   ];
 
@@ -88,7 +97,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
               <Button
                 variant="primary"
                 size="lg"
-                onClick={() => onNavigate('assistant')}
+                onClick={() => onNavigate('translator')}
                 className="w-full sm:w-auto px-6 py-4 text-base sm:px-8 sm:py-6 sm:text-lg font-bold shadow-xl hover:scale-105 transition-transform"
               >
                 Probar Asistente
@@ -116,14 +125,14 @@ export function LandingView({ onNavigate }: LandingViewProps) {
               Módulos principales
             </Badge>
             <h2 className="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)] mb-4">
-              Tres formas de aprender y comunicar
+              Nuestras Herramientas
             </h2>
             <p className="text-lg text-[var(--color-text-secondary)] max-w-2xl mx-auto font-medium">
               Diseñamos una experiencia complementaria para fortalecer la inclusión académica en la Facultad de Artes.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {features.map((feature, index) => (
               <motion.div
                 key={feature.id}

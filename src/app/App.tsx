@@ -4,8 +4,9 @@ import { LandingView } from './views/LandingView';
 import { AssistantView } from './views/AssistantView';
 import { PracticeView } from './views/PracticeView';
 import { DictionaryView } from './views/DictionaryView';
+import { TranslatorView } from './views/TranslatorView';
 
-type View = 'home' | 'assistant' | 'practice' | 'dictionary';
+type View = 'home' | 'translator' | 'assistant' | 'practice' | 'dictionary';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<View>('home');
@@ -16,6 +17,8 @@ export default function App() {
     switch (currentView) {
       case 'home':
         return <LandingView onNavigate={(view) => setCurrentView(view as View)} />;
+      case 'translator':
+        return <TranslatorView onNavigateHome={navigateHome} />;
       case 'assistant':
         return <AssistantView onNavigateHome={navigateHome} />;
       case 'practice':

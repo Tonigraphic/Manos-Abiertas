@@ -1,4 +1,4 @@
-import { Home, Bot, Target, BookOpen } from 'lucide-react';
+import { Home, Bot, Target, BookOpen, Languages, Video } from 'lucide-react';
 
 // Importaciones con la profundidad de ruta correcta para tu estructura de carpetas
 import logoPrincipal from '../../../assets/logo.png';
@@ -11,10 +11,10 @@ interface NavigationProps {
 
 export function DesktopNavbar({ currentView, onNavigate }: NavigationProps) {
   const navItems = [
-    { id: '/', label: 'Inicio', icon: Home },
-    { id: '/asistente', label: 'Asistente', icon: Bot },
-    { id: '/practica', label: 'Práctica', icon: Target },
-    { id: '/diccionario', label: 'Diccionario', icon: BookOpen },
+    { id: 'translator', label: 'Traductor', icon: Languages },
+    { id: 'assistant', label: 'Asistente LSC', icon: Video },
+    { id: 'practice', label: 'Práctica', icon: Target },
+    { id: 'dictionary', label: 'Diccionario', icon: BookOpen },
   ];
 
   return (
@@ -80,7 +80,8 @@ export function DesktopNavbar({ currentView, onNavigate }: NavigationProps) {
 export function MobileBottomNav({ currentView, onNavigate }: NavigationProps) {
   const navItems = [
     { id: 'home', label: 'Inicio', icon: Home },
-    { id: 'assistant', label: 'Asistente', icon: Bot },
+    { id: 'translator', label: 'Traductor', icon: Languages },
+    { id: 'assistant', label: 'Asistente', icon: Video },
     { id: 'practice', label: 'Práctica', icon: Target },
     { id: 'dictionary', label: 'Diccionario', icon: BookOpen },
   ];

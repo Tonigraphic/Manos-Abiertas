@@ -6,6 +6,7 @@ import { EmptyState } from '../components/lsc/LoadingState';
 import { Search, BookOpen, Play, X, Hand } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { signRecognitionService, SignPattern } from '../../services/signRecognitionService';
+import { InstructionsModal } from '../components/lsc/InstructionsModal';
 
 interface DictionaryViewProps {
   onNavigate?: (view: string) => void;
@@ -76,8 +77,19 @@ export function DictionaryView({ onNavigate }: DictionaryViewProps = {}) {
   };
 
   return (
-    <div className="h-[calc(100vh-5rem)] flex flex-col overflow-hidden bg-[var(--color-neutral-50)]">
-      {/* Header */}
+    <div className="h-[calc(100vh-5rem)] flex flex-col bg-[var(--color-surface)] relative overflow-hidden">
+      <InstructionsModal 
+        id="dictionary"
+        title="Diccionario Visual LSC"
+        instructions={[
+          "Usa la barra de búsqueda para encontrar señas específicas por palabra.",
+          "Filtra las señas utilizando los botones de categorías (Abecedario, Colores, etc).",
+          "Haz clic en cualquier tarjeta de seña para ver el video demostrativo de cómo realizarla.",
+          "Usa este módulo para aprender nuevas señas o reforzar las que ya conoces."
+        ]}
+      />
+
+      {/* Header Fijo */}
       <div className="flex-shrink-0 px-4 sm:px-6 py-4 border-b border-[var(--color-neutral-200)] bg-white shadow-sm">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-4">

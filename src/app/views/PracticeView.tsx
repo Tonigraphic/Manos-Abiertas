@@ -5,6 +5,7 @@ import { Badge } from '../components/lsc/Badge';
 import { BackToHome } from '../components/lsc/BackToHome';
 import { Trophy, Target, Flame, Star, Play, Camera, Check, X as XIcon, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { InstructionsModal } from '../components/lsc/InstructionsModal';
 import { usePracticeGame } from '../../hooks/usePracticeGame';
 import { useLSCRecognition } from '../../hooks/useLSCRecognition';
 import confetti from 'canvas-confetti';
@@ -222,7 +223,18 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
   }
 
   return (
-    <div className="h-[calc(100vh-5rem)] flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-5rem)] flex flex-col overflow-hidden bg-[var(--color-surface)] relative">
+      <InstructionsModal 
+        id="practice"
+        title="Práctica Gamificada"
+        instructions={[
+          "Completa ejercicios diarios para mantener tu racha y ganar puntos.",
+          "Cada ejercicio evaluará tu conocimiento de las señas LSC de forma interactiva.",
+          "Desbloquea logros a medida que avanzas y acumulas experiencia.",
+          "Asegúrate de practicar todos los días para no perder tu racha."
+        ]}
+      />
+
       {/* Header compacto */}
       <div className="flex-shrink-0 px-4 sm:px-6 py-4 border-b border-[var(--color-neutral-200)] bg-white">
         <div className="max-w-5xl mx-auto">
