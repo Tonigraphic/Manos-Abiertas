@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
 import { MessageSquare, Ear, Hand, Send, CheckCircle2, Camera } from 'lucide-react';
@@ -20,7 +20,7 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
@@ -87,9 +87,6 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: true });
       setStream(s);
-      if (videoRef.current) {
-        videoRef.current.srcObject = s;
-      }
     } catch (err) {
       alert("No se pudo acceder a la cámara.");
     }
@@ -290,7 +287,19 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
                                 {stream && !recordedBlob && (
                                   <div className="flex flex-col items-center">
                                     <div className="relative w-full max-w-sm rounded-lg overflow-hidden bg-black aspect-video mb-4 shadow-inner">
-                                      <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }}></video>
+                                      <video 
+                                        ref={(node) => {
+                                          videoRef.current = node;
+                                          if (node && stream && node.srcObject !== stream) {
+                                            node.srcObject = stream;
+                                          }
+                                        }} 
+                                        autoPlay 
+                                        playsInline 
+                                        muted 
+                                        className="w-full h-full object-cover" 
+                                        style={{ transform: 'scaleX(-1)' }}
+                                      ></video>
                                       {isRecording && (
                                         <div className="absolute top-2 right-2 flex items-center gap-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold animate-pulse">
                                           <div className="w-2 h-2 bg-white rounded-full"></div> Grabando...
