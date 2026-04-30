@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
 import { MessageSquare, Ear, Hand, Send, CheckCircle2, Camera } from 'lucide-react';
@@ -12,6 +12,7 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
   const [userType, setUserType] = useState<'oyente' | 'sordo' | null>(null);
   const [feedbackType, setFeedbackType] = useState<'general' | 'correction' | 'new_word'>('general');
   const [feedbackText, setFeedbackText] = useState('');
+  const [wordSuggestion, setWordSuggestion] = useState('');
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);

@@ -18,6 +18,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   // Use SpeechRecognition API for Voice-to-Text
   const SpeechRecognition = typeof window !== 'undefined' ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) : null;
   const recognitionRef = useRef<any>(null);
+  const textBeforeDictationRef = useRef<string>('');
 
   useEffect(() => {
     if (SpeechRecognition) {
@@ -27,10 +28,10 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       recognitionRef.current.lang = 'es-CO';
 
       recognitionRef.current.onresult = (event: any) => {
-        let interimTranscript = '';
         let finalTranscript = '';
+        let interimTranscript = '';
 
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
+        for (let i = 0; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
             finalTranscript += event.results[i][0].transcript;
           } else {
@@ -38,9 +39,9 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
           }
         }
         
-        if (finalTranscript) {
-          setTranslatorInput(prev => prev + (prev ? ' ' : '') + finalTranscript);
-        }
+        const baseText = textBeforeDictationRef.current.trim();
+        const dictationText = (finalTranscript + ' ' + interimTranscript).replace(/\s+/g, ' ').trim();
+        setTranslatorInput(baseText ? `${baseText} ${dictationText}` : dictationText);
       };
 
       recognitionRef.current.onerror = (event: any) => {
@@ -66,7 +67,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       setIsRecording(false);
     } else {
       if (recognitionRef.current) {
-        setTranslatorInput(''); // Clear before starting if desired, or keep to append. We'll append above.
+        textBeforeDictationRef.current = translatorInput;
         try {
           recognitionRef.current.start();
           setIsRecording(true);
@@ -127,25 +128,25 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       <div className="flex-1 overflow-auto p-4 sm:p-8">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-6">
           <Card className="border-none shadow-xl bg-white overflow-hidden">
-            <CardBody className="p-6 sm:p-8">
-              <div className="flex justify-between items-end mb-4">
+            <CardBody className="p-4 sm:p-6 md:p-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 gap-4 sm:gap-0">
                 <label className="text-sm font-bold text-neutral-400 uppercase tracking-widest">
                   Texto en Español
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto">
                   <button 
                     onClick={playAudio}
-                    className={`p-2 rounded-xl transition-all ${isPlaying ? 'bg-blue-100 text-blue-600' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
+                    className={`p-3 sm:p-2 rounded-xl transition-all flex items-center justify-center ${isPlaying ? 'bg-blue-100 text-blue-600' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
                     title="Reproducir texto"
                   >
                     <Volume2 size={20} className={isPlaying ? 'animate-pulse' : ''} />
                   </button>
                   <button 
                     onClick={toggleRecording}
-                    className={`p-2 rounded-xl transition-all flex items-center gap-2 px-4 ${isRecording ? 'bg-red-500 text-white shadow-md shadow-red-200 animate-pulse' : 'bg-[var(--color-primary-50)] text-[var(--color-primary-600)] hover:bg-[var(--color-primary-100)]'}`}
+                    className={`p-3 sm:p-2 rounded-xl transition-all flex items-center justify-center gap-2 px-4 flex-1 sm:flex-none ${isRecording ? 'bg-red-500 text-white shadow-md shadow-red-200 animate-pulse' : 'bg-[var(--color-primary-50)] text-[var(--color-primary-600)] hover:bg-[var(--color-primary-100)]'}`}
                   >
                     {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
-                    <span className="font-bold text-sm hidden sm:inline">{isRecording ? 'Detener' : 'Dictar'}</span>
+                    <span className="font-bold text-sm">{isRecording ? 'Detener' : 'Dictar'}</span>
                   </button>
                 </div>
               </div>
