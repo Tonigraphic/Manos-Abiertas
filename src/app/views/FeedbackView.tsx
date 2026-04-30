@@ -287,17 +287,17 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
                                 {stream && !recordedBlob && (
                                   <div className="flex flex-col items-center">
                                     <div className="relative w-full max-w-sm rounded-lg overflow-hidden bg-black aspect-video mb-4 shadow-inner">
-                                      <video 
+                                      <video
                                         ref={(node) => {
                                           videoRef.current = node;
                                           if (node && stream && node.srcObject !== stream) {
                                             node.srcObject = stream;
                                           }
-                                        }} 
-                                        autoPlay 
-                                        playsInline 
-                                        muted 
-                                        className="w-full h-full object-cover" 
+                                        }}
+                                        autoPlay
+                                        playsInline
+                                        muted
+                                        className="w-full h-full object-cover"
                                         style={{ transform: 'scaleX(-1)' }}
                                       ></video>
                                       {isRecording && (
