@@ -52,7 +52,7 @@ const FEATURES_PER_FRAME =
   (FACE_LANDMARKS * LANDMARK_COORDS) +    // 1404
   (HAND_LANDMARKS * LANDMARK_COORDS) +    // 63 (left hand)
   (HAND_LANDMARKS * LANDMARK_COORDS);     // 63 (right hand)
-  // Total: 1662
+// Total: 1662
 
 const TOTAL_INPUT_SIZE = SEQUENCE_LENGTH * FEATURES_PER_FRAME; // 49860
 const CONFIDENCE_THRESHOLD = 0.75;
@@ -69,7 +69,7 @@ Object.entries(LSC_VOCABULARY).forEach(([category, signs]) => {
 const BASE_URL = import.meta.env.BASE_URL;
 const MODEL_URLS: Record<string, string> = {
   "Abecedario": `${BASE_URL}models/alphabet.onnx`,
-  "Colores": `${BASE_URL}models/colors.onnx`,
+  "Colores": `${BASE_URL}models/colors_v2.onnx`,
   "Diseño": `${BASE_URL}models/design.onnx`,
   "Oficina": `${BASE_URL}models/office.onnx`,
   "Saludos": `${BASE_URL}models/greetings.onnx`
