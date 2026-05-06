@@ -31,26 +31,18 @@ export const LSC_VOCABULARY = {
     { label: "Z", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/Z.mp4" },
   ],
   Colores: [
+    // TEMPORAL PARA PRUEBAS: Solo los 5 colores entrenados
     { label: "AMARILLO", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AMARILLO.mp4" },
-    { label: "AMARILLO NARANJA", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AMARILLO_NARANJA.mp4" },
-    { label: "AMARILLO VERDE", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AMARILLO_VERDE.mp4" },
     { label: "AZUL", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AZUL.mp4" },
-    { label: "AZUL VERDE", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AZUL_VERDE.mp4" },
-    { label: "AZUL VIOLETA", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AZUL_VIOLETA.mp4" },
-    { label: "BLANCO", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AZUL_VIOLETA.mp4" },
-    { label: "CAFÉ", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/CAF%C3%89.mp4" },
-    { label: "COLORES", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/COLORES.mp4" },
-    { label: "CREMA", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/CREMA.mp4" },
-    { label: "GRIS", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/GRIS.mp4" },
-    { label: "MEZCLAR", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/MEZCLAR.mp4" },
-    { label: "MORADO", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/MORADO.mp4" },
-    { label: "NARANJA", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/NARANJA.mp4" },
+    { label: "BLANCO", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AZUL_VIOLETA.mp4" }, // (Url por defecto, no afecta el texto)
     { label: "NEGRO", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/NEGRO.mp4" },
     { label: "ROJO", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/ROJO.mp4" },
-    { label: "ROJO NARANJA", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/ROJO_NARANJA.mp4" },
-    { label: "ROJO VIOLETA", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/ROJO_VIOLETA.mp4" },
-    { label: "VERDE", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/VERDE.mp4" },
-    { label: "VIOLETA", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/VIOLETA.mp4" },
+    
+    /* COMENTADOS HASTA ENTRENAR EL MODELO COMPLETO
+    { label: "AMARILLO NARANJA", url: "..." },
+    { label: "AMARILLO VERDE", url: "..." },
+    ...
+    */
   ],
   Diseño: [
     { label: "AGUA", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AGUA.mp4" },
