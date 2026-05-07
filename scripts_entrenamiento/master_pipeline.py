@@ -23,29 +23,35 @@ SEQUENCE_LENGTH = 30
 # IMPORTANTE: Los nombres aquí deben coincidir EXACTAMENTE con el nombre de las carpetas
 # en tu disco duro (en minúsculas, sin tildes preferiblemente, respetando espacios).
 # El script se encargará de ordenarlas alfabéticamente para que coincidan con React.
+# Mapeo exacto PRE-ORDENADO.
+# El orden aquí es EXACTAMENTE el mismo orden en el que React (JavaScript) ordena las palabras.
+# NO debemos ordenarlas en Python porque JavaScript ordena las tildes de forma diferente.
 CATEGORIAS = {
     "greetings": [
-        "gracias", "hola", "mi nombre", "mi seña", "profesor"
+        "GRACIAS", "HOLA", "MI NOMBRE", "MI SEÑA", "PROFESOR"
     ],
     "design": [
-        "agua", "capas", "hojas", "lapiz", "materiales", 
-        "perspectiva", "pincel", "separar", "textura", "volumen"
-    ],
-    "office": [
-        "enviar tarea", "horario", "horario de clase", "horario de materia", 
-        "matricula academica", "matricula financiera", "matricula materias", 
-        "proceso de matricula", "solicitar certificado"
+        "AGUA", "CAPAS", "HOJAS", "LAPIZ", "MATERIALES", 
+        "PERSPECTIVA", "PINCEL", "SEPARAR", "TEXTURA", "VOLUMEN"
     ],
     "colors": [
-        "amarillo", "amarillo naranja", "amarillo verde", "azul", "azul verde", 
-        "azul violeta", "blanco", "cafe", "colores", "crema", "gris", "mezclar", 
-        "morado", "naranja", "negro", "rojo", "rojo naranja", "rojo violeta", 
-        "verde", "violeta"
+        "AMARILLO", "AMARILLO NARANJA", "AMARILLO VERDE", "AZUL", "AZUL VERDE", 
+        "AZUL VIOLETA", "BLANCO", "CAFE", "COLORES", "CREMA", "GRIS", "MEZCLAR", 
+        "MORADO", "NARANJA", "NEGRO", "ROJO", "ROJO NARANJA", "ROJO VIOLETA", 
+        "VERDE", "VIOLETA"
+    ],
+    "office": [
+        # Nota técnica: En JavaScript, MATRICULA FINANCIERA (sin tilde) va antes que MATRÍCULA ACADÉMICA (con tilde).
+        # Por eso este orden específico garantiza que el modelo mapee perfectamente a la pantalla.
+        "ENVIAR TAREA", "HORARIO", "HORARIO DE CLASE", "HORARIO DE MATERIA", 
+        "MATRICULA FINANCIERA", "MATRICULA ACADEMICA", "MATRICULA MATERIAS", 
+        "PROCESO DE MATRICULA", "SOLICITAR CERTIFICADO"
     ],
     "alphabet": [
-        "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "ll", 
-        "m", "n", "ñ", "o", "p", "q", "r", "rr", "s", "t", "u", "v", "w", 
-        "x", "y", "z"
+        # JavaScript manda la Ñ al final del abecedario.
+        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "LL", 
+        "M", "N", "O", "P", "Q", "R", "RR", "S", "T", "U", "V", "W", "X", 
+        "Y", "Z", "Ñ"
     ]
 }
 
@@ -82,7 +88,6 @@ def extract_data_for_category(category_key, actions):
     if not os.path.exists(EXPORT_PATH):
         os.makedirs(EXPORT_PATH)
 
-    # Nombre de la carpeta en español
     carpeta_origen = CARPETAS_ORIGEN[category_key]
     base_category_path = os.path.join(DATA_PATH, carpeta_origen)
 
@@ -92,7 +97,7 @@ def extract_data_for_category(category_key, actions):
             export_action_path = os.path.join(EXPORT_PATH, action)
             
             if not os.path.exists(action_path):
-                print(f"  [!] ADVERTENCIA: No se encontró la carpeta '{action_path}'. Saltando...")
+                print(f"  [!] ADVERTENCIA: No se encontró '{action_path}'. Saltando...")
                 continue
                 
             if not os.path.exists(export_action_path):
@@ -100,7 +105,6 @@ def extract_data_for_category(category_key, actions):
 
             videos = [f for f in os.listdir(action_path) if f.endswith(('.mp4', '.avi', '.mov'))]
             
-            # Si ya se extrajeron todos los videos, saltamos para ahorrar tiempo
             npy_existentes = [f for f in os.listdir(export_action_path) if f.endswith('.npy')]
             if len(npy_existentes) >= len(videos) and len(videos) > 0:
                 print(f"  [>] {action}: Ya extraído ({len(npy_existentes)} archivos).")
@@ -110,7 +114,7 @@ def extract_data_for_category(category_key, actions):
             for video_idx, video_name in enumerate(videos):
                 npy_path = os.path.join(export_action_path, f"{video_idx}.npy")
                 if os.path.exists(npy_path):
-                    continue # Skip si ya existe
+                    continue
                     
                 video_path = os.path.join(action_path, video_name)
                 cap = cv2.VideoCapture(video_path)
@@ -158,8 +162,7 @@ def center_landmarks(inputs):
     return tf.concat([pose_flat, hands_flat], axis=2)
 
 def train_model(actions, model_name):
-    # Ordenamos alfabéticamente para asegurar que coincida con el frontend (React sort)
-    actions = sorted(actions)
+    # ELIMINADO EL SORT() - Respetamos el orden exacto del diccionario para mapear con React
     label_map = {label:num for num, label in enumerate(actions)}
     sequences, labels = [], []
     
