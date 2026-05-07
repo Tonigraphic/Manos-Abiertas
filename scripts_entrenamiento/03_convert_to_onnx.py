@@ -2,8 +2,8 @@ import tensorflow as tf
 import tf2onnx
 import os
 
-MODEL_PATH = 'colores_model_best.keras'
-ONNX_MODEL_PATH = 'colores_model_best.onnx'
+MODEL_PATH = 'design_model_best.keras'
+ONNX_MODEL_PATH = 'design.onnx'
 
 @tf.keras.utils.register_keras_serializable()
 def center_landmarks(inputs):

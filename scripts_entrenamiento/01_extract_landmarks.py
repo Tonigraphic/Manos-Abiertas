@@ -8,7 +8,7 @@ mp_holistic = mp.solutions.holistic
 # Configuración de rutas
 DATA_PATH = r"D:\Proyecto VS\nuevos datos crudos"
 EXPORT_PATH = r"D:\Proyecto VS\datos_extraidos_npy"
-ACTIONS = np.array(['amarillo', 'azul', 'blanco', 'negro', 'rojo'])
+ACTIONS = np.array(['agua', 'capas', 'hojas', 'lapiz', 'materiales', 'perspectiva', 'pincel', 'separar', 'textura', 'volumen'])
 SEQUENCE_LENGTH = 30 # Número de frames por video
 
 def extract_keypoints(results):

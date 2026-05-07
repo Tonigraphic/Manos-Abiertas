@@ -8,7 +8,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLRO
 import tensorflow as tf
 
 EXPORT_PATH = r"D:\Proyecto VS\datos_extraidos_npy"
-ACTIONS = np.array(['amarillo', 'azul', 'blanco', 'negro', 'rojo'])
+ACTIONS = np.array(['agua', 'capas', 'hojas', 'lapiz', 'materiales', 'perspectiva', 'pincel', 'separar', 'textura', 'volumen'])
 SEQUENCE_LENGTH = 30
 
 def load_data():
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     model = build_model()
     
     early_stopping = EarlyStopping(monitor='val_loss', patience=40, restore_best_weights=True)
-    checkpoint = ModelCheckpoint('colores_model_best.keras', monitor='val_categorical_accuracy', save_best_only=True, mode='max')
+    checkpoint = ModelCheckpoint('design_model_best.keras', monitor='val_categorical_accuracy', save_best_only=True, mode='max')
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=15, min_lr=0.00001)
 
     print("Iniciando entrenamiento con Traslación Invariante...")
