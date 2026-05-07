@@ -197,12 +197,18 @@ export class SignRecognitionService {
     return frame;
   }
 
+  private lastPredictions: string[] = [];
+
   /**
    * Agrega un frame holístico al buffer y predice al completar 30 frames.
    * Input: [1, 30, 1662] — todos los landmarks de MediaPipe Holistic.
    */
   public async predictHolistic(holistic: HolisticLandmarks): Promise<RecognizedSign | null> {
     if (!this.session || !this.currentCategory || this.isPredicting) return null;
+
+    // Detectar qué mano(s) están presentes
+    const hasLeft = holistic.leftHand && holistic.leftHand.length > 0;
+    const hasRight = holistic.rightHand && holistic.rightHand.length > 0;
 
     // 1. Construir frame de 1662 features
     const frame = this.buildFrame(holistic);
@@ -213,7 +219,13 @@ export class SignRecognitionService {
       this.frameBuffer.shift();
     }
 
-    // 3. Solo predecir con 30 frames completos
+    // 3. Filtro Anti-Fantasmas: Si no hay manos en pantalla, no hacemos inferencia.
+    if (!hasLeft && !hasRight) {
+      this.lastPredictions = []; // Vaciamos el estabilizador
+      return null;
+    }
+
+    // Solo predecir con 30 frames completos
     if (this.frameBuffer.length < SEQUENCE_LENGTH) return null;
 
     try {
@@ -245,17 +257,33 @@ export class SignRecognitionService {
         confidence = exps[maxIdx] / sum;
       }
 
-      // 8. Threshold + label
+      // 8. Threshold más estricto + label
       const labels = CATEGORY_LABELS[this.currentCategory];
-      if (!labels || maxIdx >= labels.length || confidence < CONFIDENCE_THRESHOLD) return null;
+      if (!labels || maxIdx >= labels.length || confidence < 0.85) { // Aumentado a 85%
+        this.lastPredictions = []; // Si baja la confianza, reseteamos estabilizador
+        return null;
+      }
 
-      // Detectar qué mano(s) están presentes
-      const hasLeft = holistic.leftHand && holistic.leftHand.length > 0;
-      const hasRight = holistic.rightHand && holistic.rightHand.length > 0;
+      const predictedSign = labels[maxIdx];
+
+      // 9. ESTABILIZADOR TEMPORAL (Anti-Flickering / Lag visual)
+      // Exigimos que el modelo esté seguro de la misma seña durante 5 frames consecutivos
+      // antes de mostrarla en pantalla. Esto elimina la "basura" de las transiciones.
+      this.lastPredictions.push(predictedSign);
+      if (this.lastPredictions.length > 5) {
+        this.lastPredictions.shift();
+      }
+
+      const isStable = this.lastPredictions.length === 5 && this.lastPredictions.every(p => p === predictedSign);
+
+      if (!isStable) {
+        return null; // Aún no es estable
+      }
+
       const handedness = hasLeft && hasRight ? 'Both' : hasRight ? 'Right' : 'Left';
 
       return {
-        sign: labels[maxIdx],
+        sign: predictedSign,
         confidence,
         timestamp: Date.now(),
         handedness: handedness as 'Left' | 'Right' | 'Both',
