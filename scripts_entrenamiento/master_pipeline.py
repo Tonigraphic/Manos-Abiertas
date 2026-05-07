@@ -49,6 +49,15 @@ CATEGORIAS = {
     ]
 }
 
+# Mapeo adicional para buscar en las subcarpetas correctas (Español)
+CARPETAS_ORIGEN = {
+    "greetings": "Saludos",
+    "design": "Diseño",
+    "office": "Oficina",
+    "colors": "Colores",
+    "alphabet": "Abecedario"
+}
+
 # ==========================================
 # 1. EXTRACCIÓN DE DATOS (MEDIAPIPE)
 # ==========================================
@@ -69,13 +78,17 @@ def mediapipe_detection(image, model):
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     return image, results
 
-def extract_data_for_category(actions):
+def extract_data_for_category(category_key, actions):
     if not os.path.exists(EXPORT_PATH):
         os.makedirs(EXPORT_PATH)
 
+    # Nombre de la carpeta en español
+    carpeta_origen = CARPETAS_ORIGEN[category_key]
+    base_category_path = os.path.join(DATA_PATH, carpeta_origen)
+
     with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
         for action in actions:
-            action_path = os.path.join(DATA_PATH, action)
+            action_path = os.path.join(base_category_path, action)
             export_action_path = os.path.join(EXPORT_PATH, action)
             
             if not os.path.exists(action_path):
@@ -241,8 +254,8 @@ if __name__ == '__main__':
     for category_name, words in CATEGORIAS.items():
         print(f"\n---> PROCESANDO CATEGORÍA: {category_name.upper()} ({len(words)} señas)")
         
-        # 1. Extracción
-        extract_data_for_category(words)
+        # 1. Extracción (Ahora pasamos el category_name para que sepa en qué carpeta buscar)
+        extract_data_for_category(category_name, words)
         
         # 2. Entrenamiento
         trained_model = train_model(words, category_name)
