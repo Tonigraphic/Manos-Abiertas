@@ -60,12 +60,12 @@ export function AssistantView({ onNavigateHome }: AssistantViewProps = {}) {
         <motion.div 
           initial={{ opacity: 0, scale: 0.98 }} 
           animate={{ opacity: 1, scale: 1 }} 
-          className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 h-full pb-4 lg:pb-0"
+          className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.8fr)] gap-4 lg:gap-6 h-full lg:items-start pb-4 lg:pb-0"
         >
           
           {/* ÁREA DE CÁMARA */}
-          <div className="lg:col-span-2 space-y-3 lg:space-y-4 flex flex-col h-[35vh] sm:h-[48vh] lg:h-full flex-shrink-0">
-            <div className="relative flex-1 bg-neutral-900 rounded-3xl overflow-hidden shadow-2xl border-4 border-white group min-h-[150px] lg:min-h-[300px]">
+          <div className="lg:col-span-1 space-y-3 lg:space-y-4 flex flex-col h-[35vh] sm:h-[48vh] lg:h-[min(68vh,560px)] flex-shrink-0 lg:self-start">
+            <div className="relative flex-1 bg-neutral-900 rounded-3xl overflow-hidden shadow-2xl border-4 border-white group min-h-[150px] lg:min-h-[320px]">
               
               {/* VIDEO */}
               <video 
@@ -123,7 +123,7 @@ export function AssistantView({ onNavigateHome }: AssistantViewProps = {}) {
           </div>
 
           {/* COLUMNA RESULTADOS */}
-          <div className="h-[30vh] sm:h-[38vh] lg:h-full">
+          <div className="h-[30vh] sm:h-[38vh] lg:h-[min(68vh,560px)] lg:self-start">
             <Card className="h-full border-2 border-neutral-100 shadow-sm flex flex-col">
               <CardBody className="flex flex-col h-full p-4 lg:p-6">
                 <h3 className="font-bold mb-3 lg:mb-6 flex items-center gap-2 text-neutral-800 text-sm lg:text-base">
