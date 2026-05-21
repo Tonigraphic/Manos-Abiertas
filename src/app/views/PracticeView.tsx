@@ -35,6 +35,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
     stopRecognition,
   } = useLSCRecognition();
 
+  const PRACTICE_DISABLED = true;
+  const disabledClass = PRACTICE_DISABLED ? 'pointer-events-none filter grayscale opacity-60' : '';
+
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Monitor recognition during practice
@@ -116,7 +119,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
   if (session.isActive && session.currentExercise) {
     return (
-      <div className="h-[calc(100vh-5rem)] flex flex-col overflow-hidden">
+      <div className={`${disabledClass} h-[calc(100vh-8rem)] md:h-[calc(100vh-5rem)] flex flex-col overflow-hidden`}>
         {/* Header compacto */}
         <div className="flex-shrink-0 px-4 sm:px-6 py-3 border-b border-[var(--color-neutral-200)] bg-white">
           <div className="max-w-5xl mx-auto">
@@ -153,11 +156,18 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
             </div>
           </div>
         </div>
+        {PRACTICE_DISABLED && (
+          <div className="max-w-5xl mx-auto mt-3">
+            <div className="px-3 py-2 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md text-sm shadow-sm">
+              Práctica deshabilitada temporalmente — en mantenimiento
+            </div>
+          </div>
+        )}
 
         {/* Content compacto */}
         <div className="flex-1 overflow-hidden p-4 sm:p-6">
-          <div className="max-w-5xl mx-auto h-full grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 h-full">
+          <div className="max-w-5xl mx-auto h-full grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
+            <div className="lg:col-span-2 h-[45vh] lg:h-full">
               <Card className="overflow-hidden h-full flex flex-col">
                 <CardBody className="p-0 flex-1 flex flex-col">
                   <div className="flex-1 bg-gradient-to-br from-[var(--color-neutral-100)] to-[var(--color-neutral-200)] flex items-center justify-center relative overflow-hidden">
@@ -174,12 +184,12 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                             feedbackMessage.type === 'success' ? 'bg-green-500/20' : 'bg-red-500/20'
                           } backdrop-blur-sm`}
                         >
-                          <div className={`px-6 py-3 rounded-xl shadow-2xl ${
+                          <div className={`px-4 py-2 lg:px-6 lg:py-3 rounded-xl shadow-2xl ${
                             feedbackMessage.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
                           }`}>
-                            <div className="flex items-center gap-3">
-                              {feedbackMessage.type === 'success' ? <Check size={24} /> : <XIcon size={24} />}
-                              <p className="text-xl font-bold">{feedbackMessage.text}</p>
+                            <div className="flex items-center gap-2 lg:gap-3">
+                              {feedbackMessage.type === 'success' ? <Check size={20} className="lg:w-6 lg:h-6" /> : <XIcon size={20} className="lg:w-6 lg:h-6" />}
+                              <p className="text-base lg:text-xl font-bold">{feedbackMessage.text}</p>
                             </div>
                           </div>
                         </motion.div>
@@ -190,20 +200,20 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
               </Card>
             </div>
 
-            <div className="flex flex-col gap-3">
-              <Card className="bg-gradient-to-br from-[var(--color-primary-50)] to-[var(--color-accent-50)] border-0">
-                <CardBody className="p-4">
-                  <p className="text-xs text-[var(--color-text-secondary)] mb-2">Realiza esta seña:</p>
-                  <h3 className="text-3xl font-bold text-[var(--color-primary-600)] mb-2">
+            <div className="flex flex-col gap-3 h-[35vh] lg:h-full">
+              <Card className="bg-gradient-to-br from-[var(--color-primary-50)] to-[var(--color-accent-50)] border-0 flex-1 lg:flex-initial">
+                <CardBody className="p-3 lg:p-4 flex flex-col justify-center lg:justify-start h-full">
+                  <p className="text-xs text-[var(--color-text-secondary)] mb-1 lg:mb-2">Realiza esta seña:</p>
+                  <h3 className="text-2xl lg:text-3xl font-bold text-[var(--color-primary-600)] mb-1 lg:mb-2">
                     {currentSign?.name}
                   </h3>
-                  <p className="text-xs text-[var(--color-text-secondary)]">
+                  <p className="text-xs text-[var(--color-text-secondary)] line-clamp-3 lg:line-clamp-none">
                     {currentSign?.description}
                   </p>
                 </CardBody>
               </Card>
 
-              <Card>
+              <Card className="hidden lg:block">
                 <CardBody className="p-4">
                   <h3 className="font-semibold text-sm text-[var(--color-text-primary)] mb-3">Progreso</h3>
                   <div className="space-y-2">
@@ -219,7 +229,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                 </CardBody>
               </Card>
 
-              <Card className="bg-[var(--color-neutral-50)]">
+              <Card className="bg-[var(--color-neutral-50)] hidden lg:block">
                 <CardBody className="p-3">
                   <h4 className="font-semibold text-xs text-[var(--color-text-primary)] mb-2">💡 Tips</h4>
                   <ul className="space-y-1 text-xs text-[var(--color-text-secondary)]">
@@ -237,7 +247,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
   }
 
   return (
-    <div className="h-[calc(100vh-5rem)] flex flex-col overflow-hidden bg-[var(--color-surface)] relative">
+    <div className={`${disabledClass} h-[calc(100vh-8rem)] md:h-[calc(100vh-5rem)] flex flex-col overflow-hidden bg-[var(--color-surface)] relative`}>
       <InstructionsModal 
         id="practice"
         title="Práctica Gamificada"
@@ -258,6 +268,14 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
           </p>
         </div>
       </div>
+
+      {PRACTICE_DISABLED && (
+        <div className="max-w-5xl mx-auto mt-4">
+          <div className="px-3 py-2 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md text-sm shadow-sm">
+            Práctica deshabilitada temporalmente — en mantenimiento
+          </div>
+        </div>
+      )}
 
       {/* Stats compactos */}
       <div className="flex-shrink-0 px-4 sm:px-6 py-3 bg-[var(--color-neutral-50)] border-b border-[var(--color-neutral-200)]">

@@ -99,7 +99,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] flex flex-col bg-[var(--color-neutral-50)] relative">
+    <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-[var(--color-neutral-50)] relative">
       <InstructionsModal 
         id="translator"
         title="Traductor a Glosa LSC"

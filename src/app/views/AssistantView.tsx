@@ -20,8 +20,11 @@ export function AssistantView({ onNavigateHome }: AssistantViewProps = {}) {
     stopRecognition,
   } = useLSCRecognition();
 
+  const ONLY_COLORS_MODEL = true;
+  const modelDisabledClass = ONLY_COLORS_MODEL ? 'pointer-events-none filter grayscale opacity-60' : '';
+
   return (
-    <div className="h-[calc(100vh-5rem)] flex flex-col overflow-hidden bg-[var(--color-neutral-50)] relative">
+    <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-5rem)] flex flex-col overflow-hidden bg-[var(--color-neutral-50)] relative">
       <InstructionsModal 
         id="assistant"
         title="Asistente LSC en Tiempo Real"
@@ -54,11 +57,15 @@ export function AssistantView({ onNavigateHome }: AssistantViewProps = {}) {
       </div>
 
       <div className="flex-1 overflow-auto p-4 sm:p-6">
-        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 h-full pb-10">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.98 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 h-full pb-4 lg:pb-0"
+        >
           
           {/* ÁREA DE CÁMARA */}
-          <div className="lg:col-span-2 space-y-4 flex flex-col h-full">
-            <div className="relative flex-1 bg-neutral-900 rounded-3xl overflow-hidden shadow-2xl border-4 border-white group min-h-[300px]">
+          <div className="lg:col-span-2 space-y-3 lg:space-y-4 flex flex-col h-[35vh] sm:h-[48vh] lg:h-full flex-shrink-0">
+            <div className="relative flex-1 bg-neutral-900 rounded-3xl overflow-hidden shadow-2xl border-4 border-white group min-h-[150px] lg:min-h-[300px]">
               
               {/* VIDEO */}
               <video 
@@ -82,17 +89,21 @@ export function AssistantView({ onNavigateHome }: AssistantViewProps = {}) {
                   <Camera size={48} className="mb-4 text-white/30" />
                   <p className="mb-8 font-medium text-lg">Selecciona un vocabulario para iniciar</p>
                   <div className="flex flex-wrap justify-center gap-3 w-full max-w-md">
-                    {['Abecedario', 'Colores', 'Saludos', 'Diseño', 'Oficina'].map(cat => (
-                      <Button 
-                        key={cat} 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => startRecognition(cat)} 
-                        className="bg-white/10 hover:bg-white hover:text-black border-white/20 px-6 py-4 font-bold transition-all shadow-lg hover:scale-105"
-                      >
-                        {cat}
-                      </Button>
-                    ))}
+                    {['Abecedario', 'Colores', 'Saludos', 'Diseño', 'Oficina'].map(cat => {
+                      const isDisabled = ONLY_COLORS_MODEL && cat !== 'Colores';
+                      return (
+                        <Button 
+                          key={cat} 
+                          variant={isDisabled ? 'ghost' : 'outline'} 
+                          size="sm" 
+                          onClick={() => { if (!isDisabled) startRecognition(cat); }} 
+                          className={`bg-white/10 hover:bg-white hover:text-black border-white/20 px-6 py-4 font-bold transition-all shadow-lg hover:scale-105 ${isDisabled ? modelDisabledClass : ''}`}
+                          aria-disabled={isDisabled}
+                        >
+                          {cat}
+                        </Button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -105,50 +116,50 @@ export function AssistantView({ onNavigateHome }: AssistantViewProps = {}) {
             </div>
 
             {recState.isActive && (
-              <Button variant="error" onClick={stopRecognition} className="w-full py-5 rounded-2xl text-lg font-bold shadow-lg transition-transform active:scale-95 flex-shrink-0">
+              <Button variant="error" onClick={stopRecognition} className="w-full py-3 lg:py-5 rounded-2xl text-base lg:text-lg font-bold shadow-lg transition-transform active:scale-95 flex-shrink-0">
                 <CameraOff size={20} className="mr-2" /> Finalizar Interpretación
               </Button>
             )}
           </div>
 
           {/* COLUMNA RESULTADOS */}
-          <div className="h-full">
+          <div className="h-[30vh] sm:h-[38vh] lg:h-full">
             <Card className="h-full border-2 border-neutral-100 shadow-sm flex flex-col">
-              <CardBody className="flex flex-col h-full p-6">
-                <h3 className="font-bold mb-6 flex items-center gap-2 text-neutral-800">
+              <CardBody className="flex flex-col h-full p-4 lg:p-6">
+                <h3 className="font-bold mb-3 lg:mb-6 flex items-center gap-2 text-neutral-800 text-sm lg:text-base">
                   <Sparkles size={20} className="text-amber-500" /> Resultados IA
                 </h3>
                 
-                <div className="text-center py-12 bg-neutral-50 rounded-3xl border-2 border-dashed border-neutral-200 mb-6 flex-shrink-0 flex flex-col items-center justify-center transition-colors">
+                <div className="text-center py-4 lg:py-12 bg-neutral-50 rounded-2xl lg:rounded-3xl border-2 border-dashed border-neutral-200 mb-3 lg:mb-6 flex-shrink-0 flex flex-col items-center justify-center transition-colors">
                   {recState.currentSign ? (
                     <motion.div initial={{ y: 10, opacity: 0, scale: 0.9 }} animate={{ y: 0, opacity: 1, scale: 1 }}>
-                      <span className="text-[10px] text-neutral-400 block uppercase font-black tracking-widest mb-2">Seña Detectada:</span>
-                      <span className="text-6xl font-black text-purple-600 block mb-4 uppercase tracking-tighter drop-shadow-sm">
+                      <span className="text-[9px] lg:text-[10px] text-neutral-400 block uppercase font-black tracking-widest mb-1 lg:mb-2">Seña Detectada:</span>
+                      <span className="text-4xl lg:text-6xl font-black text-purple-600 block mb-2 lg:mb-4 uppercase tracking-tighter drop-shadow-sm">
                         {recState.currentSign.sign}
                       </span>
-                      <Badge className="bg-purple-100 text-purple-700 px-3 py-1">Seguridad: {Math.round(recState.currentSign.confidence * 100)}%</Badge>
+                      <Badge className="bg-purple-100 text-purple-700 px-2 py-0.5 lg:px-3 lg:py-1 text-xs lg:text-sm">Seguridad: {Math.round(recState.currentSign.confidence * 100)}%</Badge>
                     </motion.div>
                   ) : (
-                    <div className="opacity-40 flex flex-col items-center">
-                        <Hand size={48} className="mb-4 text-neutral-500 animate-pulse" />
-                        <p className="text-sm font-bold uppercase tracking-widest text-center px-6">Mueve tus manos frente a la cámara</p>
+                    <div className="opacity-40 flex flex-col items-center py-2">
+                        <Hand size={32} className="mb-2 text-neutral-500 animate-pulse" />
+                        <p className="text-xs font-bold uppercase tracking-widest text-center px-4">Mueve tus manos frente a la cámara</p>
                     </div>
                   )}
                 </div>
 
                 <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-                  <p className="text-[10px] font-black text-neutral-400 uppercase mb-4 tracking-widest border-b pb-2 flex-shrink-0">Historial Reciente</p>
-                  <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
+                  <p className="text-[9px] lg:text-[10px] font-black text-neutral-400 uppercase mb-2 lg:mb-4 tracking-widest border-b pb-2 flex-shrink-0">Historial Reciente</p>
+                  <div className="space-y-2 lg:space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
                     {recState.recognizedSigns.length > 0 ? (
                       recState.recognizedSigns.slice(0, 10).map((s, i) => (
                         <motion.div 
                           initial={{ opacity: 0, x: -10 }} 
                           animate={{ opacity: 1, x: 0 }} 
                           key={i} 
-                          className="flex justify-between items-center p-3.5 bg-white border border-neutral-100 rounded-xl shadow-sm"
+                          className="flex justify-between items-center p-2.5 lg:p-3.5 bg-white border border-neutral-100 rounded-xl shadow-sm"
                         >
-                          <span className="font-bold text-neutral-700 uppercase">{s.sign}</span>
-                          <span className="text-[10px] font-bold text-neutral-400 bg-neutral-50 px-2 py-1 rounded-md uppercase">
+                          <span className="font-bold text-neutral-700 uppercase text-sm lg:text-base">{s.sign}</span>
+                          <span className="text-[9px] lg:text-[10px] font-bold text-neutral-400 bg-neutral-50 px-2 py-1 rounded-md uppercase">
                             {new Date(s.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                           </span>
                         </motion.div>

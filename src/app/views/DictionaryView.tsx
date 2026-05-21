@@ -77,7 +77,7 @@ export function DictionaryView({ onNavigate }: DictionaryViewProps = {}) {
   };
 
   return (
-    <div className="h-[calc(100vh-5rem)] flex flex-col bg-[var(--color-surface)] relative overflow-hidden">
+    <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-5rem)] flex flex-col bg-[var(--color-surface)] relative overflow-hidden">
       <InstructionsModal 
         id="dictionary"
         title="Diccionario Visual LSC"
@@ -168,7 +168,7 @@ export function DictionaryView({ onNavigate }: DictionaryViewProps = {}) {
         {selectedSign && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[var(--color-neutral-900)]/80 backdrop-blur-md" onClick={() => setSelectedSign(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden relative z-10">
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-y-auto max-h-[85vh] md:overflow-hidden relative z-10">
               <button onClick={() => setSelectedSign(null)} className="absolute top-4 right-4 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-transform active:scale-90">
                 <X size={20} className="text-[var(--color-neutral-900)]" />
               </button>

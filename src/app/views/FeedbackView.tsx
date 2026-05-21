@@ -139,7 +139,7 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] flex flex-col bg-[var(--color-neutral-50)]">
+    <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-[var(--color-neutral-50)]">
       <div className="flex-shrink-0 p-6 sm:p-8 bg-white border-b border-neutral-200">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           <div className="bg-blue-100 p-3 rounded-2xl text-blue-600">
