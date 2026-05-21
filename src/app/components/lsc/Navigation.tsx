@@ -1,4 +1,5 @@
 import { Home, Bot, Target, BookOpen, Languages, Video, MessageSquare } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
 // Importaciones con la profundidad de ruta correcta para tu estructura de carpetas
 import logoPrincipal from '../../../assets/logo.png';
@@ -88,39 +89,73 @@ export function MobileBottomNav({ currentView, onNavigate }: NavigationProps) {
     { id: 'feedback', label: 'Sugerencias', icon: MessageSquare },
   ];
 
+  const [tooltip, setTooltip] = useState<string | null>(null);
+  const touchTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (touchTimer.current) window.clearTimeout(touchTimer.current);
+    };
+  }, []);
+
+  const handleTouchStart = (id: string) => {
+    setTooltip(id);
+    // hide after 2.5s
+    if (touchTimer.current) window.clearTimeout(touchTimer.current);
+    touchTimer.current = window.setTimeout(() => setTooltip(null), 2500);
+  };
+
+  const handleTouchEnd = (id: string) => {
+    // keep short delay so user sees it
+    if (touchTimer.current) window.clearTimeout(touchTimer.current);
+    touchTimer.current = window.setTimeout(() => setTooltip(null), 900);
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-[var(--color-neutral-200)] shadow-lg md:hidden z-50">
       <div className="flex items-center justify-around px-2 py-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentView === item.id;
-          
+
           return (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={`
-                flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all duration-150 min-w-0
-                ${isActive
-                  ? 'text-[var(--color-primary-600)]'
-                  : 'text-[var(--color-text-tertiary)]'
-                }
-              `}
-            >
-              {/* Usamos el icono del proyecto para el botón de inicio en móvil */}
-              {item.id === 'home' ? (
-                 <img 
-                   src={iconoProyecto} 
-                   className={`w-6 h-6 object-contain ${isActive ? '' : 'grayscale opacity-60'}`} 
-                   alt="Inicio" 
-                 />
-              ) : (
-                 <Icon size={24} className="flex-shrink-0" />
+            <div key={item.id} className="relative">
+              <button
+                onClick={() => onNavigate(item.id)}
+                onTouchStart={() => handleTouchStart(item.id)}
+                onTouchEnd={() => handleTouchEnd(item.id)}
+                onMouseEnter={() => setTooltip(item.id)}
+                onMouseLeave={() => setTooltip(null)}
+                className={`
+                  flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all duration-150 min-w-0
+                  ${isActive
+                    ? 'text-[var(--color-primary-600)]'
+                    : 'text-[var(--color-text-tertiary)]'
+                  }
+                `}
+              >
+                {/* Usamos el icono del proyecto para el botón de inicio en móvil */}
+                {item.id === 'home' ? (
+                   <img 
+                     src={iconoProyecto} 
+                     className={`w-6 h-6 object-contain ${isActive ? '' : 'grayscale opacity-60'}`} 
+                     alt="Inicio" 
+                   />
+                ) : (
+                   <Icon size={24} className="flex-shrink-0" />
+                )}
+                <span className="text-[10px] font-bold truncate w-full text-center uppercase tracking-tighter">
+                  {item.label}
+                </span>
+              </button>
+
+              {/* Tooltip only visible on mobile (md:hidden) and positioned above the icon */}
+              {tooltip === item.id && (
+                <div className="md:hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 rounded-full bg-black text-white text-xs z-50 shadow-lg whitespace-nowrap pointer-events-none">
+                  {item.label}
+                </div>
               )}
-              <span className="text-[10px] font-bold truncate w-full text-center uppercase tracking-tighter">
-                {item.label}
-              </span>
-            </button>
+            </div>
           );
         })}
       </div>
