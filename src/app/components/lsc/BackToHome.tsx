@@ -7,7 +7,7 @@ interface BackToHomeProps {
 
 export function BackToHome({ onNavigate }: BackToHomeProps) {
   return (
-    <div className="fixed top-6 left-6 z-50">
+    <div className="fixed top-6 left-6 z-50 pointer-events-auto">
       <Button
         variant="ghost"
         onClick={onNavigate}
