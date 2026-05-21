@@ -90,6 +90,7 @@ export function MobileBottomNav({ currentView, onNavigate }: NavigationProps) {
   ];
 
   const [tooltip, setTooltip] = useState<string | null>(null);
+  const [tooltipAlign, setTooltipAlign] = useState<'center' | 'left' | 'right'>('center');
   const touchTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -98,8 +99,18 @@ export function MobileBottomNav({ currentView, onNavigate }: NavigationProps) {
     };
   }, []);
 
-  const handleTouchStart = (id: string) => {
+  const handleTouchStart = (id: string, e: React.TouchEvent | React.MouseEvent) => {
     setTooltip(id);
+
+    // determine alignment based on element position to avoid overflow
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const vw = window.innerWidth || document.documentElement.clientWidth;
+
+    if (rect.left < 56) setTooltipAlign('left');
+    else if (rect.right > vw - 56) setTooltipAlign('right');
+    else setTooltipAlign('center');
+
     // hide after 2.5s
     if (touchTimer.current) window.clearTimeout(touchTimer.current);
     touchTimer.current = window.setTimeout(() => setTooltip(null), 2500);
@@ -122,9 +133,9 @@ export function MobileBottomNav({ currentView, onNavigate }: NavigationProps) {
             <div key={item.id} className="relative">
               <button
                 onClick={() => onNavigate(item.id)}
-                onTouchStart={() => handleTouchStart(item.id)}
+                onTouchStart={(e) => handleTouchStart(item.id, e)}
                 onTouchEnd={() => handleTouchEnd(item.id)}
-                onMouseEnter={() => setTooltip(item.id)}
+                onMouseEnter={(e) => { setTooltip(item.id); setTooltipAlign('center'); }}
                 onMouseLeave={() => setTooltip(null)}
                 className={`
                   flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all duration-150 min-w-0
@@ -151,7 +162,11 @@ export function MobileBottomNav({ currentView, onNavigate }: NavigationProps) {
 
               {/* Tooltip only visible on mobile (md:hidden) and positioned above the icon */}
               {tooltip === item.id && (
-                <div className="md:hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 rounded-full bg-black text-white text-xs z-50 shadow-lg whitespace-nowrap pointer-events-none">
+                <div className={`md:hidden absolute bottom-full mb-2 px-3 py-1 rounded-full bg-black text-white text-xs z-50 shadow-lg whitespace-nowrap pointer-events-none
+                  ${tooltipAlign === 'center' ? 'left-1/2 transform -translate-x-1/2' : ''}
+                  ${tooltipAlign === 'left' ? 'left-0 -translate-x-0' : ''}
+                  ${tooltipAlign === 'right' ? 'right-0 translate-x-0' : ''}
+                `}>
                   {item.label}
                 </div>
               )}
