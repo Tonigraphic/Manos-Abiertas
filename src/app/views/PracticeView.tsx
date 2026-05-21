@@ -448,7 +448,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
             </Card>
           </div>
         </div>
-        {onNavigateHome && <BackToHome onClick={onNavigateHome} />}
+        {onNavigateHome && <BackToHome onNavigate={onNavigateHome} />}
       </div>
     </div>
   );
