@@ -130,7 +130,7 @@ export function MobileBottomNav({ currentView, onNavigate }: NavigationProps) {
           const isActive = currentView === item.id;
 
           return (
-            <div key={item.id} className="relative">
+            <div key={item.id} className="relative flex-1 flex justify-center">
               <button
                 onClick={() => onNavigate(item.id)}
                 onTouchStart={(e) => handleTouchStart(item.id, e)}
@@ -138,7 +138,7 @@ export function MobileBottomNav({ currentView, onNavigate }: NavigationProps) {
                 onMouseEnter={(e) => { setTooltip(item.id); setTooltipAlign('center'); }}
                 onMouseLeave={() => setTooltip(null)}
                 className={`
-                  flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all duration-150 min-w-0
+                  w-full max-w-[84px] flex flex-col items-center gap-1 py-2 rounded-xl transition-all duration-150 mx-1
                   ${isActive
                     ? 'text-[var(--color-primary-600)]'
                     : 'text-[var(--color-text-tertiary)]'
@@ -155,7 +155,7 @@ export function MobileBottomNav({ currentView, onNavigate }: NavigationProps) {
                 ) : (
                    <Icon size={24} className="flex-shrink-0" />
                 )}
-                <span className="text-[10px] font-bold truncate w-full text-center uppercase tracking-tighter">
+                <span className="text-[10px] font-bold truncate text-center uppercase tracking-tighter">
                   {item.label}
                 </span>
               </button>
