@@ -500,16 +500,43 @@ function stripTrailingPunctuation(text: string): string {
 
 function detectRequestPattern(wordsRaw: string[]): { leadingText: string; requestWords: string[] } | null {
   const requestVerbs = new Set(['prestar', 'dar', 'ayudar', 'pasar', 'decir', 'explicar']);
-  const requestIndex = wordsRaw.findIndex((word, index) => {
+  const powerForms = new Set(['puedo', 'puedes', 'puede', 'podemos', 'pueden', 'podría', 'podrías', 'podrian', 'podrian']);
+
+  for (let i = 0; i < wordsRaw.length - 2; i++) {
+    const first = wordsRaw[i];
+    const second = wordsRaw[i + 1];
+    const third = wordsRaw[i + 2];
+
+    if (first !== 'me' && first !== 'te' && first !== 'nos' && first !== 'le' && first !== 'les') {
+      continue;
+    }
+
+    if (!powerForms.has(second)) {
+      continue;
+    }
+
+    if (!requestVerbs.has(third)) {
+      continue;
+    }
+
+    const leading = wordsRaw.slice(0, i).join(' ').trim();
+    const requestWords = wordsRaw.slice(i).filter(Boolean);
+    return {
+      leadingText: leading,
+      requestWords
+    };
+  }
+
+  const shortRequestIndex = wordsRaw.findIndex((word, index) => {
     if (!requestVerbs.has(word)) return false;
     const prev = wordsRaw[index - 1];
     return prev === 'me' || prev === 'te' || prev === 'nos' || prev === 'le' || prev === 'les';
   });
 
-  if (requestIndex === -1) return null;
+  if (shortRequestIndex === -1) return null;
 
-  const leading = wordsRaw.slice(0, requestIndex).join(' ').trim();
-  const requestWords = wordsRaw.slice(requestIndex - 1).filter(Boolean);
+  const leading = wordsRaw.slice(0, shortRequestIndex - 1).join(' ').trim();
+  const requestWords = wordsRaw.slice(shortRequestIndex - 1).filter(Boolean);
   if (!requestWords.length) return null;
 
   return {
@@ -524,11 +551,19 @@ function formatRequestClause(requestWords: string[]): string {
 
   const words = normalized.split(' ');
   const hasMe = words.includes('me');
-  const hasPuedes = words.includes('puedes') || words.includes('podrías') || words.includes('podria') || words.includes('podrías');
+  const hasPuedes = words.includes('puedes') || words.includes('podrías') || words.includes('podria') || words.includes('podrían') || words.includes('podrian');
   const hasPrestar = words.includes('prestar') || words.includes('prestas') || words.includes('prestes');
 
   if (hasMe && hasPuedes && hasPrestar) {
     return '¿Me puedes prestar?';
+  }
+
+  if (hasMe && hasPuedes) {
+    const tailVerb = words.find(word => word in VERB_TO_INFINITIVE && word !== 'poder');
+    if (tailVerb) {
+      const verbRoot = VERB_TO_INFINITIVE[tailVerb] || tailVerb;
+      return `¿Me puedes ${verbRoot}?`;
+    }
   }
 
   const translated = translateSingleClause(
