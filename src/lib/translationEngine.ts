@@ -344,6 +344,19 @@ export function translateLSCtoSpanish(input: string): string {
   // 3. Regla especial para mezcla de colores
   // Formato: "azul mezclar amarillo verde" -> "Al mezclar azul y amarillo se obtiene verde."
   const wordsRaw = cleanInput.split(' ');
+  const requestPattern = detectRequestPattern(wordsRaw);
+  if (requestPattern) {
+    const leadingText = requestPattern.leadingText ? translateLSCtoSpanish(requestPattern.leadingText) : '';
+    const requestText = formatRequestClause(requestPattern.requestWords);
+
+    if (leadingText && requestText) {
+      return `${stripTrailingPunctuation(leadingText)}, ${requestText}`;
+    }
+    if (requestText) {
+      return requestText;
+    }
+  }
+
   const containsMezclar = wordsRaw.includes('mezclar') || wordsRaw.includes('mezcla');
   if (containsMezclar) {
     const detectedColors = wordsRaw.filter(word => COLORES.includes(word));
@@ -479,6 +492,57 @@ export function translateLSCtoSpanish(input: string): string {
   }
 
   return output || (input.charAt(0).toUpperCase() + input.slice(1));
+}
+
+function stripTrailingPunctuation(text: string): string {
+  return text.replace(/[.?!,;:]+$/g, '').trim();
+}
+
+function detectRequestPattern(wordsRaw: string[]): { leadingText: string; requestWords: string[] } | null {
+  const requestVerbs = new Set(['prestar', 'dar', 'ayudar', 'pasar', 'decir', 'explicar']);
+  const requestIndex = wordsRaw.findIndex((word, index) => {
+    if (!requestVerbs.has(word)) return false;
+    const prev = wordsRaw[index - 1];
+    return prev === 'me' || prev === 'te' || prev === 'nos' || prev === 'le' || prev === 'les';
+  });
+
+  if (requestIndex === -1) return null;
+
+  const leading = wordsRaw.slice(0, requestIndex).join(' ').trim();
+  const requestWords = wordsRaw.slice(requestIndex - 1).filter(Boolean);
+  if (!requestWords.length) return null;
+
+  return {
+    leadingText: leading,
+    requestWords
+  };
+}
+
+function formatRequestClause(requestWords: string[]): string {
+  const normalized = requestWords.join(' ').replace(/\s+/g, ' ').trim();
+  if (!normalized) return '';
+
+  const words = normalized.split(' ');
+  const hasMe = words.includes('me');
+  const hasPuedes = words.includes('puedes') || words.includes('podrías') || words.includes('podria') || words.includes('podrías');
+  const hasPrestar = words.includes('prestar') || words.includes('prestas') || words.includes('prestes');
+
+  if (hasMe && hasPuedes && hasPrestar) {
+    return '¿Me puedes prestar?';
+  }
+
+  const translated = translateSingleClause(
+    words.map(w => VERB_TO_INFINITIVE[w] || w),
+    words.includes('yo') ? 0 : 1,
+    words.includes('yo') ? 'yo' : '',
+    'present',
+    false
+  );
+
+  if (!translated) return '';
+
+  const cleaned = stripTrailingPunctuation(translated);
+  return cleaned.endsWith('?') ? cleaned : `¿${cleaned}?`;
 }
 
 const CLAUSE_BREAKERS = new Set(['pero', 'aunque', 'si', 'cuando', 'entonces', 'mientras']);
