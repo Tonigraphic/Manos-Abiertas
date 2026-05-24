@@ -69,6 +69,88 @@ function cleanTranslation(text: string): string {
   return cleaned;
 }
 
+const TEMPORAL_ADVERBS = new Set([
+  'ayer',
+  'anoche',
+  'antes',
+  'hoy',
+  'mañana',
+  'ahora',
+]);
+
+const PAST_IRREGULARS: Record<string, string> = {
+  ver: 'vi',
+  ir: 'fui',
+  ser: 'fui',
+  tener: 'tuve',
+  hacer: 'hice',
+  poder: 'pude',
+  poner: 'puse',
+  decir: 'dije',
+  venir: 'vine',
+  querer: 'quise',
+  saber: 'supe',
+  salir: 'salí',
+  dar: 'di',
+  traer: 'traje',
+  haber: 'hube',
+};
+
+const PRESENT_IRREGULARS: Record<string, string> = {
+  ver: 'veo',
+  ir: 'voy',
+  ser: 'soy',
+  tener: 'tengo',
+  hacer: 'hago',
+  poder: 'puedo',
+  poner: 'pongo',
+  decir: 'digo',
+  venir: 'vengo',
+  querer: 'quiero',
+  saber: 'sé',
+  salir: 'salgo',
+  dar: 'doy',
+  traer: 'traigo',
+  haber: 'he',
+};
+
+function isVerbLike(word: string): boolean {
+  const normalized = word.toLowerCase();
+  return normalized.endsWith('ar') || normalized.endsWith('er') || normalized.endsWith('ir') || normalized in PAST_IRREGULARS || normalized in PRESENT_IRREGULARS;
+}
+
+function conjugatePastFirstPerson(word: string): string {
+  const normalized = word.toLowerCase();
+
+  if (normalized in PAST_IRREGULARS) {
+    return PAST_IRREGULARS[normalized];
+  }
+
+  if (normalized.endsWith('ar')) {
+    return `${normalized.slice(0, -2)}é`;
+  }
+
+  if (normalized.endsWith('er') || normalized.endsWith('ir')) {
+    return `${normalized.slice(0, -2)}í`;
+  }
+
+  return normalized;
+}
+
+function conjugatePresentFirstPerson(word: string): string {
+  const normalized = word.toLowerCase();
+
+  if (normalized in PRESENT_IRREGULARS) {
+    return PRESENT_IRREGULARS[normalized];
+  }
+
+  if (normalized.endsWith('ar') || normalized.endsWith('er') || normalized.endsWith('ir')) {
+    return `${normalized.slice(0, -2)}o`;
+  }
+
+  return normalized;
+}
+
 function fallbackTranslation(input: string): string {
   const cleaned = input
     .replace(/\s+/g, ' ')
@@ -76,7 +158,29 @@ function fallbackTranslation(input: string): string {
 
   if (!cleaned) return '';
 
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  const words = cleaned.split(' ');
+  const firstWord = words[0].toLowerCase();
+  const secondWord = words[1]?.toLowerCase() || '';
+
+  if (TEMPORAL_ADVERBS.has(firstWord) && secondWord && isVerbLike(secondWord)) {
+    const remainder = words.slice(2).join(' ');
+    const conjugated = conjugatePastFirstPerson(secondWord);
+    return `${firstWord.charAt(0).toUpperCase() + firstWord.slice(1)} ${conjugated}${remainder ? ` ${remainder}` : ''}.`;
+  }
+
+  if ((firstWord === 'yo' || firstWord === 'me' || firstWord === 'mi') && secondWord && isVerbLike(secondWord)) {
+    const remainder = words.slice(2).join(' ');
+    const conjugated = conjugatePresentFirstPerson(secondWord);
+    return `${firstWord.charAt(0).toUpperCase() + firstWord.slice(1)} ${conjugated}${remainder ? ` ${remainder}` : ''}.`;
+  }
+
+  if (isVerbLike(firstWord)) {
+    const remainder = words.slice(1).join(' ');
+    const conjugated = conjugatePresentFirstPerson(firstWord);
+    return `${conjugated.charAt(0).toUpperCase() + conjugated.slice(1)}${remainder ? ` ${remainder}` : ''}.`;
+  }
+
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1) + (/[.!?]$/.test(cleaned) ? '' : '.');
 }
 
 export default async function handler(req: any, res: any) {

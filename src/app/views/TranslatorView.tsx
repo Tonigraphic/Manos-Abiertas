@@ -103,9 +103,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
 
       const data = await response.json();
       const translatedFromApi = typeof data?.translatedText === 'string' ? data.translatedText.trim() : '';
-      const translated = data?.provider === 'huggingface' && translatedFromApi
-        ? translatedFromApi
-        : translateLSCtoSpanish(inputText);
+      const translated = translatedFromApi || translateLSCtoSpanish(inputText);
 
       setTranslatedText(translated);
     } catch (error) {
