@@ -210,7 +210,9 @@ export default async function handler(req: any, res: any) {
     }
 
     const localFallback = fallbackTranslation(text);
-    const HF_TOKEN = process.env.HF_TOKEN;
+    // Preferir el token específico de traducción si existe, sino usar el legacy HF_TOKEN
+    const HF_TOKEN = process.env.HF_TRANSLATION_TOKEN || process.env.HF_TOKEN;
+    const tokenSource = process.env.HF_TRANSLATION_TOKEN ? 'new' : (process.env.HF_TOKEN ? 'legacy' : 'none');
     const MODEL_ID = process.env.HF_TRANSLATION_MODEL || 'Qwen/Qwen2.5-1.5B-Instruct';
 
     if (!HF_TOKEN) {
@@ -219,6 +221,7 @@ export default async function handler(req: any, res: any) {
         provider: 'local',
         simulated: true,
         reason: 'HF_TOKEN no configurado en el entorno de despliegue',
+        tokenSource,
         translatedText: localFallback,
       });
     }
@@ -250,6 +253,7 @@ export default async function handler(req: any, res: any) {
         success: true,
         provider: 'local-fallback',
         reason: 'Hugging Face no respondió correctamente',
+        tokenSource,
         translatedText: localFallback,
       });
     }
@@ -261,6 +265,7 @@ export default async function handler(req: any, res: any) {
       success: true,
       provider: 'huggingface',
       model: MODEL_ID,
+      tokenSource,
       translatedText: generatedText || localFallback,
     });
   } catch (error) {
@@ -269,6 +274,7 @@ export default async function handler(req: any, res: any) {
       success: true,
       provider: 'local-fallback',
       reason: 'Error de red, timeout o caída del runtime del endpoint',
+      tokenSource: (process.env.HF_TRANSLATION_TOKEN ? 'new' : (process.env.HF_TOKEN ? 'legacy' : 'none')),
       translatedText: fallbackTranslation(String(req.body?.text || '')),
     });
   }

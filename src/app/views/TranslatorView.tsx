@@ -16,6 +16,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [translationProvider, setTranslationProvider] = useState('');
   const [translationModel, setTranslationModel] = useState('');
   const [translationReason, setTranslationReason] = useState('');
+  const [translationTokenSource, setTranslationTokenSource] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -112,6 +113,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       setTranslationProvider(typeof data?.provider === 'string' ? data.provider : 'local-fallback');
       setTranslationModel(typeof data?.model === 'string' ? data.model : '');
       setTranslationReason(typeof data?.reason === 'string' ? data.reason : '');
+      setTranslationTokenSource(typeof data?.tokenSource === 'string' ? data.tokenSource : '');
     } catch (error) {
       console.error('Translation request failed:', error);
       setTranslationProvider('local-fallback');
@@ -229,6 +231,11 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                     {translationReason ? (
                       <p className="mt-1 text-xs text-white/60 leading-relaxed">
                         {translationReason}
+                      </p>
+                    ) : null}
+                    {translationTokenSource ? (
+                      <p className="mt-1 text-xs text-white/60">
+                        {translationTokenSource === 'new' ? 'Token: nuevo (HF_TRANSLATION_TOKEN)' : translationTokenSource === 'legacy' ? 'Token: antiguo (HF_TOKEN)' : 'Token: no presente'}
                       </p>
                     ) : null}
                   </CardBody>
