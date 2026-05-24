@@ -263,6 +263,29 @@ const REASON_NOUNS = ['problema', 'problemas', 'internet', 'lluvia', 'dificultad
 export function translateLSCtoSpanish(input: string): string {
   if (!input || !input.trim()) return '';
 
+  const normalizedLineBreaks = input.replace(/\r\n/g, '\n').trim();
+  const paragraphBlocks = normalizedLineBreaks
+    .split(/\n{2,}/)
+    .map(block => block.trim())
+    .filter(Boolean);
+
+  if (paragraphBlocks.length > 1) {
+    const translatedParagraphs = paragraphBlocks
+      .map(block => translateLSCtoSpanish(block))
+      .filter(Boolean);
+
+    return translatedParagraphs.join('\n\n');
+  }
+
+  const structuredSegments = splitStructuredSegments(input);
+  if (structuredSegments.length > 1) {
+    const translatedSegments = structuredSegments
+      .map(segment => translateLSCtoSpanish(segment))
+      .filter(Boolean);
+
+    return translatedSegments.join(' ');
+  }
+
   const cleanInput = input
     .toLowerCase()
     .replace(/[¿?¡!.,;:_]/g, '')
@@ -426,6 +449,88 @@ export function translateLSCtoSpanish(input: string): string {
   }
 
   return output || (input.charAt(0).toUpperCase() + input.slice(1));
+}
+
+const CLAUSE_BREAKERS = new Set(['pero', 'aunque', 'si', 'cuando', 'entonces', 'mientras']);
+
+function splitStructuredSegments(input: string): string[] {
+  const normalized = input
+    .replace(/\r\n/g, '\n')
+    .trim();
+
+  if (!normalized) return [];
+
+  const paragraphBlocks = normalized
+    .split(/\n{2,}/)
+    .map(block => block.trim())
+    .filter(Boolean);
+
+  const segments: string[] = [];
+
+  for (const paragraph of paragraphBlocks) {
+    const sentenceParts = paragraph
+      .split(/[\n.!?;]+/g)
+      .map(part => part.trim())
+      .filter(Boolean);
+
+    for (const sentence of sentenceParts) {
+      segments.push(...splitLongClauseSegments(sentence));
+    }
+  }
+
+  return segments;
+}
+
+function splitLongClauseSegments(sentence: string): string[] {
+  const normalized = sentence
+    .toLowerCase()
+    .replace(/[¿?¡!.,;:_]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) return [];
+
+  const words = normalized.split(' ');
+  const verbCount = words.filter(word => word in VERB_CONJUGATIONS).length;
+  const hasBoundaryWord = words.some(word => CLAUSE_BREAKERS.has(word));
+
+  if (words.length <= 10 && verbCount <= 1 && !hasBoundaryWord) {
+    return [sentence.trim()];
+  }
+
+  const segments: string[] = [];
+  let current: string[] = [];
+  let verbsInCurrent = 0;
+
+  for (const word of words) {
+    const isBoundaryWord = CLAUSE_BREAKERS.has(word);
+    const isVerb = word in VERB_CONJUGATIONS;
+
+    if (isBoundaryWord && current.length > 0) {
+      segments.push(current.join(' '));
+      current = [word];
+      verbsInCurrent = 0;
+      continue;
+    }
+
+    if (isVerb) {
+      verbsInCurrent += 1;
+      if (verbsInCurrent > 1 && current.length >= 4) {
+        segments.push(current.join(' '));
+        current = [word];
+        verbsInCurrent = 1;
+        continue;
+      }
+    }
+
+    current.push(word);
+  }
+
+  if (current.length > 0) {
+    segments.push(current.join(' '));
+  }
+
+  return segments.length > 0 ? segments : [sentence.trim()];
 }
 
 /**
