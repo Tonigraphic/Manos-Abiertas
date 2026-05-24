@@ -4,6 +4,7 @@ import { Button } from '../components/lsc/Button';
 import { Send, Languages, Mic, Volume2, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { InstructionsModal } from '../components/lsc/InstructionsModal';
+import { translateLSCtoSpanish } from '../../lib/translationEngine';
 
 interface TranslatorViewProps {
   onNavigateHome?: () => void;
@@ -81,18 +82,15 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   };
 
   const handleTranslate = () => {
-    // Simple LSC translation logic
-    const connectors = ['el', 'la', 'los', 'las', 'de', 'del', 'y', 'o', 'a', 'en', 'con', 'por', 'para', 'un', 'una'];
-    const result = translatorInput.toLowerCase().split(/\s+/)
-      .filter(word => !connectors.includes(word.replace(/[.,!?;:]/g, '')))
-      .join(' ').toUpperCase();
+    const result = translateLSCtoSpanish(translatorInput);
     setTranslatedText(result);
   };
 
   const playAudio = () => {
-    if (!translatorInput) return;
+    const textToPlay = translatedText || translatorInput;
+    if (!textToPlay) return;
     setIsPlaying(true);
-    const utterance = new SpeechSynthesisUtterance(translatorInput);
+    const utterance = new SpeechSynthesisUtterance(textToPlay);
     utterance.lang = 'es-CO';
     utterance.onend = () => setIsPlaying(false);
     window.speechSynthesis.speak(utterance);
@@ -102,12 +100,12 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-[var(--color-neutral-50)] relative">
       <InstructionsModal 
         id="translator"
-        title="Traductor a Glosa LSC"
+        title="Traductor LSC a Español"
         instructions={[
-          "Escribe el texto en español que deseas traducir o usa el micrófono para dictar.",
-          "Haz clic en 'Traducir a Glosa LSC' para ver la estructura gramatical simplificada para la comunidad sorda.",
-          "Puedes reproducir el audio del texto escrito para comunicarte de manera oral si lo necesitas.",
-          "Recuerda que la glosa elimina conectores innecesarios y resalta la idea principal."
+          "Escribe las señas escritas en español simplificado (sin conectores) o usa el micrófono para dictar.",
+          "Haz clic en 'Traducir y Corregir' para ver la estructura gramatical del español correcto.",
+          "Puedes reproducir el audio del texto corregido para comunicarte oralmente si lo necesitas.",
+          "Esta herramienta ayuda a corregir la estructura del español, facilitando la redacción autónoma de personas sordas."
         ]}
       />
 
@@ -118,8 +116,8 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
               <Languages size={28} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-neutral-800">Traductor Principal</h1>
-              <p className="text-sm text-neutral-500 font-medium mt-1">Convierte español a Glosa LSC</p>
+              <h1 className="text-2xl font-bold text-neutral-800">Traductor LSC a Español</h1>
+              <p className="text-sm text-neutral-500 font-medium mt-1">Convierte español sordo (sin conectores) a español correcto</p>
             </div>
           </div>
         </div>
@@ -131,7 +129,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
             <CardBody className="p-4 sm:p-6 md:p-8">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 gap-4 sm:gap-0">
                 <label className="text-sm font-bold text-neutral-400 uppercase tracking-widest">
-                  Texto en Español
+                  Lengua de Señas Escrita (sin conectores)
                 </label>
                 <div className="flex gap-2 w-full sm:w-auto">
                   <button 
@@ -155,7 +153,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                 <textarea
                   value={translatorInput}
                   onChange={(e) => setTranslatorInput(e.target.value)}
-                  placeholder="Escribe o dicta tu mensaje aquí..."
+                  placeholder="Escribe palabras clave, ej: 'yo ir universidad mañana' o 'profesor no venir ayer'..."
                   className="w-full h-40 p-5 bg-neutral-50 border-2 rounded-2xl focus:bg-white focus:border-[var(--color-primary-400)] outline-none resize-none text-xl transition-colors border-neutral-100 text-neutral-800 leading-relaxed placeholder:text-neutral-300"
                 />
               </div>
@@ -166,7 +164,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                   className="w-full py-5 text-lg font-bold shadow-lg" 
                   disabled={!translatorInput && !isRecording}
                 >
-                  <Send size={20} className="mr-2" /> Traducir a Glosa LSC
+                  <Send size={20} className="mr-2" /> Traducir y Corregir
                 </Button>
               </div>
             </CardBody>
@@ -179,9 +177,9 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                   <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
                   <CardBody className="p-8 sm:p-10 relative z-10">
                     <p className="text-xs font-black text-[var(--color-primary-100)] uppercase mb-3 tracking-widest opacity-80">
-                      Resultado en Glosa
+                      Texto en Español Corregido
                     </p>
-                    <p className="text-4xl sm:text-5xl font-black text-white leading-tight drop-shadow-sm">
+                    <p className="text-3xl sm:text-4xl font-extrabold text-white leading-tight drop-shadow-sm">
                       {translatedText}
                     </p>
                   </CardBody>

@@ -15,8 +15,8 @@ export function LandingView({ onNavigate }: LandingViewProps) {
   const features = [
     {
       id: 'translator',
-      title: 'Traductor a Glosa LSC',
-      description: 'Convierte texto o voz en español a la estructura gramatical de la Lengua de Señas Colombiana',
+      title: 'Traductor LSC a Español',
+      description: 'Convierte español sordo (sin conectores o simplificado) a español escrito correcto',
       icon: Bot,
       gradient: 'from-blue-500 to-blue-600',
       badge: 'Módulo Principal',
