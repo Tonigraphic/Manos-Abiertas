@@ -218,6 +218,7 @@ export default async function handler(req: any, res: any) {
         success: true,
         provider: 'local',
         simulated: true,
+        reason: 'HF_TOKEN no configurado en el entorno de despliegue',
         translatedText: localFallback,
       });
     }
@@ -248,6 +249,7 @@ export default async function handler(req: any, res: any) {
       return res.status(200).json({
         success: true,
         provider: 'local-fallback',
+        reason: 'Hugging Face no respondió correctamente',
         translatedText: localFallback,
       });
     }
@@ -266,6 +268,7 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({
       success: true,
       provider: 'local-fallback',
+      reason: 'Error de red, timeout o caída del runtime del endpoint',
       translatedText: fallbackTranslation(String(req.body?.text || '')),
     });
   }

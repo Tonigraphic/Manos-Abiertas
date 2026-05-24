@@ -15,6 +15,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [translatedText, setTranslatedText] = useState('');
   const [translationProvider, setTranslationProvider] = useState('');
   const [translationModel, setTranslationModel] = useState('');
+  const [translationReason, setTranslationReason] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -110,10 +111,12 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       setTranslatedText(translated);
       setTranslationProvider(typeof data?.provider === 'string' ? data.provider : 'local-fallback');
       setTranslationModel(typeof data?.model === 'string' ? data.model : '');
+      setTranslationReason(typeof data?.reason === 'string' ? data.reason : '');
     } catch (error) {
       console.error('Translation request failed:', error);
       setTranslationProvider('local-fallback');
       setTranslationModel('');
+      setTranslationReason('No se pudo contactar el endpoint /api/translate');
       setTranslatedText(translateLSCtoSpanish(inputText));
     } finally {
       setIsTranslating(false);
@@ -223,6 +226,11 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                           ? 'Fuente: fallback local de desarrollo'
                           : 'Fuente: fallback local'}
                     </p>
+                    {translationReason ? (
+                      <p className="mt-1 text-xs text-white/60 leading-relaxed">
+                        {translationReason}
+                      </p>
+                    ) : null}
                   </CardBody>
                 </Card>
               </motion.div>
