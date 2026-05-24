@@ -15,6 +15,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [translatedText, setTranslatedText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
 
   // Use SpeechRecognition API for Voice-to-Text
   const SpeechRecognition = typeof window !== 'undefined' ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) : null;
@@ -81,9 +82,37 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     }
   };
 
-  const handleTranslate = () => {
-    const result = translateLSCtoSpanish(translatorInput);
-    setTranslatedText(result);
+  const handleTranslate = async () => {
+    const inputText = translatorInput.trim();
+    if (!inputText) return;
+
+    setIsTranslating(true);
+
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: inputText }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Translation API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const translated = typeof data?.translatedText === 'string' && data.translatedText.trim()
+        ? data.translatedText.trim()
+        : translateLSCtoSpanish(inputText);
+
+      setTranslatedText(translated);
+    } catch (error) {
+      console.error('Translation request failed:', error);
+      setTranslatedText(translateLSCtoSpanish(inputText));
+    } finally {
+      setIsTranslating(false);
+    }
   };
 
   const playAudio = () => {
@@ -162,9 +191,9 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                 <Button 
                   onClick={handleTranslate} 
                   className="w-full py-5 text-lg font-bold shadow-lg" 
-                  disabled={!translatorInput && !isRecording}
+                  disabled={(!translatorInput && !isRecording) || isTranslating}
                 >
-                  <Send size={20} className="mr-2" /> Traducir y Corregir
+                  <Send size={20} className="mr-2" /> {isTranslating ? 'Traduciendo...' : 'Traducir y Corregir'}
                 </Button>
               </div>
             </CardBody>
