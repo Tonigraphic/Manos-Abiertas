@@ -242,11 +242,14 @@ const NOUN_ARTICLES: Record<string, string> = {
   nombre: 'mi nombre',
   seña: 'mi seña',
   internet: 'internet',
+  pelicula: 'una película',
+  película: 'una película',
   bus: 'el bus'
 };
 
 const CLITIC_PRONOUNS = new Set(['me', 'te', 'se', 'nos', 'os', 'lo', 'la', 'los', 'las', 'le', 'les']);
 const QUANTITY_MODIFIERS = new Set(['poco', 'poca', 'pocos', 'pocas', 'mucho', 'mucha', 'muchos', 'muchas', 'algo', 'nada', 'vario', 'varios', 'varia', 'varias']);
+const INFINITIVE_COMPLEMENTS = new Set(['ver', 'querer', 'poder', 'necesitar', 'ir', 'venir', 'hacer', 'decir', 'dar', 'ayudar', 'prestar', 'explicar', 'solicitar', 'aprender', 'entender']);
 
 const DICCIONARIO_FRASES: Record<string, string> = {
   'gracias': '¡Muchas gracias!',
@@ -279,11 +282,98 @@ const COLORES = [
 const REASON_ADJECTIVES = ['enfermo', 'enferma', 'cansado', 'cansada', 'ocupado', 'ocupada', 'triste', 'tarde', 'preocupado', 'preocupada'];
 const REASON_NOUNS = ['problema', 'problemas', 'internet', 'lluvia', 'dificultad', 'luz', 'energia', 'energía'];
 
+function looksAlreadyConventionalSpanish(input: string): boolean {
+  const normalized = input
+    .toLowerCase()
+    .replace(/[¿?¡!.,;:_]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) return false;
+
+  const words = normalized.split(' ');
+  const hasFiniteVerb = words.some(word => word in VERB_TO_INFINITIVE || word in CONJUGATED_TO_SUBJECT_INDEX);
+  const hasArticle = words.some(word => ['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas'].includes(word));
+  const hasTypicalLSCMarkers = words.some(word => ['yo', 'tú', 'usted', 'porque', 'me', 'te', 'nos'].includes(word));
+  const hasQuestionCue = /^¿|^(que|qué|como|cómo|cuando|cuándo|donde|dónde|por qué|por que)\b/.test(input.trim().toLowerCase());
+
+  return (hasFiniteVerb && hasArticle && !hasTypicalLSCMarkers) || (hasFiniteVerb && hasQuestionCue && !hasTypicalLSCMarkers);
+}
+
+function articleForWord(word: string): string {
+  if (word in NOUN_ARTICLES) return NOUN_ARTICLES[word];
+
+  const lower = word.toLowerCase();
+  const startsWithA = /^[aá]/.test(lower);
+  const startsWithO = /^[oó]/.test(lower);
+
+  if (startsWithA) return `una ${word}`;
+  if (startsWithO) return `un ${word}`;
+  return `un ${word}`;
+}
+
+function detectSimpleIntentPattern(wordsRaw: string[]): string | null {
+  if (wordsRaw.length < 2) return null;
+
+  const first = wordsRaw[0];
+  const second = wordsRaw[1];
+  const third = wordsRaw[2];
+  const fourth = wordsRaw[3];
+
+  if (first === 'no' && second === 'quiero' && third === 'ver' && fourth) {
+    return `No quiero ver ${articleForWord(fourth)}.`;
+  }
+
+  if (first === 'no' && second === 'quiero' && third) {
+    return `No quiero ${articleForWord(third)}.`;
+  }
+
+  if (first === 'no' && second === 'necesito' && third) {
+    return `No necesito ${articleForWord(third)}.`;
+  }
+
+  if (first === 'no' && second === 'puedo' && third) {
+    return `No puedo ${third}${fourth ? ` ${articleForWord(fourth)}` : ''}.`;
+  }
+
+  if (first === 'quiero' && second === 'ver' && third) {
+    return `Quiero ver ${articleForWord(third)}.`;
+  }
+
+  if (first === 'quiero' && second === 'ver' && third && fourth) {
+    return `Quiero ver ${articleForWord(third)} ${articleForWord(fourth)}.`;
+  }
+
+  if (first === 'quiero' && second && !INFINITIVE_COMPLEMENTS.has(second)) {
+    return `Quiero ${articleForWord(second)}.`;
+  }
+
+  if (first === 'quiero' && second && INFINITIVE_COMPLEMENTS.has(second) && third) {
+    return `Quiero ${second} ${articleForWord(third)}.`;
+  }
+
+  if (first === 'necesito' && second && !INFINITIVE_COMPLEMENTS.has(second)) {
+    return `Necesito ${articleForWord(second)}.`;
+  }
+
+  if ((first === 'necesito' || first === 'quiero') && second && INFINITIVE_COMPLEMENTS.has(second) && third) {
+    const tail = fourth ? `${articleForWord(third)} ${articleForWord(fourth)}` : articleForWord(third);
+    return `${first.charAt(0).toUpperCase() + first.slice(1)} ${second} ${tail}.`;
+  }
+
+  return null;
+}
+
 /**
  * Traduce una frase en estructura LSC (sin conectores) a español estándar correcto.
  */
 export function translateLSCtoSpanish(input: string): string {
   if (!input || !input.trim()) return '';
+
+  if (looksAlreadyConventionalSpanish(input)) {
+    const cleanedStandard = input.replace(/\s+/g, ' ').trim();
+    return applyPragmaticCorrections(cleanedStandard.charAt(0).toUpperCase() + cleanedStandard.slice(1));
+  }
 
   const normalizedLineBreaks = input.replace(/\r\n/g, '\n').trim();
   const paragraphBlocks = normalizedLineBreaks
@@ -344,6 +434,17 @@ export function translateLSCtoSpanish(input: string): string {
   // 3. Regla especial para mezcla de colores
   // Formato: "azul mezclar amarillo verde" -> "Al mezclar azul y amarillo se obtiene verde."
   const wordsRaw = cleanInput.split(' ');
+
+  const simpleIntent = detectSimpleIntentPattern(wordsRaw);
+  if (simpleIntent) {
+    return applyPragmaticCorrections(simpleIntent);
+  }
+
+  const conjugatedRequest = detectConjugatedRequestPattern(wordsRaw);
+  if (conjugatedRequest) {
+    return applyPragmaticCorrections(conjugatedRequest);
+  }
+
   const requestPattern = detectRequestPattern(wordsRaw);
   if (requestPattern) {
     const leadingText = requestPattern.leadingText ? translateLSCtoSpanish(requestPattern.leadingText) : '';
@@ -501,6 +602,7 @@ function stripTrailingPunctuation(text: string): string {
 function detectRequestPattern(wordsRaw: string[]): { leadingText: string; requestWords: string[] } | null {
   const requestVerbs = new Set(['prestar', 'dar', 'ayudar', 'pasar', 'decir', 'explicar']);
   const powerForms = new Set(['puedo', 'puedes', 'puede', 'podemos', 'pueden', 'podría', 'podrías', 'podria', 'podrian']);
+  const requestConjugations = new Set(['ayudas', 'ayuda', 'ayudan', 'explicas', 'explica', 'explican', 'das', 'da', 'dan', 'prestas', 'presta', 'prestan']);
 
   const requestRegex = /(?:^|\s)(me|te|nos|le|les)\s+(puedo|puedes|puede|podemos|pueden|podría|podrías|podria|podrian)\s+(prestar|dar|ayudar|pasar|decir|explicar)(?:\s+([\p{L}\p{N}]+))?/u;
   const normalized = wordsRaw.join(' ');
@@ -555,6 +657,35 @@ function detectRequestPattern(wordsRaw: string[]): { leadingText: string; reques
     leadingText: leading,
     requestWords
   };
+}
+
+function detectConjugatedRequestPattern(wordsRaw: string[]): string | null {
+  if (wordsRaw.length < 2) return null;
+
+  const first = wordsRaw[0];
+  const second = wordsRaw[1];
+  const third = wordsRaw[2];
+  const requestVerbs = new Set(['ayudas', 'ayuda', 'ayudan', 'explicas', 'explica', 'explican', 'das', 'da', 'dan', 'prestas', 'presta', 'prestan', 'dices', 'dice', 'dicen', 'pasas', 'pasa', 'pasan']);
+
+  if (first === 'me' && requestVerbs.has(second)) {
+    if (third) {
+      return `¿Me ${second} ${articleForWord(third)}?`;
+    }
+    return `¿Me ${second}?`;
+  }
+
+  if (first === 'me' && second === 'puedes') {
+    const tailVerb = wordsRaw[2];
+    const tail = wordsRaw[3];
+    if (tailVerb === 'prestar') {
+      return tail ? `¿Me puedes prestar ${articleForWord(tail)}?` : '¿Me puedes prestar?';
+    }
+    if (tailVerb && INFINITIVE_COMPLEMENTS.has(tailVerb)) {
+      return tail ? `¿Me puedes ${tailVerb} ${articleForWord(tail)}?` : `¿Me puedes ${tailVerb}?`;
+    }
+  }
+
+  return null;
 }
 
 function formatRequestClause(requestWords: string[]): string {
@@ -758,6 +889,7 @@ function translateSingleClause(
   }
 
   let verbProcessed = false;
+  let complementChain = false;
   const listItems: string[] = [];
   const objectItems: string[] = [];
 
@@ -784,6 +916,17 @@ function translateSingleClause(
         listItems.push(quantityPhrase);
       }
       i++;
+      continue;
+    }
+
+    if (verbProcessed && (INFINITIVE_COMPLEMENTS.has(word) || /^[a-záéíóúñ]+(ar|er|ir)$/.test(word))) {
+      resultWords.push(word);
+      complementChain = true;
+      continue;
+    }
+
+    if (complementChain && (word in NOUN_ARTICLES || word in PLACE_PREPOSITIONS || /^[\p{L}][\p{L}\p{N}'-]*$/u.test(word))) {
+      resultWords.push(word in NOUN_ARTICLES ? NOUN_ARTICLES[word] : word in PLACE_PREPOSITIONS ? PLACE_PREPOSITIONS[word] : word);
       continue;
     }
 
@@ -834,7 +977,7 @@ function translateSingleClause(
     // Tratar palabras de lugar aisladas (si no fueron consumidas por el verbo "ir")
     if (word in PLACE_PREPOSITIONS) {
       if (verbProcessed) {
-        objectItems.push(PLACE_PREPOSITIONS[word]);
+        resultWords.push(PLACE_PREPOSITIONS[word]);
       } else {
         listItems.push(PLACE_PREPOSITIONS[word]);
       }
@@ -844,7 +987,7 @@ function translateSingleClause(
     // Agregar artículos a sustantivos comunes
     if (word in NOUN_ARTICLES) {
       if (verbProcessed) {
-        objectItems.push(NOUN_ARTICLES[word]);
+        resultWords.push(NOUN_ARTICLES[word]);
       } else {
         listItems.push(NOUN_ARTICLES[word]);
       }
@@ -858,7 +1001,7 @@ function translateSingleClause(
 
     // Palabras desconocidas o nombres propios
     if (verbProcessed) {
-      objectItems.push(word);
+      resultWords.push(word);
     } else {
       listItems.push(word);
     }
