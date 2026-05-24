@@ -69,6 +69,20 @@ function cleanTranslation(text: string): string {
   return cleaned;
 }
 
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 8000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 const TEMPORAL_ADVERBS = new Set([
   'ayer',
   'anoche',
@@ -197,7 +211,7 @@ export default async function handler(req: any, res: any) {
 
     const localFallback = fallbackTranslation(text);
     const HF_TOKEN = process.env.HF_TOKEN;
-    const MODEL_ID = process.env.HF_TRANSLATION_MODEL || 'Qwen/Qwen2.5-7B-Instruct';
+    const MODEL_ID = process.env.HF_TRANSLATION_MODEL || 'Qwen/Qwen2.5-1.5B-Instruct';
 
     if (!HF_TOKEN) {
       return res.status(200).json({
@@ -208,7 +222,7 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const response = await fetch(`https://api-inference.huggingface.co/models/${MODEL_ID}`, {
+    const response = await fetchWithTimeout(`https://api-inference.huggingface.co/models/${MODEL_ID}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${HF_TOKEN}`,
@@ -223,10 +237,10 @@ export default async function handler(req: any, res: any) {
           return_full_text: false,
         },
         options: {
-          wait_for_model: true,
+          wait_for_model: false,
         },
       }),
-    });
+    }, 8000);
 
     if (!response.ok) {
       const errorText = await response.text();

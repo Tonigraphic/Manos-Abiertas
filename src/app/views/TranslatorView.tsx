@@ -13,6 +13,8 @@ interface TranslatorViewProps {
 export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [translatorInput, setTranslatorInput] = useState('');
   const [translatedText, setTranslatedText] = useState('');
+  const [translationProvider, setTranslationProvider] = useState('');
+  const [translationModel, setTranslationModel] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -106,8 +108,12 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       const translated = translatedFromApi || translateLSCtoSpanish(inputText);
 
       setTranslatedText(translated);
+      setTranslationProvider(typeof data?.provider === 'string' ? data.provider : 'local-fallback');
+      setTranslationModel(typeof data?.model === 'string' ? data.model : '');
     } catch (error) {
       console.error('Translation request failed:', error);
+      setTranslationProvider('local-fallback');
+      setTranslationModel('');
       setTranslatedText(translateLSCtoSpanish(inputText));
     } finally {
       setIsTranslating(false);
@@ -209,6 +215,13 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                     </p>
                     <p className="text-3xl sm:text-4xl font-extrabold text-white leading-tight drop-shadow-sm">
                       {translatedText}
+                    </p>
+                    <p className="mt-4 text-xs font-semibold text-white/75">
+                      {translationProvider === 'huggingface'
+                        ? `Fuente: Hugging Face${translationModel ? ` · Modelo: ${translationModel}` : ''}`
+                        : translationProvider === 'local'
+                          ? 'Fuente: fallback local de desarrollo'
+                          : 'Fuente: fallback local'}
                     </p>
                   </CardBody>
                 </Card>
