@@ -742,6 +742,8 @@ function applyPragmaticCorrections(text: string): string {
   output = output.replace(/\bme\s+puedo\s+dar\b/gi, '¿Me puedes dar?');
   output = output.replace(/\bme\s+puedo\s+ayudar\b/gi, '¿Me puedes ayudar?');
   output = output.replace(/\bpara\s+bus\b/gi, 'para el bus');
+  output = output.replace(/\b([a-záéíóúñ]+)\s+y\s+(un|una|el|la|los|las)\b/gi, '$1 $2');
+  output = output.replace(/\b(un|una|el|la|los|las)\s+y\s+\1\b/gi, '$1');
 
   if (/^yo\s+tengo\b/i.test(output)) {
     output = output.replace(/^yo\s+tengo\b/i, 'Tengo');
