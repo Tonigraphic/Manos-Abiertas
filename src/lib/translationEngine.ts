@@ -77,10 +77,65 @@ const VERB_CONJUGATIONS: Record<string, Conjugations> = {
     future: ['explicaré', 'explicarás', 'explicará', 'explicaremos', 'explicarán']
   },
   aprender: {
-    present: ['aprendo', 'aprendes', 'aprende', 'aprendemos', 'aprenden'],
+    present: ['aprendo', 'aprendes', 'aprente', 'aprendemos', 'aprenden'],
     past: ['aprendí', 'aprendiste', 'aprendió', 'aprendimos', 'aprendieron'],
     future: ['aprenderé', 'aprenderás', 'aprenderá', 'aprenderemos', 'aprenderán']
+  },
+  estar: {
+    present: ['estoy', 'estás', 'está', 'estamos', 'están'],
+    past: ['estaba', 'estabas', 'estaba', 'estábamos', 'estaban'], // Imperfecto es más natural para condiciones pasadas
+    future: ['estaré', 'estarás', 'estará', 'estaremos', 'estarán']
+  },
+  tener: {
+    present: ['tengo', 'tienes', 'tiene', 'tenemos', 'tienen'],
+    past: ['tenía', 'tenías', 'tenía', 'teníamos', 'tenían'], // Imperfecto es más natural
+    future: ['tendré', 'tendrás', 'tendrá', 'tendremos', 'tendrán']
   }
+};
+
+const VERB_TO_INFINITIVE: Record<string, string> = {
+  // ir
+  voy: 'ir', vas: 'ir', va: 'ir', vamos: 'ir', van: 'ir',
+  fui: 'ir', fuiste: 'ir', fue: 'ir', fuimos: 'ir', fueron: 'ir',
+  iré: 'ir', irás: 'ir', irá: 'ir', iremos: 'ir', irán: 'ir',
+  // venir
+  vengo: 'venir', vienes: 'venir', viene: 'venir', venimos: 'venir', vienen: 'venir',
+  vine: 'venir', viniste: 'venir', vino: 'venir', vinieron: 'venir',
+  vendré: 'venir', vendrás: 'venir', vendrá: 'venir', vendremos: 'venir', vendrán: 'venir',
+  // estar
+  estoy: 'estar', estás: 'estar', está: 'estar', estamos: 'estar', están: 'estar',
+  estuve: 'estar', estuviste: 'estar', estuvo: 'estar', estuvimos: 'estar', estuvieron: 'estar',
+  estaba: 'estar', estabas: 'estar', estábamos: 'estar', estaban: 'estar',
+  estaré: 'estar', estarás: 'estar', estará: 'estar', estaremos: 'estar', estarán: 'estar',
+  // tener
+  tengo: 'tener', tienes: 'tener', tiene: 'tener', tenemos: 'tener', tienen: 'tener',
+  tuve: 'tener', tuviste: 'tener', tuvo: 'tener', tuvimos: 'tener', tuvieron: 'tener',
+  tenía: 'tener', tenías: 'tener', teníamos: 'tener', tenían: 'tener',
+  tendré: 'tener', tendrás: 'tener', tendrá: 'tener', tendremos: 'tener', tendrán: 'tener',
+  // enviar
+  envío: 'enviar', envías: 'enviar', envía: 'enviar', enviamos: 'enviar', envían: 'enviar',
+  envié: 'enviar', enviaste: 'enviar', envió: 'enviar', enviaron: 'enviar',
+  enviaré: 'enviar', enviarás: 'enviar', enviará: 'enviar', enviaremos: 'enviar', enviarán: 'enviar',
+  // solicitar
+  solicito: 'solicitar', solicitas: 'solicitar', solicita: 'solicitar', solicitamos: 'solicitar', solicitan: 'solicitar',
+  solicité: 'solicitar', solicitaste: 'solicitar', solicitó: 'solicitar', solicitaron: 'solicitar',
+  solicitaré: 'solicitar', solicitarás: 'solicitar', solicitará: 'solicitar', solicitaremos: 'solicitar', solicitarán: 'solicitar',
+  // mezclar
+  mezclo: 'mezclar', mezclas: 'mezclar', mezcla: 'mezclar', mezclamos: 'mezclar', mezclan: 'mezclar',
+  mezclé: 'mezclar', mezclaste: 'mezclar', mezcló: 'mezclar', mezclaron: 'mezclar',
+  mezclaré: 'mezclar', mezclarás: 'mezclar', mezclará: 'mezclar', mezclaremos: 'mezclar', mezclarán: 'mezclar',
+  // necesitar
+  necesito: 'necesitar', necesitas: 'necesitar', necesita: 'necesitar', necesitamos: 'necesitar', necesitan: 'necesitar',
+  necesité: 'necesitar', necesitaste: 'necesitar', necesitó: 'necesitar', necesitaron: 'necesitar',
+  necesitaré: 'necesitar', necesitarás: 'necesitar', necesitará: 'necesitar', necesitaremos: 'necesitar', necesitarán: 'necesitar',
+  // querer
+  quiero: 'querer', quieres: 'querer', quiere: 'querer', queremos: 'querer', quieren: 'querer',
+  quise: 'querer', quisiste: 'querer', quiso: 'querer', quisimos: 'querer', quisieron: 'querer',
+  querré: 'querer', querrás: 'querer', querrá: 'querer', querremos: 'querer', querrán: 'querer',
+  // hacer
+  hago: 'hacer', haces: 'hacer', hace: 'hacer', hacemos: 'hacer', hacen: 'hacer',
+  hice: 'hacer', hiciste: 'hacer', hizo: 'hacer', hicimos: 'hacer', hicieron: 'hacer',
+  haré: 'hacer', harás: 'hacer', hará: 'hacer', haremos: 'hacer', harán: 'hacer'
 };
 
 const SUBJECT_PRONOUNS = {
@@ -101,6 +156,24 @@ const SUBJECT_PRONOUNS = {
   ellas: 4
 };
 
+const CONJUGATED_TO_SUBJECT_INDEX: Record<string, number> = {
+  // yo (0)
+  voy: 0, fui: 0, iré: 0, vengo: 0, vine: 0, vendré: 0, estoy: 0, estuve: 0, estaba: 0,
+  tengo: 0, tuve: 0, tenía: 0, envío: 0, envié: 0, enviaré: 0, solicito: 0, solicité: 0,
+  solicitaré: 0, mezclo: 0, mezclé: 0, mezclaré: 0, necesito: 0, necesité: 0, necesitaré: 0,
+  quiero: 0, quise: 0, querré: 0, hago: 0, hice: 0, haré: 0,
+  // tú / usted (1)
+  vas: 1, fuiste: 1, irás: 1, vienes: 1, viniste: 1, vendrás: 1, estás: 1, estuviste: 1,
+  estabas: 1, tienes: 1, tuviste: 1, tenías: 1, envías: 1, enviaste: 1, enviarás: 1,
+  // nosotros / nosotras (3)
+  vamos: 3, fuimos: 3, iremos: 3, venimos: 3, vinimos: 3, vendremos: 3, estamos: 3,
+  estuvimos: 3, estábamos: 3, tenemos: 3, tuvimos: 3, teníamos: 3, enviamos: 3,
+  solicitamos: 3, mezclamos: 3, necesitamos: 3, queremos: 3, hacemos: 3,
+  // ellos / ellas (4)
+  van: 4, fueron: 4, irán: 4, vienen: 4, vinieron: 4, vendrán: 4, están: 4, estuvieron: 4,
+  estaban: 4, tienen: 4, tuvieron: 4, tenían: 4, envían: 4, enviaron: 4, enviarán: 4
+};
+
 const TIME_INDICATORS = {
   ayer: 'past',
   pasado: 'past',
@@ -117,6 +190,7 @@ const TIME_INDICATORS = {
 };
 
 const PLACE_PREPOSITIONS: Record<string, string> = {
+  casa: 'a mi casa',
   universidad: 'a la universidad',
   clase: 'a clase',
   oficina: 'a la oficina',
@@ -128,6 +202,7 @@ const PLACE_PREPOSITIONS: Record<string, string> = {
 };
 
 const NOUN_ARTICLES: Record<string, string> = {
+  casa: 'la casa',
   tarea: 'la tarea',
   certificado: 'un certificado',
   horario: 'el horario',
@@ -147,7 +222,8 @@ const NOUN_ARTICLES: Record<string, string> = {
   colores: 'los colores',
   color: 'el color',
   nombre: 'mi nombre',
-  seña: 'mi seña'
+  seña: 'mi seña',
+  internet: 'internet'
 };
 
 const DICCIONARIO_FRASES: Record<string, string> = {
@@ -177,6 +253,9 @@ const DICCIONARIO_FRASES: Record<string, string> = {
 const COLORES = [
   'amarillo', 'azul', 'rojo', 'blanco', 'negro', 'morado', 'naranja', 'violeta', 'gris', 'cafe', 'café', 'crema', 'verde'
 ];
+
+const REASON_ADJECTIVES = ['enfermo', 'enferma', 'cansado', 'cansada', 'ocupado', 'ocupada', 'triste', 'tarde', 'preocupado', 'preocupada'];
+const REASON_NOUNS = ['problema', 'problemas', 'internet', 'lluvia', 'dificultad', 'luz', 'energia', 'energía'];
 
 /**
  * Traduce una frase en estructura LSC (sin conectores) a español estándar correcto.
@@ -219,34 +298,39 @@ export function translateLSCtoSpanish(input: string): string {
 
   // 3. Regla especial para mezcla de colores
   // Formato: "azul mezclar amarillo verde" -> "Al mezclar azul y amarillo se obtiene verde."
-  const words = cleanInput.split(' ');
-  const containsMezclar = words.includes('mezclar');
+  const wordsRaw = cleanInput.split(' ');
+  const containsMezclar = wordsRaw.includes('mezclar') || wordsRaw.includes('mezcla');
   if (containsMezclar) {
-    const detectedColors = words.filter(word => COLORES.includes(word));
+    const detectedColors = wordsRaw.filter(word => COLORES.includes(word));
     if (detectedColors.length >= 3) {
       const c1 = detectedColors[0];
       const c2 = detectedColors[1];
       const c3 = detectedColors[2];
-      // Capitalizar colores para la salida
-      const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
       return `Al mezclar ${c1} y ${c2} se obtiene ${c3}.`;
     } else if (detectedColors.length === 2) {
       return `Mezclar ${detectedColors[0]} con ${detectedColors[1]}.`;
     }
   }
 
-  // 4. Procesamiento general basado en reglas (Sujeto + Tiempo + Verbo + Objetos)
-  let subjectIndex = 2; // Por defecto: 3ª persona singular (él/ella/eso)
+  // 4. Normalizar palabras mapeando conjugados a infinitivos para simplificar la lógica
+  const words = wordsRaw.map(w => VERB_TO_INFINITIVE[w] || w);
+
+  // 5. Analizar tokens para encontrar Sujeto, Tiempo y Negaciones generales de la frase
+  let subjectIndex = 2; // Por defecto: 3ª persona singular
   let subjectWord = '';
   let tense: 'present' | 'past' | 'future' = 'present';
-  let hasNegation = false;
 
-  // Analizar tokens para encontrar Sujeto, Tiempo y Negaciones
-  for (const word of words) {
-    if (word === 'no') {
-      hasNegation = true;
-      continue;
+  // Buscar sujeto implícito en verbos conjugados de la frase original (wordsRaw)
+  for (const word of wordsRaw) {
+    if (word in CONJUGATED_TO_SUBJECT_INDEX) {
+      subjectIndex = CONJUGATED_TO_SUBJECT_INDEX[word];
+      if (subjectIndex === 0) subjectWord = 'yo';
+      else if (subjectIndex === 3) subjectWord = 'nosotros';
     }
+  }
+
+  // Sobrescribir si hay pronombres explícitos o marcadores temporales
+  for (const word of words) {
     if (word in SUBJECT_PRONOUNS) {
       subjectIndex = SUBJECT_PRONOUNS[word as keyof typeof SUBJECT_PRONOUNS];
       subjectWord = word;
@@ -256,34 +340,175 @@ export function translateLSCtoSpanish(input: string): string {
     }
   }
 
-  const resultWords: string[] = [];
+  // 6. DETECTOR DE CLÁUSULAS CAUSALES / RAZÓN (porque)
+  // Escanear si hay un punto de quiebre para una causa (ej: "estar enfermo", "enfermo", "no internet")
+  let splitIdx = -1;
+  for (let i = 1; i < words.length; i++) {
+    const word = words[i];
+    if (word === 'estar' || word === 'tener' || word === 'porque' || REASON_ADJECTIVES.includes(word) || word === 'sin' || word === 'problema' || word === 'problemas') {
+      splitIdx = i;
+      break;
+    }
+    if (word === 'no' && i + 1 < words.length && REASON_NOUNS.includes(words[i + 1])) {
+      splitIdx = i;
+      break;
+    }
+  }
 
-  // Agregar sujeto al inicio si es un pronombre personal explícito
-  if (subjectWord === 'yo') {
-    resultWords.push('Yo');
-  } else if (subjectWord === 'nosotros' || subjectWord === 'nosotras') {
-    resultWords.push(subjectWord.charAt(0).toUpperCase() + subjectWord.slice(1));
-  } else if (subjectWord === 'él' || subjectWord === 'ella') {
-    resultWords.push(subjectWord.charAt(0).toUpperCase() + subjectWord.slice(1));
-  } else if (subjectWord === 'ellos' || subjectWord === 'ellas') {
-    resultWords.push(subjectWord.charAt(0).toUpperCase() + subjectWord.slice(1));
-  } else if (subjectWord === 'profesor' || subjectWord === 'profesora') {
-    resultWords.push(subjectWord === 'profesor' ? 'El profesor' : 'La profesora');
-  } else if (subjectWord === 'estudiante') {
-    resultWords.push('El estudiante');
-  } else if (subjectWord === 'estudiantes') {
-    resultWords.push('Los estudiantes');
+  if (splitIdx !== -1) {
+    const clause1Words = words.slice(0, splitIdx);
+    let clause2Words = words.slice(splitIdx);
+
+    // Ajustar cláusula 2 si inicia directamente con un adjetivo o sustantivo de razón
+    if (clause2Words[0] === 'porque') {
+      clause2Words.shift();
+    }
+    if (REASON_ADJECTIVES.includes(clause2Words[0])) {
+      clause2Words.unshift('estar');
+    }
+    // Si la cláusula 2 es del tipo "no internet" o "sin luz", transformarla a "no tener internet"
+    if (clause2Words[0] === 'no' && clause2Words.length > 1 && REASON_NOUNS.includes(clause2Words[1])) {
+      const noun = clause2Words[1];
+      clause2Words = ['no', 'tener', noun, ...clause2Words.slice(2)];
+    } else if (clause2Words[0] === 'sin' && clause2Words.length > 1 && REASON_NOUNS.includes(clause2Words[1])) {
+      const noun = clause2Words[1];
+      clause2Words = ['no', 'tener', noun, ...clause2Words.slice(2)];
+    } else if (clause2Words[0] === 'problema' || clause2Words[0] === 'problemas') {
+      if (clause2Words.length > 1) {
+        clause2Words = ['tener', 'problemas', 'con', ...clause2Words.slice(1)];
+      } else {
+        clause2Words = ['tener', 'problemas'];
+      }
+    }
+
+    // Buscar si hay marcador de tiempo en la cláusula 1
+    const timeMarkerWord = clause1Words.find(w => w in TIME_INDICATORS);
+    // Filtrar el marcador de tiempo de clause1Words para que no se procese doble
+    const clause1WordsFiltered = clause1Words.filter(w => !(w in TIME_INDICATORS));
+
+    let trans1 = translateSingleClause(clause1WordsFiltered, subjectIndex, subjectWord, tense, true);
+    const trans2 = translateSingleClause(clause2Words, subjectIndex, subjectWord, tense, false);
+
+    if (timeMarkerWord) {
+      trans1 = `${trans1} ${timeMarkerWord}`;
+    }
+
+    // Combinar con la conjunción "porque"
+    if (trans1 && trans2) {
+      let output = `${trans1} porque ${trans2}`;
+
+      // Limpieza y formato final
+      output = output.replace(/\s+/g, ' ').trim();
+      output = output.charAt(0).toUpperCase() + output.slice(1);
+      if (!output.endsWith('.')) {
+        output += '.';
+      }
+      return output;
+    }
+  }
+
+  // 7. Traducción de cláusula única
+  let output = translateSingleClause(words, subjectIndex, subjectWord, tense, true);
+
+  // Mover marcador de tiempo al final
+  const timeMarkerWord = words.find(w => w in TIME_INDICATORS);
+  if (timeMarkerWord) {
+    output = `${output} ${timeMarkerWord}`;
+  }
+
+  // Limpieza y formato final
+  output = output.replace(/\s+/g, ' ').trim();
+  if (output) {
+    output = output.charAt(0).toUpperCase() + output.slice(1);
+    if (!output.endsWith('.')) {
+      output += '.';
+    }
+  }
+
+  return output || (input.charAt(0).toUpperCase() + input.slice(1));
+}
+
+/**
+ * Formatea una lista de elementos uniendo con comas y la conjunción "y".
+ */
+function formatList(items: string[]): string {
+  if (items.length === 0) return '';
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} y ${items[1]}`;
+  const last = items.pop();
+  return `${items.join(', ')} y ${last}`;
+}
+
+/**
+ * Traduce una cláusula individual de la frase.
+ */
+function translateSingleClause(
+  words: string[],
+  subjectIndex: number,
+  subjectWord: string,
+  tense: 'present' | 'past' | 'future',
+  includeSubject: boolean
+): string {
+  const resultWords: string[] = [];
+  let hasNegation = false;
+
+  // Combinar preposiciones con la palabra siguiente (ej: "con" + "internet" -> "con internet")
+  const processedWords: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    if ((words[i] === 'con' || words[i] === 'de' || words[i] === 'a') && i + 1 < words.length) {
+      processedWords.push(`${words[i]} ${words[i + 1]}`);
+      i++;
+    } else {
+      processedWords.push(words[i]);
+    }
+  }
+
+  // Agregar pronombre o sujeto al inicio si includeSubject es verdadero
+  if (includeSubject && subjectWord) {
+    const isPronoun = ['yo', 'nosotros', 'nosotras', 'él', 'ella', 'ellos', 'ellas', 'tú', 'usted'].includes(subjectWord);
+    // Solo imprimir si es un sustantivo común o si el pronombre explícitamente existe en el texto de entrada
+    const shouldPrint = !isPronoun || words.includes(subjectWord);
+
+    if (shouldPrint) {
+      if (subjectWord === 'yo') {
+        resultWords.push('Yo');
+      } else if (subjectWord === 'nosotros' || subjectWord === 'nosotras') {
+        resultWords.push(subjectWord.charAt(0).toUpperCase() + subjectWord.slice(1));
+      } else if (subjectWord === 'él' || subjectWord === 'ella') {
+        resultWords.push(subjectWord.charAt(0).toUpperCase() + subjectWord.slice(1));
+      } else if (subjectWord === 'ellos' || subjectWord === 'ellas') {
+        resultWords.push(subjectWord.charAt(0).toUpperCase() + subjectWord.slice(1));
+      } else if (subjectWord === 'profesor' || subjectWord === 'profesora') {
+        resultWords.push(subjectWord === 'profesor' ? 'El profesor' : 'La profesora');
+      } else if (subjectWord === 'estudiante') {
+        resultWords.push('El estudiante');
+      } else if (subjectWord === 'estudiantes') {
+        resultWords.push('Los estudiantes');
+      }
+    }
   }
 
   let verbProcessed = false;
   const listItems: string[] = [];
   const objectItems: string[] = [];
 
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
+  for (let i = 0; i < processedWords.length; i++) {
+    const word = processedWords[i];
 
-    // Ignorar pronombres de sujeto ya procesados y marcadores de tiempo (los colocaremos al final o los absorberá la conjugación)
+    // Ignorar pronombres de sujeto ya procesados y marcadores de tiempo (los coloca translateLSCtoSpanish al final)
     if (word === subjectWord || word === 'no') {
+      if (word === 'no') hasNegation = true;
+      continue;
+    }
+
+    // Si el token es una frase preposicional unida (ej: "con internet" o "de clase"), colocarla directamente en el flujo principal
+    if (word.startsWith('con ') || word.startsWith('de ') || word.startsWith('a ')) {
+      if (objectItems.length > 0) {
+        const objectsStr = formatList(objectItems);
+        resultWords.push(objectsStr);
+        objectItems.length = 0;
+      }
+      resultWords.push(word);
       continue;
     }
 
@@ -294,16 +519,16 @@ export function translateLSCtoSpanish(input: string): string {
       
       if (hasNegation) {
         resultWords.push('no');
-        hasNegation = false; // Ya consumido
+        hasNegation = false; // Negación consumida
       }
       resultWords.push(conjugatedVerb);
       verbProcessed = true;
 
-      // Si el verbo es "ir", verificar si la siguiente palabra es un lugar para añadir preposición
-      const nextWord = words[i + 1];
-      if (word === 'ir' && nextWord && nextWord in PLACE_PREPOSITIONS) {
+      // Si el verbo es "ir" o "venir", verificar si la siguiente palabra es un lugar para añadir preposición
+      const nextWord = processedWords[i + 1];
+      if ((word === 'ir' || word === 'venir') && nextWord && nextWord in PLACE_PREPOSITIONS) {
         resultWords.push(PLACE_PREPOSITIONS[nextWord]);
-        i++; // Saltar la palabra del lugar ya que se incluyó en la preposición
+        i++; // Saltar palabra de lugar ya que fue consumida
       }
       continue;
     }
@@ -320,7 +545,6 @@ export function translateLSCtoSpanish(input: string): string {
 
     // Agregar artículos a sustantivos comunes
     if (word in NOUN_ARTICLES) {
-      // Si ya hay un verbo, se considera un objeto directo, de lo contrario se guarda para posible lista
       if (verbProcessed) {
         objectItems.push(NOUN_ARTICLES[word]);
       } else {
@@ -329,13 +553,12 @@ export function translateLSCtoSpanish(input: string): string {
       continue;
     }
 
-    // Evitar añadir marcadores de tiempo de forma literal si ya definieron el tiempo del verbo,
-    // excepto si están en palabras clave o al final. Los dejamos pasar al final de la frase.
+    // Ignorar marcadores temporales ya procesados
     if (word in TIME_INDICATORS) {
       continue;
     }
 
-    // Palabras desconocidas o nombres propios se añaden directamente
+    // Palabras desconocidas o nombres propios
     if (verbProcessed) {
       objectItems.push(word);
     } else {
@@ -343,66 +566,22 @@ export function translateLSCtoSpanish(input: string): string {
     }
   }
 
-  // Si hay objetos recolectados después del verbo, formatearlos como lista y agregarlos a resultWords
+  // Si hay objetos acumulados antes del final, formatearlos e insertarlos
   if (objectItems.length > 0) {
-    let objectsStr = '';
-    if (objectItems.length === 1) {
-      objectsStr = objectItems[0];
-    } else if (objectItems.length === 2) {
-      objectsStr = `${objectItems[0]} y ${objectItems[1]}`;
-    } else {
-      const last = objectItems.pop();
-      objectsStr = `${objectItems.join(', ') || ''} y ${last}`;
-    }
+    const objectsStr = formatList(objectItems);
     resultWords.push(objectsStr);
   }
 
-  // Si no se procesó ningún verbo pero tenemos una lista de sustantivos comunes, unirlos con comas y "y"
+  // Si no se procesó ningún verbo pero tenemos una lista de sustantivos comunes
   if (!verbProcessed && listItems.length > 0) {
-    let listStr = '';
-    if (listItems.length === 1) {
-      listStr = listItems[0];
-    } else if (listItems.length === 2) {
-      listStr = `${listItems[0]} y ${listItems[1]}`;
-    } else {
-      const last = listItems.pop();
-      listStr = `${listItems.join(', ')} y ${last}`;
-    }
-    // Capitalizar primera letra
-    listStr = listStr.charAt(0).toUpperCase() + listStr.slice(1);
-    
-    // Si hay negación al inicio
+    let listStr = formatList(listItems);
     if (hasNegation) {
-      listStr = 'No ' + listStr.toLowerCase();
+      listStr = 'no ' + listStr;
     }
-    return listStr + '.';
-  }
-
-  // Si la negación no se consumió (ej: "no tarea")
-  if (hasNegation && resultWords.length > 0) {
+    resultWords.push(listStr);
+  } else if (hasNegation && resultWords.length > 0) {
     resultWords.unshift('no');
   }
 
-  // Agregar marcador de tiempo al final para dar contexto completo
-  const timeMarkerWord = words.find(w => w in TIME_INDICATORS);
-  if (timeMarkerWord) {
-    resultWords.push(timeMarkerWord);
-  }
-
-  // Construir frase
-  let output = resultWords.join(' ');
-  
-  // Limpieza de espaciados extras
-  output = output.replace(/\s+/g, ' ').trim();
-
-  // Asegurar mayúscula al principio y punto al final
-  if (output) {
-    output = output.charAt(0).toUpperCase() + output.slice(1);
-    if (!output.endsWith('.')) {
-      output += '.';
-    }
-  }
-
-  // Retornar frase o fallback al texto original capitalizado
-  return output || (input.charAt(0).toUpperCase() + input.slice(1));
+  return resultWords.join(' ');
 }
