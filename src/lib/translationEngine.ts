@@ -76,6 +76,11 @@ const VERB_CONJUGATIONS: Record<string, Conjugations> = {
     past: ['expliqué', 'explicaste', 'explicó', 'explicamos', 'explicaron'],
     future: ['explicaré', 'explicarás', 'explicará', 'explicaremos', 'explicarán']
   },
+  poder: {
+    present: ['puedo', 'puedes', 'puede', 'podemos', 'pueden'],
+    past: ['pude', 'pudiste', 'pudo', 'pudimos', 'pudieron'],
+    future: ['podré', 'podrás', 'podrá', 'podremos', 'podrán']
+  },
   aprender: {
     present: ['aprendo', 'aprendes', 'aprente', 'aprendemos', 'aprenden'],
     past: ['aprendí', 'aprendiste', 'aprendió', 'aprendimos', 'aprendieron'],
@@ -90,6 +95,11 @@ const VERB_CONJUGATIONS: Record<string, Conjugations> = {
     present: ['tengo', 'tienes', 'tiene', 'tenemos', 'tienen'],
     past: ['tenía', 'tenías', 'tenía', 'teníamos', 'tenían'], // Imperfecto es más natural
     future: ['tendré', 'tendrás', 'tendrá', 'tendremos', 'tendrán']
+  },
+  prestar: {
+    present: ['presto', 'prestas', 'presta', 'prestamos', 'prestan'],
+    past: ['presté', 'prestaste', 'prestó', 'prestamos', 'prestaron'],
+    future: ['prestaré', 'prestarás', 'prestará', 'prestaremos', 'prestarán']
   }
 };
 
@@ -135,7 +145,15 @@ const VERB_TO_INFINITIVE: Record<string, string> = {
   // hacer
   hago: 'hacer', haces: 'hacer', hace: 'hacer', hacemos: 'hacer', hacen: 'hacer',
   hice: 'hacer', hiciste: 'hacer', hizo: 'hacer', hicimos: 'hacer', hicieron: 'hacer',
-  haré: 'hacer', harás: 'hacer', hará: 'hacer', haremos: 'hacer', harán: 'hacer'
+  haré: 'hacer', harás: 'hacer', hará: 'hacer', haremos: 'hacer', harán: 'hacer',
+  // poder
+  puedo: 'poder', puedes: 'poder', puede: 'poder', podemos: 'poder', pueden: 'poder',
+  pude: 'poder', pudiste: 'poder', pudo: 'poder', pudimos: 'poder', pudieron: 'poder',
+  podré: 'poder', podrás: 'poder', podrá: 'poder', podremos: 'poder', podrán: 'poder',
+  // prestar
+  presto: 'prestar', prestas: 'prestar', presta: 'prestar', prestamos: 'prestar', prestan: 'prestar',
+  presté: 'prestar', prestaste: 'prestar', prestó: 'prestar', prestaron: 'prestar',
+  prestaré: 'prestar', prestarás: 'prestar', prestará: 'prestar', prestaremos: 'prestar', prestarán: 'prestar'
 };
 
 const SUBJECT_PRONOUNS = {
@@ -223,8 +241,12 @@ const NOUN_ARTICLES: Record<string, string> = {
   color: 'el color',
   nombre: 'mi nombre',
   seña: 'mi seña',
-  internet: 'internet'
+  internet: 'internet',
+  bus: 'el bus'
 };
+
+const CLITIC_PRONOUNS = new Set(['me', 'te', 'se', 'nos', 'os', 'lo', 'la', 'los', 'las', 'le', 'les']);
+const QUANTITY_MODIFIERS = new Set(['poco', 'poca', 'pocos', 'pocas', 'mucho', 'mucha', 'muchos', 'muchas', 'algo', 'nada', 'vario', 'varios', 'varia', 'varias']);
 
 const DICCIONARIO_FRASES: Record<string, string> = {
   'gracias': '¡Muchas gracias!',
@@ -364,15 +386,23 @@ export function translateLSCtoSpanish(input: string): string {
   }
 
   // 6. DETECTOR DE CLÁUSULAS CAUSALES / RAZÓN (porque)
-  // Escanear si hay un punto de quiebre para una causa (ej: "estar enfermo", "enfermo", "no internet")
+  // Sólo parte la frase cuando hay una causa explícita; evita inventar un "porque".
   let splitIdx = -1;
   for (let i = 1; i < words.length; i++) {
     const word = words[i];
-    if (word === 'estar' || word === 'tener' || word === 'porque' || REASON_ADJECTIVES.includes(word) || word === 'sin' || word === 'problema' || word === 'problemas') {
+    if (word === 'porque') {
       splitIdx = i;
       break;
     }
     if (word === 'no' && i + 1 < words.length && REASON_NOUNS.includes(words[i + 1])) {
+      splitIdx = i;
+      break;
+    }
+    if (word === 'sin' && i + 1 < words.length && REASON_NOUNS.includes(words[i + 1])) {
+      splitIdx = i;
+      break;
+    }
+    if ((word === 'problema' || word === 'problemas') && i + 1 < words.length) {
       splitIdx = i;
       break;
     }
@@ -599,10 +629,27 @@ function translateSingleClause(
 
   for (let i = 0; i < processedWords.length; i++) {
     const word = processedWords[i];
+    const nextWord = processedWords[i + 1];
 
     // Ignorar pronombres de sujeto ya procesados y marcadores de tiempo (los coloca translateLSCtoSpanish al final)
     if (word === subjectWord || word === 'no') {
       if (word === 'no') hasNegation = true;
+      continue;
+    }
+
+    if (CLITIC_PRONOUNS.has(word)) {
+      resultWords.push(word);
+      continue;
+    }
+
+    if (QUANTITY_MODIFIERS.has(word) && nextWord && !(nextWord in VERB_CONJUGATIONS)) {
+      const quantityPhrase = `${word} ${nextWord}`;
+      if (verbProcessed) {
+        objectItems.push(quantityPhrase);
+      } else {
+        listItems.push(quantityPhrase);
+      }
+      i++;
       continue;
     }
 
@@ -614,6 +661,18 @@ function translateSingleClause(
         objectItems.length = 0;
       }
       resultWords.push(word);
+      continue;
+    }
+
+    if (word === 'para' && nextWord) {
+      if (objectItems.length > 0) {
+        const objectsStr = formatList(objectItems);
+        resultWords.push(objectsStr);
+        objectItems.length = 0;
+      }
+
+      resultWords.push(nextWord in NOUN_ARTICLES ? `para ${NOUN_ARTICLES[nextWord]}` : `para ${nextWord}`);
+      i++;
       continue;
     }
 
