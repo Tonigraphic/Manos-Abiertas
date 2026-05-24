@@ -350,10 +350,10 @@ export function translateLSCtoSpanish(input: string): string {
     const requestText = formatRequestClause(requestPattern.requestWords);
 
     if (leadingText && requestText) {
-      return `${stripTrailingPunctuation(leadingText)}, ${requestText}`;
+      return applyPragmaticCorrections(`${stripTrailingPunctuation(leadingText)}, ${requestText}`);
     }
     if (requestText) {
-      return requestText;
+      return applyPragmaticCorrections(requestText);
     }
   }
 
@@ -491,7 +491,7 @@ export function translateLSCtoSpanish(input: string): string {
     }
   }
 
-  return output || (input.charAt(0).toUpperCase() + input.slice(1));
+  return applyPragmaticCorrections(output || (input.charAt(0).toUpperCase() + input.slice(1)));
 }
 
 function stripTrailingPunctuation(text: string): string {
@@ -500,7 +500,19 @@ function stripTrailingPunctuation(text: string): string {
 
 function detectRequestPattern(wordsRaw: string[]): { leadingText: string; requestWords: string[] } | null {
   const requestVerbs = new Set(['prestar', 'dar', 'ayudar', 'pasar', 'decir', 'explicar']);
-  const powerForms = new Set(['puedo', 'puedes', 'puede', 'podemos', 'pueden', 'podría', 'podrías', 'podrian', 'podrian']);
+  const powerForms = new Set(['puedo', 'puedes', 'puede', 'podemos', 'pueden', 'podría', 'podrías', 'podria', 'podrian']);
+
+  const requestRegex = /(?:^|\s)(me|te|nos|le|les)\s+(puedo|puedes|puede|podemos|pueden|podría|podrías|podria|podrian)\s+(prestar|dar|ayudar|pasar|decir|explicar)(?:\s+([\p{L}\p{N}]+))?/u;
+  const normalized = wordsRaw.join(' ');
+  const regexMatch = normalized.match(requestRegex);
+  if (regexMatch && regexMatch.index !== undefined) {
+    const leading = normalized.slice(0, regexMatch.index).trim();
+    const requestWords = [regexMatch[1], regexMatch[2], regexMatch[3], regexMatch[4]].filter(Boolean) as string[];
+    return {
+      leadingText: leading,
+      requestWords
+    };
+  }
 
   for (let i = 0; i < wordsRaw.length - 2; i++) {
     const first = wordsRaw[i];
@@ -555,14 +567,16 @@ function formatRequestClause(requestWords: string[]): string {
   const hasPrestar = words.includes('prestar') || words.includes('prestas') || words.includes('prestes');
 
   if (hasMe && hasPuedes && hasPrestar) {
-    return '¿Me puedes prestar?';
+    const tail = words.slice(3).join(' ').trim();
+    return tail ? `¿Me puedes prestar ${tail}?` : '¿Me puedes prestar?';
   }
 
   if (hasMe && hasPuedes) {
     const tailVerb = words.find(word => word in VERB_TO_INFINITIVE && word !== 'poder');
     if (tailVerb) {
       const verbRoot = VERB_TO_INFINITIVE[tailVerb] || tailVerb;
-      return `¿Me puedes ${verbRoot}?`;
+      const tail = words.slice(words.indexOf(tailVerb) + 1).join(' ').trim();
+      return tail ? `¿Me puedes ${verbRoot} ${tail}?` : `¿Me puedes ${verbRoot}?`;
     }
   }
 
@@ -578,6 +592,27 @@ function formatRequestClause(requestWords: string[]): string {
 
   const cleaned = stripTrailingPunctuation(translated);
   return cleaned.endsWith('?') ? cleaned : `¿${cleaned}?`;
+}
+
+function applyPragmaticCorrections(text: string): string {
+  let output = text;
+
+  output = output.replace(/\bme\s+puedo\s+presto\b/gi, '¿Me puedes prestar?');
+  output = output.replace(/\bme\s+puedo\s+prestar\b/gi, '¿Me puedes prestar?');
+  output = output.replace(/\bme\s+puedo\s+dar\b/gi, '¿Me puedes dar?');
+  output = output.replace(/\bme\s+puedo\s+ayudar\b/gi, '¿Me puedes ayudar?');
+  output = output.replace(/\bpara\s+bus\b/gi, 'para el bus');
+
+  if (/^yo\s+tengo\b/i.test(output)) {
+    output = output.replace(/^yo\s+tengo\b/i, 'Tengo');
+  }
+
+  output = output.replace(/\s+/g, ' ').trim();
+  if (output && !/[.?!]$/.test(output)) {
+    output += '.';
+  }
+
+  return output;
 }
 
 const CLAUSE_BREAKERS = new Set(['pero', 'aunque', 'si', 'cuando', 'entonces', 'mientras']);
