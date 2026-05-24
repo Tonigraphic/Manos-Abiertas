@@ -76,6 +76,11 @@ const VERB_CONJUGATIONS: Record<string, Conjugations> = {
     past: ['expliqué', 'explicaste', 'explicó', 'explicamos', 'explicaron'],
     future: ['explicaré', 'explicarás', 'explicará', 'explicaremos', 'explicarán']
   },
+  ver: {
+    present: ['veo', 'ves', 've', 'vemos', 'ven'],
+    past: ['vi', 'viste', 'vio', 'vimos', 'vieron'],
+    future: ['veré', 'verás', 'verá', 'veremos', 'verán']
+  },
   poder: {
     present: ['puedo', 'puedes', 'puede', 'podemos', 'pueden'],
     past: ['pude', 'pudiste', 'pudo', 'pudimos', 'pudieron'],
@@ -146,6 +151,10 @@ const VERB_TO_INFINITIVE: Record<string, string> = {
   hago: 'hacer', haces: 'hacer', hace: 'hacer', hacemos: 'hacer', hacen: 'hacer',
   hice: 'hacer', hiciste: 'hacer', hizo: 'hacer', hicimos: 'hacer', hicieron: 'hacer',
   haré: 'hacer', harás: 'hacer', hará: 'hacer', haremos: 'hacer', harán: 'hacer',
+  // ver
+  veo: 'ver', ves: 'ver', ve: 'ver', vemos: 'ver', ven: 'ver',
+  vi: 'ver', viste: 'ver', vio: 'ver', vimos: 'ver', vieron: 'ver',
+  veré: 'ver', verás: 'ver', verá: 'ver', veremos: 'ver', verán: 'ver',
   // poder
   puedo: 'poder', puedes: 'poder', puede: 'poder', podemos: 'poder', pueden: 'poder',
   pude: 'poder', pudiste: 'poder', pudo: 'poder', pudimos: 'poder', pudieron: 'poder',
@@ -179,7 +188,7 @@ const CONJUGATED_TO_SUBJECT_INDEX: Record<string, number> = {
   voy: 0, fui: 0, iré: 0, vengo: 0, vine: 0, vendré: 0, estoy: 0, estuve: 0, estaba: 0,
   tengo: 0, tuve: 0, tenía: 0, envío: 0, envié: 0, enviaré: 0, solicito: 0, solicité: 0,
   solicitaré: 0, mezclo: 0, mezclé: 0, mezclaré: 0, necesito: 0, necesité: 0, necesitaré: 0,
-  quiero: 0, quise: 0, querré: 0, hago: 0, hice: 0, haré: 0,
+  veo: 0, vi: 0, veré: 0, quiero: 0, quise: 0, querré: 0, hago: 0, hice: 0, haré: 0,
   // tú / usted (1)
   vas: 1, fuiste: 1, irás: 1, vienes: 1, viniste: 1, vendrás: 1, estás: 1, estuviste: 1,
   estabas: 1, tienes: 1, tuviste: 1, tenías: 1, envías: 1, enviaste: 1, enviarás: 1,
