@@ -92,6 +92,14 @@ function buildMessages(input: string) {
   ];
 }
 
+  function normalizeModelId(model: string): string {
+    return model
+    .trim()
+    .replace(/^['"`]+|['"`]+$/g, '')
+    .replace(/[.,;:]+$/g, '')
+    .trim();
+  }
+
 function cleanTranslation(text: string): string {
   const cleaned = stripCodeFences(text)
     .replace(/^Respuesta:\s*/i, '')
@@ -319,32 +327,30 @@ function fallbackTranslation(input: string): string {
 }
 
 function getRouterCandidateModels(): string[] {
-  const primary = (process.env.HF_TRANSLATION_MODEL || '').trim();
+  const primary = normalizeModelId(process.env.HF_TRANSLATION_MODEL || '');
   const extra = (process.env.HF_TRANSLATION_MODELS || '')
     .split(',')
-    .map((model) => model.trim())
+    .map((model) => normalizeModelId(model))
     .filter(Boolean);
 
   const unique = new Set<string>();
   for (const model of [primary, ...extra, ...DEFAULT_HF_MODELS]) {
     if (model) unique.add(model);
-    if (unique.size >= 3) break;
   }
 
   return Array.from(unique);
 }
 
 function getClassicCandidateModels(): string[] {
-  const primary = (process.env.HF_TRANSLATION_CLASSIC_MODEL || '').trim();
+  const primary = normalizeModelId(process.env.HF_TRANSLATION_CLASSIC_MODEL || '');
   const extra = (process.env.HF_TRANSLATION_CLASSIC_MODELS || '')
     .split(',')
-    .map((model) => model.trim())
+    .map((model) => normalizeModelId(model))
     .filter(Boolean);
 
   const unique = new Set<string>();
   for (const model of [primary, ...extra, ...DEFAULT_CLASSIC_HF_MODELS]) {
     if (model) unique.add(model);
-    if (unique.size >= 2) break;
   }
 
   return Array.from(unique);
