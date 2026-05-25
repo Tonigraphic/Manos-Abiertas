@@ -105,6 +105,10 @@ HF_TRANSLATION_CLASSIC_MODELS=google/flan-t5-small
 HF_WAIT_FOR_MODEL=false
 ```
 
+Si quieres copiarlo rápido, usa `.env.example` como base local y replica los mismos valores en Vercel.
+
+En Vercel, no dejes `HF_TRANSLATION_TOKEN` vacío: si falta, la app siempre caerá a fallback local.
+
 Orden de uso real en la app:
 
 1. `HF_TRANSLATION_MODEL` y luego `HF_TRANSLATION_MODELS` contra `router.huggingface.co`
