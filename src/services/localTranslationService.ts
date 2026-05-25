@@ -21,6 +21,7 @@ export const LOCAL_TRANSLATION_MODEL = 'Xenova/flan-t5-small';
 const MODEL_LOAD_TIMEOUT_MS = 45000;
 const INFERENCE_TIMEOUT_MS = 12000;
 const MODEL_RETRY_COOLDOWN_MS = 5 * 60 * 1000;
+const FORCE_BROWSER_MODEL = import.meta.env.VITE_ENABLE_BROWSER_MODEL === 'true';
 
 let translatorPromise: Promise<any> | null = null;
 let modelDisabledUntil = 0;
@@ -119,6 +120,24 @@ function isSlowConnection(): boolean {
 
   const type = String(conn.effectiveType || '').toLowerCase();
   return conn.saveData === true || type.includes('2g') || type.includes('slow-2g');
+}
+
+export function shouldAttemptBrowserModel(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (FORCE_BROWSER_MODEL) return true;
+
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') return true;
+
+  const nav = navigator as any;
+  const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
+  if (!conn) return false;
+
+  const effectiveType = String(conn.effectiveType || '').toLowerCase();
+  const downlink = Number(conn.downlink || 0);
+  const saveData = conn.saveData === true;
+
+  return !saveData && effectiveType.includes('4g') && downlink >= 5;
 }
 
 export async function translateWithLocalModel(input: string): Promise<string> {

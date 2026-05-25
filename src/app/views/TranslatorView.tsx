@@ -5,7 +5,7 @@ import { Send, Languages, Mic, Volume2, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { InstructionsModal } from '../components/lsc/InstructionsModal';
 import { translateLSCtoSpanish } from '../../lib/translationEngine';
-import { LOCAL_TRANSLATION_MODEL, markLocalModelTimeout, translateWithLocalModel } from '../../services/localTranslationService';
+import { LOCAL_TRANSLATION_MODEL, markLocalModelTimeout, shouldAttemptBrowserModel, translateWithLocalModel } from '../../services/localTranslationService';
 
 interface TranslatorViewProps {
   onNavigateHome?: () => void;
@@ -23,7 +23,11 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [isTranslating, setIsTranslating] = useState(false);
 
   const normalizeWord = (word: string) =>
-    word.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    word
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/gi, '')
+      .toLowerCase();
 
   const cleanRepeatedWords = (text: string) => {
     const words = text.split(/\s+/).filter(Boolean);
@@ -112,14 +116,18 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       let translated = '';
       let localErrorMessage = '';
 
-      try {
-        translated = await translateWithLocalModel(inputText);
-      } catch (localError) {
-        console.error('Local model translation failed:', localError);
-        localErrorMessage = localError instanceof Error ? localError.message : 'Error desconocido del modelo local';
-        if (/timeout|espera agotado|red lenta/i.test(localErrorMessage)) {
-          markLocalModelTimeout();
+      if (shouldAttemptBrowserModel()) {
+        try {
+          translated = await translateWithLocalModel(inputText);
+        } catch (localError) {
+          console.warn('Local model translation failed:', localError);
+          localErrorMessage = localError instanceof Error ? localError.message : 'Error desconocido del modelo local';
+          if (/timeout|espera agotado|red lenta/i.test(localErrorMessage)) {
+            markLocalModelTimeout();
+          }
         }
+      } else {
+        localErrorMessage = 'Red no apta para descargar el modelo local en navegador';
       }
 
       const normalized = translated.trim();
