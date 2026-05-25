@@ -88,11 +88,28 @@ La aplicación estará disponible en `http://localhost:5173`
 Para que el traductor use Hugging Face en `/api/translate`, configura estas variables en Vercel (Production y Preview):
 
 - `HF_TRANSLATION_TOKEN`: token fine-grained con permiso **Make calls to Inference Providers**.
-- `HF_TRANSLATION_MODEL`: modelo principal (ej. `mistralai/Mistral-7B-Instruct-v0.3`).
-- `HF_TRANSLATION_MODELS` (opcional): lista separada por comas para fallback automático entre modelos.
-- `HF_TRANSLATION_CLASSIC_MODEL` (opcional): modelo para endpoint clásico `api-inference` (ej. `google/flan-t5-base`).
-- `HF_TRANSLATION_CLASSIC_MODELS` (opcional): fallback clásico separado por comas.
-- `HF_WAIT_FOR_MODEL` (opcional): `true` para esperar carga fría del modelo.
+- `HF_TRANSLATION_MODEL`: modelo principal para el router.
+- `HF_TRANSLATION_MODELS`: lista opcional, separada por comas, para fallback automático del router.
+- `HF_TRANSLATION_CLASSIC_MODEL`: modelo principal para el endpoint clásico `api-inference`.
+- `HF_TRANSLATION_CLASSIC_MODELS`: lista opcional, separada por comas, para fallback clásico.
+- `HF_WAIT_FOR_MODEL`: `true` solo si quieres esperar cargas frías del modelo.
+
+Configuración recomendada para empezar:
+
+```text
+HF_TRANSLATION_TOKEN=<tu_token_fine_grained>
+HF_TRANSLATION_MODEL=openai/gpt-oss-20b
+HF_TRANSLATION_MODELS=openai/gpt-oss-20b,mistralai/Mistral-7B-Instruct-v0.3,google/gemma-2-2b-it
+HF_TRANSLATION_CLASSIC_MODEL=google/flan-t5-base
+HF_TRANSLATION_CLASSIC_MODELS=google/flan-t5-small
+HF_WAIT_FOR_MODEL=false
+```
+
+Orden de uso real en la app:
+
+1. `HF_TRANSLATION_MODEL` y luego `HF_TRANSLATION_MODELS` contra `router.huggingface.co`
+2. `HF_TRANSLATION_CLASSIC_MODEL` y luego `HF_TRANSLATION_CLASSIC_MODELS` contra `api-inference.huggingface.co`
+3. Fallback local si Hugging Face no responde
 
 Si no hay token o un modelo compatible, la app hace fallback local automáticamente sin romper la UI.
 

@@ -4,7 +4,7 @@
 
 const text = process.argv.slice(2).join(' ') || 'ayer ver película';
 const HF_TOKEN = process.env.HF_TRANSLATION_TOKEN || process.env.HF_TOKEN;
-const MODEL = process.env.HF_TRANSLATION_MODEL || 'Qwen/Qwen2.5-1.5B-Instruct:fastest';
+const MODEL = process.env.HF_TRANSLATION_MODEL || 'openai/gpt-oss-20b:fastest';
 const CLASSIC_MODEL = process.env.HF_TRANSLATION_CLASSIC_MODEL || 'google/flan-t5-base';
 
 if (!HF_TOKEN) {

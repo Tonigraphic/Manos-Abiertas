@@ -11,6 +11,7 @@ type TranslateRequest = {
 };
 
 const DEFAULT_HF_MODELS = [
+  'openai/gpt-oss-20b',
   'Qwen/Qwen2.5-1.5B-Instruct',
   'mistralai/Mistral-7B-Instruct-v0.3',
   'google/gemma-2-2b-it',
