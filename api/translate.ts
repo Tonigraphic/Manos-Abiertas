@@ -111,6 +111,119 @@ function cleanTranslation(text: string): string {
   return cleaned;
 }
 
+function isLongInput(text: string): boolean {
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  return text.length > 220 || words > 35;
+}
+
+function splitIntoChunks(text: string, maxChars = 220): string[] {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (!normalized) return [];
+
+  const sentences = normalized.match(/[^.!?]+[.!?]*|[^.!?]+$/g) || [normalized];
+  const chunks: string[] = [];
+  let current = '';
+
+  for (const sentence of sentences) {
+    const part = sentence.trim();
+    if (!part) continue;
+
+    if (!current) {
+      current = part;
+      continue;
+    }
+
+    if ((current + ' ' + part).length <= maxChars) {
+      current = `${current} ${part}`;
+      continue;
+    }
+
+    chunks.push(current.trim());
+    current = part;
+  }
+
+  if (current) chunks.push(current.trim());
+
+  if (chunks.length === 1 && chunks[0].length > maxChars) {
+    const fallbackChunks: string[] = [];
+    const words = chunks[0].split(' ');
+    let segment = '';
+
+    for (const word of words) {
+      if (!segment) {
+        segment = word;
+        continue;
+      }
+
+      if ((segment + ' ' + word).length <= maxChars) {
+        segment = `${segment} ${word}`;
+      } else {
+        fallbackChunks.push(segment.trim());
+        segment = word;
+      }
+    }
+
+    if (segment) fallbackChunks.push(segment.trim());
+    return fallbackChunks;
+  }
+
+  return chunks;
+}
+
+async function translateWithRouterModel(input: string, token: string, modelId: string, waitForModel: boolean): Promise<string> {
+  const hfModel = `${modelId}:fastest`;
+  const payload = await fetchJsonWithRetries(
+    'https://router.huggingface.co/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: hfModel,
+        messages: buildMessages(input),
+        temperature: 0.2,
+        max_tokens: 128,
+        stream: false,
+        ...(waitForModel ? { wait_for_model: true } : {}),
+      }),
+    },
+    18000,
+    2
+  );
+
+  return cleanTranslation(extractGeneratedText(payload?.choices?.[0]?.message?.content ?? payload));
+}
+
+async function translateLongInputInChunks(text: string, token: string, candidateModels: string[], waitForModel: boolean): Promise<string | null> {
+  const chunks = splitIntoChunks(text, 220);
+
+  if (chunks.length <= 1) {
+    return null;
+  }
+
+  const modelId = candidateModels[0];
+  if (!modelId) return null;
+
+  const translatedChunks: string[] = [];
+
+  for (const chunk of chunks) {
+    try {
+      const translatedChunk = await translateWithRouterModel(chunk, token, modelId, waitForModel);
+      if (!translatedChunk) {
+        return null;
+      }
+      translatedChunks.push(translatedChunk);
+    } catch (error) {
+      console.warn('Chunked translation failed:', error);
+      return null;
+    }
+  }
+
+  return cleanTranslation(translatedChunks.join(' '));
+}
+
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 15000): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -401,43 +514,29 @@ export default async function handler(req: any, res: any) {
     let unsupportedProviderErrors = 0;
     let classicNetworkFailed = false;
 
+    if (isLongInput(text)) {
+      const chunkedTranslation = await translateLongInputInChunks(text, HF_TOKEN, routerCandidateModels, WAIT_FOR_MODEL);
+      if (chunkedTranslation) {
+        return res.status(200).json({
+          success: true,
+          provider: 'huggingface',
+          model: `${routerCandidateModels[0] || 'openai/gpt-oss-20b'}:fastest`,
+          mode: 'chunked-router',
+          tokenSource,
+          translatedText: chunkedTranslation,
+        });
+      }
+    }
+
     for (const modelId of routerCandidateModels) {
-      const hfModel = `${modelId}:fastest`;
-      const hfPayload = {
-        model: hfModel,
-        messages: buildMessages(text),
-        temperature: 0.2,
-        max_tokens: 128,
-        stream: false,
-      };
-
       try {
-        const payload = await fetchJsonWithRetries(
-          'https://router.huggingface.co/v1/chat/completions',
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${HF_TOKEN}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              ...hfPayload,
-              ...(WAIT_FOR_MODEL ? { wait_for_model: true } : {}),
-            }),
-          },
-          18000,
-          2
-        );
-
-        const generatedText = cleanTranslation(
-          extractGeneratedText(payload?.choices?.[0]?.message?.content ?? payload)
-        );
+        const generatedText = await translateWithRouterModel(text, HF_TOKEN, modelId, WAIT_FOR_MODEL);
 
         if (generatedText) {
           return res.status(200).json({
             success: true,
             provider: 'huggingface',
-            model: hfModel,
+            model: `${modelId}:fastest`,
             tokenSource,
             translatedText: generatedText,
           });

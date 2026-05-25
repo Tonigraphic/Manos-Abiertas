@@ -89,9 +89,17 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     return /fetch failed|network|timeout|conectar|caída|runtime|temporalmente no disponible/i.test(combined);
   };
 
-  const requestServerTranslation = async (inputText: string): Promise<ApiTranslateResponse> => {
+  const getServerTimeoutMs = (inputText: string): number => {
+    const wordCount = inputText.trim().split(/\s+/).filter(Boolean).length;
+
+    if (inputText.length > 600 || wordCount > 120) return 45000;
+    if (inputText.length > 300 || wordCount > 60) return 30000;
+    return 14000;
+  };
+
+  const requestServerTranslation = async (inputText: string, timeoutMs: number): Promise<ApiTranslateResponse> => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 14000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await fetch('/api/translate', {
@@ -120,22 +128,24 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
 
   const requestServerTranslationWithRetry = async (inputText: string): Promise<ApiTranslateResponse> => {
     const maxAttempts = 3;
+    const timeoutMs = getServerTimeoutMs(inputText);
+    const retryDelay = timeoutMs > 14000 ? 900 : 450;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
-        const result = await requestServerTranslation(inputText);
+        const result = await requestServerTranslation(inputText, timeoutMs);
 
         if (result.provider === 'huggingface' || !isTransientBackendFailure(result) || attempt === maxAttempts) {
           return result;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 450 * attempt));
+        await new Promise((resolve) => setTimeout(resolve, retryDelay * attempt));
       } catch (error) {
         if (attempt === maxAttempts) {
           throw error;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 450 * attempt));
+        await new Promise((resolve) => setTimeout(resolve, retryDelay * attempt));
       }
     }
 
