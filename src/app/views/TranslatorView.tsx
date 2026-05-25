@@ -15,7 +15,9 @@ type ApiTranslateResponse = {
   success?: boolean;
   provider?: string;
   model?: string;
+  mode?: string;
   reason?: string;
+  debugReason?: string;
   tokenSource?: string;
   translatedText?: string;
 };
@@ -53,6 +55,31 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const SpeechRecognition = typeof window !== 'undefined' ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) : null;
   const recognitionRef = useRef<any>(null);
   const textBeforeDictationRef = useRef<string>('');
+
+  const formatBackendReason = (result: ApiTranslateResponse): string => {
+    const reason = String(result.reason || '').trim();
+    if (!reason) return 'Traducción resuelta por el backend';
+
+    if (result.provider === 'huggingface') {
+      return result.mode === 'classic-inference'
+        ? 'Corrección IA aplicada mediante endpoint clásico de Hugging Face'
+        : 'Corrección IA aplicada por Hugging Face';
+    }
+
+    if (/no se obtuvo respuesta válida de hugging face/i.test(reason)) {
+      return 'Servicio IA temporalmente no disponible; se aplicó corrección local.';
+    }
+
+    if (/token no configurado/i.test(reason)) {
+      return 'Servicio IA no configurado en este entorno; se aplicó corrección local.';
+    }
+
+    if (/timeout|red|conectar|network/i.test(reason)) {
+      return 'Conectividad inestable con el servicio IA; se aplicó corrección local.';
+    }
+
+    return reason;
+  };
 
   const requestServerTranslation = async (inputText: string): Promise<ApiTranslateResponse> => {
     const controller = new AbortController();
@@ -159,7 +186,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
           setTranslatedText(serverText);
           setTranslationProvider(serverResult.provider || 'huggingface');
           setTranslationModel(serverResult.model || '');
-          setTranslationReason(serverResult.reason || 'Traducción resuelta por el backend');
+          setTranslationReason(formatBackendReason(serverResult));
           setTranslationTokenSource(serverResult.tokenSource || '');
           return;
         }

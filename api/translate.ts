@@ -238,6 +238,22 @@ function conjugatePresentFirstPerson(word: string): string {
   return normalized;
 }
 
+function destinationWithPreposition(raw: string): string {
+  const destination = raw.toLowerCase();
+  const destinationMap: Record<string, string> = {
+    universidad: 'a la universidad',
+    escuela: 'a la escuela',
+    oficina: 'a la oficina',
+    casa: 'a casa',
+    trabajo: 'al trabajo',
+    colegio: 'al colegio',
+    hospital: 'al hospital',
+    parque: 'al parque',
+  };
+
+  return destinationMap[destination] || `a ${destination}`;
+}
+
 function fallbackTranslation(input: string): string {
   const cleaned = input
     .replace(/\s+/g, ' ')
@@ -250,14 +266,45 @@ function fallbackTranslation(input: string): string {
   const secondWord = words[1]?.toLowerCase() || '';
 
   if (TEMPORAL_ADVERBS.has(firstWord) && secondWord && isVerbLike(secondWord)) {
-    const remainder = words.slice(2).join(' ');
     const conjugated = conjugatePastFirstPerson(secondWord);
+
+    if (secondWord === 'ir' && words.length > 2) {
+      const destination = words[2] || '';
+      const normalizedDestination = destinationWithPreposition(destination);
+      const remainder = words.slice(3).join(' ');
+      return `${firstWord.charAt(0).toUpperCase() + firstWord.slice(1)} ${conjugated} ${normalizedDestination}${remainder ? ` ${remainder}` : ''}.`;
+    }
+
+    const remainder = words.slice(2).join(' ');
     return `${firstWord.charAt(0).toUpperCase() + firstWord.slice(1)} ${conjugated}${remainder ? ` ${remainder}` : ''}.`;
   }
 
+  if ((firstWord === 'yo' || firstWord === 'me' || firstWord === 'mi') && secondWord === 'no' && words[2] && isVerbLike(words[2])) {
+    const verb = words[2].toLowerCase();
+    const conjugated = conjugatePresentFirstPerson(verb);
+
+    if (verb === 'ir' && words.length > 3) {
+      const destination = words[3] || '';
+      const normalizedDestination = destinationWithPreposition(destination);
+      const remainder = words.slice(4).join(' ');
+      return `${firstWord.charAt(0).toUpperCase() + firstWord.slice(1)} no ${conjugated} ${normalizedDestination}${remainder ? ` ${remainder}` : ''}.`;
+    }
+
+    const remainder = words.slice(3).join(' ');
+    return `${firstWord.charAt(0).toUpperCase() + firstWord.slice(1)} no ${conjugated}${remainder ? ` ${remainder}` : ''}.`;
+  }
+
   if ((firstWord === 'yo' || firstWord === 'me' || firstWord === 'mi') && secondWord && isVerbLike(secondWord)) {
-    const remainder = words.slice(2).join(' ');
     const conjugated = conjugatePresentFirstPerson(secondWord);
+
+    if (secondWord === 'ir' && words.length > 2) {
+      const destination = words[2] || '';
+      const normalizedDestination = destinationWithPreposition(destination);
+      const remainder = words.slice(3).join(' ');
+      return `${firstWord.charAt(0).toUpperCase() + firstWord.slice(1)} ${conjugated} ${normalizedDestination}${remainder ? ` ${remainder}` : ''}.`;
+    }
+
+    const remainder = words.slice(2).join(' ');
     return `${firstWord.charAt(0).toUpperCase() + firstWord.slice(1)} ${conjugated}${remainder ? ` ${remainder}` : ''}.`;
   }
 
@@ -302,6 +349,17 @@ function getClassicCandidateModels(): string[] {
   return Array.from(unique);
 }
 
+function normalizeHfError(err: any): { status: number; bodyText: string; messageText: string; isNetwork: boolean } {
+  const status = Number(err?.status || 0);
+  const bodyText = String(err?.body || '');
+  const messageText = String(err?.message || err || 'unknown_error');
+  const isNetwork = /fetch failed|network|timeout|abort|econn|enotfound|eai_again/i.test(
+    `${messageText} ${bodyText}`
+  );
+
+  return { status, bodyText, messageText, isNetwork };
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -334,6 +392,7 @@ export default async function handler(req: any, res: any) {
     const WAIT_FOR_MODEL = process.env.HF_WAIT_FOR_MODEL === 'true';
     let lastError = '';
     let unsupportedProviderErrors = 0;
+    let classicNetworkFailed = false;
 
     for (const modelId of routerCandidateModels) {
       const hfModel = `${modelId}:fastest`;
@@ -379,9 +438,7 @@ export default async function handler(req: any, res: any) {
 
         lastError = `Respuesta vacía del modelo ${modelId}`;
       } catch (hfErr: any) {
-        const status = Number(hfErr?.status || 0);
-        const bodyText = String(hfErr?.body || '');
-        const messageText = String(hfErr?.message || hfErr);
+        const { status, bodyText, messageText } = normalizeHfError(hfErr);
         if (/model_not_supported/i.test(bodyText)) {
           unsupportedProviderErrors += 1;
         }
@@ -400,7 +457,7 @@ export default async function handler(req: any, res: any) {
     for (const modelId of classicCandidateModels) {
       try {
         const payload = await fetchJsonWithRetries(
-          `https://api-inference.huggingface.co/models/${encodeURIComponent(modelId)}`,
+          `https://api-inference.huggingface.co/models/${modelId}`,
           {
             method: 'POST',
             headers: {
@@ -438,8 +495,10 @@ export default async function handler(req: any, res: any) {
 
         lastError = `Respuesta vacía del endpoint clásico (${modelId})`;
       } catch (hfClassicErr: any) {
-        const bodyText = String(hfClassicErr?.body || '');
-        const messageText = String(hfClassicErr?.message || hfClassicErr);
+        const { bodyText, messageText, isNetwork } = normalizeHfError(hfClassicErr);
+        if (isNetwork) {
+          classicNetworkFailed = true;
+        }
         lastError = bodyText
           ? `${messageText} | ${bodyText.slice(0, 240)}`
           : messageText;
@@ -449,14 +508,24 @@ export default async function handler(req: any, res: any) {
     const unsupportedHint = unsupportedProviderErrors > 0
       ? 'Los proveedores del router no soportan el modelo configurado; se intentó endpoint clásico.'
       : '';
+    const networkHint = classicNetworkFailed
+      ? 'El runtime no logró conectar con el endpoint clásico de Hugging Face.'
+      : '';
+
+    const finalReason = `No se obtuvo respuesta válida de Hugging Face. ${unsupportedHint} ${networkHint}`
+      .replace(/\s+/g, ' ')
+      .trim();
 
     return res.status(200).json({
       success: true,
       provider: 'local-fallback',
-      reason: `No se obtuvo respuesta válida de Hugging Face. ${unsupportedHint} ${lastError || 'Sin detalle adicional.'}`.trim(),
+      reason: finalReason === 'No se obtuvo respuesta válida de Hugging Face.'
+        ? 'No se obtuvo respuesta válida de Hugging Face; se aplicó corrección local.'
+        : finalReason,
       tokenSource,
       attemptedModels: routerCandidateModels,
       attemptedClassicModels: classicCandidateModels,
+      debugReason: lastError || 'Sin detalle adicional.',
       translatedText: localFallback,
     });
   } catch (error) {
