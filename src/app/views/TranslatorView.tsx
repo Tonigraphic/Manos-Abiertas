@@ -81,6 +81,14 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     return reason;
   };
 
+  const isTransientBackendFailure = (result: ApiTranslateResponse): boolean => {
+    const reason = String(result.reason || '').trim();
+    const debugReason = String(result.debugReason || '').trim();
+    const combined = `${reason} ${debugReason}`;
+
+    return /fetch failed|network|timeout|conectar|caída|runtime|temporalmente no disponible/i.test(combined);
+  };
+
   const requestServerTranslation = async (inputText: string): Promise<ApiTranslateResponse> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 14000);
@@ -108,6 +116,30 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     } finally {
       clearTimeout(timeoutId);
     }
+  };
+
+  const requestServerTranslationWithRetry = async (inputText: string): Promise<ApiTranslateResponse> => {
+    const maxAttempts = 3;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const result = await requestServerTranslation(inputText);
+
+        if (result.provider === 'huggingface' || !isTransientBackendFailure(result) || attempt === maxAttempts) {
+          return result;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 450 * attempt));
+      } catch (error) {
+        if (attempt === maxAttempts) {
+          throw error;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 450 * attempt));
+      }
+    }
+
+    throw new Error('No fue posible completar la traducción del backend');
   };
 
   useEffect(() => {
@@ -179,7 +211,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
 
     try {
       try {
-        const serverResult = await requestServerTranslation(inputText);
+        const serverResult = await requestServerTranslationWithRetry(inputText);
         const serverText = cleanRepeatedWords(String(serverResult.translatedText || '').trim());
 
         if (serverText) {
