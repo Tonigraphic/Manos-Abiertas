@@ -5,6 +5,7 @@ import { Send, Languages, Mic, Volume2, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { InstructionsModal } from '../components/lsc/InstructionsModal';
 import { translateLSCtoSpanish } from '../../lib/translationEngine';
+import { LOCAL_TRANSLATION_MODEL, translateWithLocalModel } from '../../services/localTranslationService';
 
 interface TranslatorViewProps {
   onNavigateHome?: () => void;
@@ -91,34 +92,31 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     if (!inputText) return;
 
     setIsTranslating(true);
+    setTranslationTokenSource('');
 
     try {
-      const response = await fetch('/api/translate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: inputText }),
-      });
+      let translated = '';
 
-      if (!response.ok) {
-        throw new Error(`Translation API error: ${response.status}`);
+      try {
+        translated = await translateWithLocalModel(inputText);
+      } catch (localError) {
+        console.error('Local model translation failed:', localError);
       }
 
-      const data = await response.json();
-      const translatedFromApi = typeof data?.translatedText === 'string' ? data.translatedText.trim() : '';
-      const translated = translatedFromApi || translateLSCtoSpanish(inputText);
+      const normalized = translated.trim();
+      const finalText = normalized && normalized !== inputText ? normalized : translateLSCtoSpanish(inputText);
 
-      setTranslatedText(translated);
-      setTranslationProvider(typeof data?.provider === 'string' ? data.provider : 'local-fallback');
-      setTranslationModel(typeof data?.model === 'string' ? data.model : '');
-      setTranslationReason(typeof data?.reason === 'string' ? data.reason : '');
-      setTranslationTokenSource(typeof data?.tokenSource === 'string' ? data.tokenSource : '');
+      setTranslatedText(finalText);
+      setTranslationProvider(normalized && normalized !== inputText ? 'local-onnx' : 'local-fallback');
+      setTranslationModel(LOCAL_TRANSLATION_MODEL);
+      setTranslationReason(normalized && normalized !== inputText
+        ? 'Modelo pequeño ejecutado en el navegador'
+        : 'El modelo local no produjo una mejora clara; se usó la heurística local');
     } catch (error) {
       console.error('Translation request failed:', error);
       setTranslationProvider('local-fallback');
       setTranslationModel('');
-      setTranslationReason('No se pudo contactar el endpoint /api/translate');
+      setTranslationReason('No se pudo ejecutar el modelo local');
       setTranslatedText(translateLSCtoSpanish(inputText));
     } finally {
       setIsTranslating(false);
@@ -224,6 +222,8 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                     <p className="mt-4 text-xs font-semibold text-white/75">
                       {translationProvider === 'huggingface'
                         ? `Fuente: Hugging Face${translationModel ? ` · Modelo: ${translationModel}` : ''}`
+                        : translationProvider === 'local-onnx'
+                          ? `Fuente: modelo local${translationModel ? ` · ${translationModel}` : ''}`
                         : translationProvider === 'local'
                           ? 'Fuente: fallback local de desarrollo'
                           : 'Fuente: fallback local'}
