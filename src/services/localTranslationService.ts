@@ -18,12 +18,19 @@ async function getTransformersModule(): Promise<TransformersModule> {
 }
 
 export const LOCAL_TRANSLATION_MODEL = 'Xenova/flan-t5-small';
-const MODEL_LOAD_TIMEOUT_MS = 20000;
+const MODEL_LOAD_TIMEOUT_MS = 45000;
 const INFERENCE_TIMEOUT_MS = 12000;
+const MODEL_RETRY_COOLDOWN_MS = 5 * 60 * 1000;
 
 let translatorPromise: Promise<any> | null = null;
+let modelDisabledUntil = 0;
 
 async function getTranslator() {
+  const now = Date.now();
+  if (now < modelDisabledUntil) {
+    throw new Error('Modelo local en enfriamiento temporal por timeout de red');
+  }
+
   if (!translatorPromise) {
     translatorPromise = (async () => {
       const { pipeline } = await getTransformersModule();
@@ -104,7 +111,21 @@ function looksReasonable(input: string, output: string): boolean {
   return true;
 }
 
+function isSlowConnection(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const nav = navigator as any;
+  const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
+  if (!conn) return false;
+
+  const type = String(conn.effectiveType || '').toLowerCase();
+  return conn.saveData === true || type.includes('2g') || type.includes('slow-2g');
+}
+
 export async function translateWithLocalModel(input: string): Promise<string> {
+  if (isSlowConnection()) {
+    throw new Error('Red lenta detectada para descargar el modelo local');
+  }
+
   const translator = await withTimeout(
     getTranslator(),
     MODEL_LOAD_TIMEOUT_MS,
@@ -138,4 +159,9 @@ export async function translateWithLocalModel(input: string): Promise<string> {
 
   const cleaned = sanitizeOutput(String(generated || '').trim());
   return looksReasonable(input, cleaned) ? cleaned : '';
+}
+
+export function markLocalModelTimeout(): void {
+  modelDisabledUntil = Date.now() + MODEL_RETRY_COOLDOWN_MS;
+  translatorPromise = null;
 }

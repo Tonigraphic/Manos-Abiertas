@@ -5,7 +5,7 @@ import { Send, Languages, Mic, Volume2, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { InstructionsModal } from '../components/lsc/InstructionsModal';
 import { translateLSCtoSpanish } from '../../lib/translationEngine';
-import { LOCAL_TRANSLATION_MODEL, translateWithLocalModel } from '../../services/localTranslationService';
+import { LOCAL_TRANSLATION_MODEL, markLocalModelTimeout, translateWithLocalModel } from '../../services/localTranslationService';
 
 interface TranslatorViewProps {
   onNavigateHome?: () => void;
@@ -21,6 +21,20 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+
+  const normalizeWord = (word: string) =>
+    word.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+  const cleanRepeatedWords = (text: string) => {
+    const words = text.split(/\s+/).filter(Boolean);
+    const result: string[] = [];
+    for (const word of words) {
+      const prev = result[result.length - 1];
+      if (prev && normalizeWord(prev) === normalizeWord(word)) continue;
+      result.push(word);
+    }
+    return result.join(' ').replace(/\s+([,.;!?])/g, '$1').trim();
+  };
 
   // Use SpeechRecognition API for Voice-to-Text
   const SpeechRecognition = typeof window !== 'undefined' ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) : null;
@@ -103,10 +117,15 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       } catch (localError) {
         console.error('Local model translation failed:', localError);
         localErrorMessage = localError instanceof Error ? localError.message : 'Error desconocido del modelo local';
+        if (/timeout|espera agotado|red lenta/i.test(localErrorMessage)) {
+          markLocalModelTimeout();
+        }
       }
 
       const normalized = translated.trim();
-      const finalText = normalized && normalized !== inputText ? normalized : translateLSCtoSpanish(inputText);
+      const finalText = cleanRepeatedWords(
+        normalized && normalized !== inputText ? normalized : translateLSCtoSpanish(inputText)
+      );
 
       setTranslatedText(finalText);
       setTranslationProvider(normalized && normalized !== inputText ? 'local-onnx' : 'local-fallback');
