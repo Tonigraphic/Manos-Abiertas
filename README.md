@@ -90,6 +90,8 @@ Para que el traductor use Hugging Face en `/api/translate`, configura estas vari
 - `HF_TRANSLATION_TOKEN`: token fine-grained con permiso **Make calls to Inference Providers**.
 - `HF_TRANSLATION_MODEL`: modelo principal (ej. `mistralai/Mistral-7B-Instruct-v0.3`).
 - `HF_TRANSLATION_MODELS` (opcional): lista separada por comas para fallback automático entre modelos.
+- `HF_TRANSLATION_CLASSIC_MODEL` (opcional): modelo para endpoint clásico `api-inference` (ej. `google/flan-t5-base`).
+- `HF_TRANSLATION_CLASSIC_MODELS` (opcional): fallback clásico separado por comas.
 - `HF_WAIT_FOR_MODEL` (opcional): `true` para esperar carga fría del modelo.
 
 Si no hay token o un modelo compatible, la app hace fallback local automáticamente sin romper la UI.

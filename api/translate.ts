@@ -16,6 +16,11 @@ const DEFAULT_HF_MODELS = [
   'google/gemma-2-2b-it',
 ];
 
+const DEFAULT_CLASSIC_HF_MODELS = [
+  'google/flan-t5-base',
+  'google/flan-t5-small',
+];
+
 function stripCodeFences(text: string): string {
   return text
     .replace(/```[\s\S]*?```/g, match => match.replace(/```/g, ''))
@@ -265,6 +270,38 @@ function fallbackTranslation(input: string): string {
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1) + (/[.!?]$/.test(cleaned) ? '' : '.');
 }
 
+function getRouterCandidateModels(): string[] {
+  const primary = (process.env.HF_TRANSLATION_MODEL || '').trim();
+  const extra = (process.env.HF_TRANSLATION_MODELS || '')
+    .split(',')
+    .map((model) => model.trim())
+    .filter(Boolean);
+
+  const unique = new Set<string>();
+  for (const model of [primary, ...extra, ...DEFAULT_HF_MODELS]) {
+    if (model) unique.add(model);
+    if (unique.size >= 3) break;
+  }
+
+  return Array.from(unique);
+}
+
+function getClassicCandidateModels(): string[] {
+  const primary = (process.env.HF_TRANSLATION_CLASSIC_MODEL || '').trim();
+  const extra = (process.env.HF_TRANSLATION_CLASSIC_MODELS || '')
+    .split(',')
+    .map((model) => model.trim())
+    .filter(Boolean);
+
+  const unique = new Set<string>();
+  for (const model of [primary, ...extra, ...DEFAULT_CLASSIC_HF_MODELS]) {
+    if (model) unique.add(model);
+    if (unique.size >= 2) break;
+  }
+
+  return Array.from(unique);
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -281,7 +318,7 @@ export default async function handler(req: any, res: any) {
     // Preferir el token específico de traducción si existe, sino usar el legacy HF_TOKEN
     const HF_TOKEN = process.env.HF_TRANSLATION_TOKEN || process.env.HF_TOKEN;
     const tokenSource = process.env.HF_TRANSLATION_TOKEN ? 'new' : (process.env.HF_TOKEN ? 'legacy' : 'none');
-    const MODEL_ID = process.env.HF_TRANSLATION_MODEL || 'Qwen/Qwen2.5-1.5B-Instruct';
+    const routerCandidateModels = getRouterCandidateModels();
 
     if (!HF_TOKEN) {
       return res.status(200).json({
@@ -295,54 +332,132 @@ export default async function handler(req: any, res: any) {
     }
 
     const WAIT_FOR_MODEL = process.env.HF_WAIT_FOR_MODEL === 'true';
-    const hfModel = `${MODEL_ID}:fastest`;
-    const hfPayload = {
-      model: hfModel,
-      messages: buildMessages(text),
-      temperature: 0.2,
-      max_tokens: 128,
-      stream: false,
-    };
+    let lastError = '';
+    let unsupportedProviderErrors = 0;
 
-    let payload: any;
-    try {
-      payload = await fetchJsonWithRetries(
-        'https://router.huggingface.co/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${HF_TOKEN}`,
-            'Content-Type': 'application/json',
+    for (const modelId of routerCandidateModels) {
+      const hfModel = `${modelId}:fastest`;
+      const hfPayload = {
+        model: hfModel,
+        messages: buildMessages(text),
+        temperature: 0.2,
+        max_tokens: 128,
+        stream: false,
+      };
+
+      try {
+        const payload = await fetchJsonWithRetries(
+          'https://router.huggingface.co/v1/chat/completions',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${HF_TOKEN}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              ...hfPayload,
+              ...(WAIT_FOR_MODEL ? { wait_for_model: true } : {}),
+            }),
           },
-          body: JSON.stringify({
-            ...hfPayload,
-            ...(WAIT_FOR_MODEL ? { wait_for_model: true } : {}),
-          }),
-        },
-        15000,
-        1
-      );
-    } catch (hfErr: any) {
-      console.error('Hugging Face translation API Error (final):', hfErr?.message || hfErr, hfErr?.body || 'no body');
-      return res.status(200).json({
-        success: true,
-        provider: 'local-fallback',
-        reason: hfErr?.body ? `Hugging Face error: ${String(hfErr?.message || hfErr)}` : `Error de red o timeout: ${String(hfErr?.message || hfErr)}`,
-        tokenSource,
-        translatedText: localFallback,
-      });
+          12000,
+          0
+        );
+
+        const generatedText = cleanTranslation(
+          extractGeneratedText(payload?.choices?.[0]?.message?.content ?? payload)
+        );
+
+        if (generatedText) {
+          return res.status(200).json({
+            success: true,
+            provider: 'huggingface',
+            model: hfModel,
+            tokenSource,
+            translatedText: generatedText,
+          });
+        }
+
+        lastError = `Respuesta vacía del modelo ${modelId}`;
+      } catch (hfErr: any) {
+        const status = Number(hfErr?.status || 0);
+        const bodyText = String(hfErr?.body || '');
+        const messageText = String(hfErr?.message || hfErr);
+        if (/model_not_supported/i.test(bodyText)) {
+          unsupportedProviderErrors += 1;
+        }
+
+        lastError = bodyText
+          ? `${messageText} | ${bodyText.slice(0, 240)}`
+          : messageText;
+
+        if (status === 401 || status === 403) {
+          break;
+        }
+      }
     }
 
-    const generatedText = cleanTranslation(
-      extractGeneratedText(payload?.choices?.[0]?.message?.content ?? payload)
-    );
+    const classicCandidateModels = getClassicCandidateModels();
+    for (const modelId of classicCandidateModels) {
+      try {
+        const payload = await fetchJsonWithRetries(
+          `https://api-inference.huggingface.co/models/${encodeURIComponent(modelId)}`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${HF_TOKEN}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              inputs: buildPrompt(text),
+              parameters: {
+                max_new_tokens: 96,
+                temperature: 0.2,
+                return_full_text: false,
+              },
+              options: {
+                wait_for_model: WAIT_FOR_MODEL,
+                use_cache: false,
+              },
+            }),
+          },
+          15000,
+          1
+        );
+
+        const generatedText = cleanTranslation(extractGeneratedText(payload));
+        if (generatedText) {
+          return res.status(200).json({
+            success: true,
+            provider: 'huggingface',
+            model: modelId,
+            mode: 'classic-inference',
+            tokenSource,
+            translatedText: generatedText,
+          });
+        }
+
+        lastError = `Respuesta vacía del endpoint clásico (${modelId})`;
+      } catch (hfClassicErr: any) {
+        const bodyText = String(hfClassicErr?.body || '');
+        const messageText = String(hfClassicErr?.message || hfClassicErr);
+        lastError = bodyText
+          ? `${messageText} | ${bodyText.slice(0, 240)}`
+          : messageText;
+      }
+    }
+
+    const unsupportedHint = unsupportedProviderErrors > 0
+      ? 'Los proveedores del router no soportan el modelo configurado; se intentó endpoint clásico.'
+      : '';
 
     return res.status(200).json({
       success: true,
-      provider: 'huggingface',
-      model: hfModel,
+      provider: 'local-fallback',
+      reason: `No se obtuvo respuesta válida de Hugging Face. ${unsupportedHint} ${lastError || 'Sin detalle adicional.'}`.trim(),
       tokenSource,
-      translatedText: generatedText || localFallback,
+      attemptedModels: routerCandidateModels,
+      attemptedClassicModels: classicCandidateModels,
+      translatedText: localFallback,
     });
   } catch (error) {
     console.error('Error procesando traducción:', error);
