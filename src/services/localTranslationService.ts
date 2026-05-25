@@ -124,20 +124,13 @@ function isSlowConnection(): boolean {
 
 export function shouldAttemptBrowserModel(): boolean {
   if (typeof window === 'undefined') return false;
-  if (FORCE_BROWSER_MODEL) return true;
-
   const host = window.location.hostname;
   if (host === 'localhost' || host === '127.0.0.1') return true;
+  if (FORCE_BROWSER_MODEL) return true;
 
-  const nav = navigator as any;
-  const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
-  if (!conn) return false;
-
-  const effectiveType = String(conn.effectiveType || '').toLowerCase();
-  const downlink = Number(conn.downlink || 0);
-  const saveData = conn.saveData === true;
-
-  return !saveData && effectiveType.includes('4g') && downlink >= 5;
+  // En producción web, el modelo en navegador suele fallar por latencia/descarga.
+  // Se permite solo con flag explícita VITE_ENABLE_BROWSER_MODEL=true.
+  return false;
 }
 
 export async function translateWithLocalModel(input: string): Promise<string> {
