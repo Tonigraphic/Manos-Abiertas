@@ -69,7 +69,7 @@ function cleanTranslation(text: string): string {
   return cleaned;
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 8000): Promise<Response> {
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 15000): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -80,6 +80,46 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 8000
     });
   } finally {
     clearTimeout(timeoutId);
+  }
+}
+
+async function fetchJsonWithRetries(url: string, init: RequestInit, timeoutMs = 15000, maxRetries = 1): Promise<any> {
+  let attempt = 0;
+  while (true) {
+    attempt += 1;
+    try {
+      const res = await fetchWithTimeout(url, init, timeoutMs);
+      const text = await res.text();
+
+      if (!res.ok) {
+        console.error(`Hugging Face API returned status ${res.status} (attempt ${attempt}):`, text);
+        if (res.status >= 500 && attempt <= maxRetries) {
+          // small backoff
+          await new Promise((r) => setTimeout(r, 500));
+          continue;
+        }
+        const err: any = new Error(`HF API ${res.status}`);
+        err.status = res.status;
+        err.body = text;
+        throw err;
+      }
+
+      // Try to parse JSON, but tolerate non-JSON payloads
+      try {
+        return text ? JSON.parse(text) : null;
+      } catch (parseErr) {
+        // If HF returns plain text, return raw text instead of throwing
+        return text;
+      }
+    } catch (err: any) {
+      const isRetryable = err?.name === 'AbortError' || /network|fetch|timeout/i.test(String(err?.message)) || (err?.status && err.status >= 500);
+      console.warn(`HF request attempt ${attempt} failed:`, err?.message || err);
+      if (attempt <= maxRetries && isRetryable) {
+        await new Promise((r) => setTimeout(r, 500));
+        continue;
+      }
+      throw err;
+    }
   }
 }
 
@@ -226,39 +266,46 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const response = await fetchWithTimeout(`https://api-inference.huggingface.co/models/${MODEL_ID}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${HF_TOKEN}`,
-        'Content-Type': 'application/json',
+    const WAIT_FOR_MODEL = process.env.HF_WAIT_FOR_MODEL === 'true';
+    const hfPayload = {
+      inputs: buildPrompt(text),
+      parameters: {
+        max_new_tokens: 128,
+        temperature: 0.2,
+        top_p: 0.9,
+        return_full_text: false,
       },
-      body: JSON.stringify({
-        inputs: buildPrompt(text),
-        parameters: {
-          max_new_tokens: 128,
-          temperature: 0.2,
-          top_p: 0.9,
-          return_full_text: false,
-        },
-        options: {
-          wait_for_model: false,
-        },
-      }),
-    }, 8000);
+      options: {
+        wait_for_model: WAIT_FOR_MODEL,
+      },
+    };
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Hugging Face translation API Error:', errorText);
+    let payload: any;
+    try {
+      payload = await fetchJsonWithRetries(
+        `https://api-inference.huggingface.co/models/${MODEL_ID}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${HF_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(hfPayload),
+        },
+        15000,
+        1
+      );
+    } catch (hfErr: any) {
+      console.error('Hugging Face translation API Error (final):', hfErr?.message || hfErr, hfErr?.body || 'no body');
       return res.status(200).json({
         success: true,
         provider: 'local-fallback',
-        reason: 'Hugging Face no respondió correctamente',
+        reason: hfErr?.body ? `Hugging Face error: ${String(hfErr?.message || hfErr)}` : `Error de red o timeout: ${String(hfErr?.message || hfErr)}`,
         tokenSource,
         translatedText: localFallback,
       });
     }
 
-    const payload = await response.json();
     const generatedText = cleanTranslation(extractGeneratedText(payload));
 
     return res.status(200).json({
@@ -273,7 +320,7 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({
       success: true,
       provider: 'local-fallback',
-      reason: 'Error de red, timeout o caída del runtime del endpoint',
+      reason: `Error de red, timeout o caída del runtime del endpoint: ${String((error as any)?.message || error)}`,
       tokenSource: (process.env.HF_TRANSLATION_TOKEN ? 'new' : (process.env.HF_TOKEN ? 'legacy' : 'none')),
       translatedText: fallbackTranslation(String(req.body?.text || '')),
     });
