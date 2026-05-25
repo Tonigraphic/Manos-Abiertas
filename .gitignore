@@ -6,3 +6,5 @@ dist/
 public/ort-wasm-*.mjs
 public/ort-wasm-*.wasm
 
+.vercel
+.env*
