@@ -425,8 +425,8 @@ export default async function handler(req: any, res: any) {
               ...(WAIT_FOR_MODEL ? { wait_for_model: true } : {}),
             }),
           },
-          12000,
-          0
+          18000,
+          2
         );
 
         const generatedText = cleanTranslation(
@@ -484,8 +484,8 @@ export default async function handler(req: any, res: any) {
               },
             }),
           },
-          15000,
-          1
+          20000,
+          2
         );
 
         const generatedText = cleanTranslation(extractGeneratedText(payload));
