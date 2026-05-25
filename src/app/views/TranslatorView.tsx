@@ -11,6 +11,15 @@ interface TranslatorViewProps {
   onNavigateHome?: () => void;
 }
 
+type ApiTranslateResponse = {
+  success?: boolean;
+  provider?: string;
+  model?: string;
+  reason?: string;
+  tokenSource?: string;
+  translatedText?: string;
+};
+
 export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [translatorInput, setTranslatorInput] = useState('');
   const [translatedText, setTranslatedText] = useState('');
@@ -44,6 +53,35 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const SpeechRecognition = typeof window !== 'undefined' ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) : null;
   const recognitionRef = useRef<any>(null);
   const textBeforeDictationRef = useRef<string>('');
+
+  const requestServerTranslation = async (inputText: string): Promise<ApiTranslateResponse> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 14000);
+
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: inputText }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`API /api/translate respondió ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data || typeof data !== 'object') {
+        throw new Error('Respuesta inválida del backend de traducción');
+      }
+
+      return data as ApiTranslateResponse;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
 
   useEffect(() => {
     if (SpeechRecognition) {
@@ -113,6 +151,22 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     setTranslationTokenSource('');
 
     try {
+      try {
+        const serverResult = await requestServerTranslation(inputText);
+        const serverText = cleanRepeatedWords(String(serverResult.translatedText || '').trim());
+
+        if (serverText) {
+          setTranslatedText(serverText);
+          setTranslationProvider(serverResult.provider || 'huggingface');
+          setTranslationModel(serverResult.model || '');
+          setTranslationReason(serverResult.reason || 'Traducción resuelta por el backend');
+          setTranslationTokenSource(serverResult.tokenSource || '');
+          return;
+        }
+      } catch (apiError) {
+        console.warn('Translation API failed:', apiError);
+      }
+
       let translated = '';
       let localErrorMessage = '';
 
@@ -138,6 +192,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       setTranslatedText(finalText);
       setTranslationProvider(normalized && normalized !== inputText ? 'local-onnx' : 'local-fallback');
       setTranslationModel(LOCAL_TRANSLATION_MODEL);
+      setTranslationTokenSource('');
       setTranslationReason(normalized && normalized !== inputText
         ? 'Modelo pequeño ejecutado en el navegador'
         : localErrorMessage

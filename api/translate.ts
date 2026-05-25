@@ -10,6 +10,12 @@ type TranslateRequest = {
   text?: string;
 };
 
+const DEFAULT_HF_MODELS = [
+  'Qwen/Qwen2.5-1.5B-Instruct',
+  'mistralai/Mistral-7B-Instruct-v0.3',
+  'google/gemma-2-2b-it',
+];
+
 function stripCodeFences(text: string): string {
   return text
     .replace(/```[\s\S]*?```/g, match => match.replace(/```/g, ''))
