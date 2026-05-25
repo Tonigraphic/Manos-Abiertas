@@ -58,6 +58,28 @@ function buildPrompt(input: string): string {
   ].join('\n');
 }
 
+function buildMessages(input: string) {
+  return [
+    {
+      role: 'system',
+      content: [
+        'Eres un corrector experto en español colombiano y en texto escrito por personas sordas usuarias de Lengua de Señas Colombiana.',
+        'Tu tarea es convertir el texto de entrada al español convencional natural, sin explicar el proceso.',
+        'Reglas:',
+        '- Devuelve solo la versión final corregida.',
+        '- No agregues conectores si no son necesarios.',
+        '- No inventes significado.',
+        '- Si el texto ya está correcto, devuélvelo casi igual.',
+        '- Conserva nombres propios y términos técnicos.',
+      ].join('\n'),
+    },
+    {
+      role: 'user',
+      content: `Texto: ${input}`,
+    },
+  ];
+}
+
 function cleanTranslation(text: string): string {
   const cleaned = stripCodeFences(text)
     .replace(/^Respuesta:\s*/i, '')
@@ -267,30 +289,29 @@ export default async function handler(req: any, res: any) {
     }
 
     const WAIT_FOR_MODEL = process.env.HF_WAIT_FOR_MODEL === 'true';
+    const hfModel = `${MODEL_ID}:fastest`;
     const hfPayload = {
-      inputs: buildPrompt(text),
-      parameters: {
-        max_new_tokens: 128,
-        temperature: 0.2,
-        top_p: 0.9,
-        return_full_text: false,
-      },
-      options: {
-        wait_for_model: WAIT_FOR_MODEL,
-      },
+      model: hfModel,
+      messages: buildMessages(text),
+      temperature: 0.2,
+      max_tokens: 128,
+      stream: false,
     };
 
     let payload: any;
     try {
       payload = await fetchJsonWithRetries(
-        `https://api-inference.huggingface.co/models/${MODEL_ID}`,
+        'https://router.huggingface.co/v1/chat/completions',
         {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${HF_TOKEN}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(hfPayload),
+          body: JSON.stringify({
+            ...hfPayload,
+            ...(WAIT_FOR_MODEL ? { wait_for_model: true } : {}),
+          }),
         },
         15000,
         1
@@ -306,12 +327,14 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const generatedText = cleanTranslation(extractGeneratedText(payload));
+    const generatedText = cleanTranslation(
+      extractGeneratedText(payload?.choices?.[0]?.message?.content ?? payload)
+    );
 
     return res.status(200).json({
       success: true,
       provider: 'huggingface',
-      model: MODEL_ID,
+      model: hfModel,
       tokenSource,
       translatedText: generatedText || localFallback,
     });
