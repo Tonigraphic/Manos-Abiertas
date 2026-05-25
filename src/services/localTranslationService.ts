@@ -18,6 +18,8 @@ async function getTransformersModule(): Promise<TransformersModule> {
 }
 
 export const LOCAL_TRANSLATION_MODEL = 'Xenova/flan-t5-small';
+const MODEL_LOAD_TIMEOUT_MS = 20000;
+const INFERENCE_TIMEOUT_MS = 12000;
 
 let translatorPromise: Promise<any> | null = null;
 
@@ -28,14 +30,86 @@ async function getTranslator() {
       return pipeline('text2text-generation', LOCAL_TRANSLATION_MODEL, {
         quantized: true,
       });
-    })();
+    })().catch((error) => {
+      translatorPromise = null;
+      throw error;
+    });
   }
 
   return translatorPromise;
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const id = setTimeout(() => reject(new Error(message)), timeoutMs);
+    promise
+      .then((result) => {
+        clearTimeout(id);
+        resolve(result);
+      })
+      .catch((error) => {
+        clearTimeout(id);
+        reject(error);
+      });
+  });
+}
+
+function normalizeWord(word: string): string {
+  return word
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function removeAdjacentDuplicates(text: string): string {
+  const words = text.split(/\s+/).filter(Boolean);
+  const compact: string[] = [];
+
+  for (const word of words) {
+    const prev = compact[compact.length - 1];
+    if (prev && normalizeWord(prev) === normalizeWord(word)) {
+      continue;
+    }
+    compact.push(word);
+  }
+
+  return compact.join(' ');
+}
+
+function sanitizeOutput(rawOutput: string): string {
+  const cleaned = removeAdjacentDuplicates(
+    rawOutput
+      .replace(/^respuesta:\s*/i, '')
+      .replace(/^frase:\s*/i, '')
+      .replace(/^texto:\s*/i, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
+
+  return cleaned.replace(/\s+([,.;!?])/g, '$1').trim();
+}
+
+function looksReasonable(input: string, output: string): boolean {
+  if (!output) return false;
+  if (output.length < 4) return false;
+  if (output.length > input.length * 2.6) return false;
+
+  const words = output.split(/\s+/).filter(Boolean);
+  if (words.length < 2) return false;
+
+  const normalized = words.map(normalizeWord);
+  const unique = new Set(normalized);
+  if (unique.size <= Math.max(1, Math.floor(words.length * 0.35))) return false;
+
+  return true;
+}
+
 export async function translateWithLocalModel(input: string): Promise<string> {
-  const translator = await getTranslator();
+  const translator = await withTimeout(
+    getTranslator(),
+    MODEL_LOAD_TIMEOUT_MS,
+    'Tiempo de espera agotado cargando el modelo local'
+  );
 
   const prompt = [
     'Corrige el español de esta frase sin añadir explicación.',
@@ -45,16 +119,23 @@ export async function translateWithLocalModel(input: string): Promise<string> {
     `Frase: ${input}`,
   ].join('\n');
 
-  const output = await translator(prompt, {
-    max_new_tokens: 64,
-    temperature: 0.2,
-    repetition_penalty: 1.05,
-    top_p: 0.9,
-  });
+  const output = await withTimeout(
+    translator(prompt, {
+      max_new_tokens: 56,
+      temperature: 0.1,
+      repetition_penalty: 1.15,
+      top_p: 0.85,
+      do_sample: false,
+      num_beams: 2,
+    }),
+    INFERENCE_TIMEOUT_MS,
+    'Tiempo de espera agotado ejecutando la traduccion local'
+  );
 
   const generated = Array.isArray(output)
     ? output[0]?.generated_text
     : output?.generated_text ?? '';
 
-  return String(generated || '').trim();
+  const cleaned = sanitizeOutput(String(generated || '').trim());
+  return looksReasonable(input, cleaned) ? cleaned : '';
 }

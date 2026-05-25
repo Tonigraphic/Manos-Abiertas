@@ -96,11 +96,13 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
 
     try {
       let translated = '';
+      let localErrorMessage = '';
 
       try {
         translated = await translateWithLocalModel(inputText);
       } catch (localError) {
         console.error('Local model translation failed:', localError);
+        localErrorMessage = localError instanceof Error ? localError.message : 'Error desconocido del modelo local';
       }
 
       const normalized = translated.trim();
@@ -111,7 +113,9 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       setTranslationModel(LOCAL_TRANSLATION_MODEL);
       setTranslationReason(normalized && normalized !== inputText
         ? 'Modelo pequeño ejecutado en el navegador'
-        : 'El modelo local no produjo una mejora clara; se usó la heurística local');
+        : localErrorMessage
+          ? `Modelo local no disponible temporalmente: ${localErrorMessage}. Se usó la heurística local.`
+          : 'El modelo local no produjo una mejora clara; se usó la heurística local');
     } catch (error) {
       console.error('Translation request failed:', error);
       setTranslationProvider('local-fallback');
