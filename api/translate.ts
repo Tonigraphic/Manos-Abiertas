@@ -118,7 +118,22 @@ function cleanTranslation(text: string): string {
     .replace(/\s+/g, ' ')
     .trim();
 
-  return cleaned;
+  // Normalize spacing around punctuation
+  let normalized = cleaned;
+  // Remove spaces before punctuation
+  normalized = normalized.replace(/\s+([,.;!?])/g, '$1');
+  // Ensure single space after sentence punctuation
+  normalized = normalized.replace(/([,.;!?])(\s*)/g, (m, p1) => p1 + ' ');
+  // Fix currency spacing like "$2. 000" -> "$2.000"
+  normalized = normalized.replace(/\$\s*([0-9])/g, '\$$1');
+  // Collapse multiple spaces again
+  normalized = normalized.replace(/\s+/g, ' ').trim();
+
+  // Capitalize start of string and after sentence-ending punctuation
+  normalized = normalized.replace(/^\s*([a-záéíóúñ])/i, (_, c) => c.toUpperCase());
+  normalized = normalized.replace(/([\.\!\?]\s*)([a-záéíóúñ])/gi, (m, p1, p2) => p1 + p2.toUpperCase());
+
+  return normalized;
 }
 
 function isLongInput(text: string): boolean {

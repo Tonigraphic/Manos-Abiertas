@@ -32,6 +32,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [rawBackendJson, setRawBackendJson] = useState<any | null>(null);
 
   const normalizeWord = (word: string) =>
     word
@@ -128,6 +129,13 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
         throw new Error('Respuesta inválida del backend de traducción');
       }
 
+      // Guardar el JSON crudo para depuración local (visible solo en entornos de desarrollo/local)
+      try {
+        setRawBackendJson(data);
+      } catch (e) {
+        // ignore
+      }
+
       return data as ApiTranslateResponse;
     } finally {
       clearTimeout(timeoutId);
@@ -158,6 +166,22 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     }
 
     throw new Error('No fue posible completar la traducción del backend');
+  };
+
+  const isLocalDev = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    const host = window.location.hostname || '';
+    return /^(localhost|127\.0\.0\.1|192\.168\.)/.test(host);
+  };
+
+  const copyRawJson = async () => {
+    if (!rawBackendJson) return;
+    try {
+      await navigator.clipboard.writeText(typeof rawBackendJson === 'string' ? rawBackendJson : JSON.stringify(rawBackendJson, null, 2));
+      alert('JSON copiado al portapapeles');
+    } catch (e) {
+      alert('No fue posible copiar automáticamente. Selecciona y copia manualmente.');
+    }
   };
 
   useEffect(() => {
@@ -401,6 +425,17 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                         {translationTokenSource === 'new' ? 'Token: nuevo (HF_TRANSLATION_TOKEN)' : translationTokenSource === 'legacy' ? 'Token: antiguo (HF_TOKEN)' : 'Token: no presente'}
                       </p>
                     ) : null}
+                        {isLocalDev() && rawBackendJson ? (
+                          <div className="mt-3 bg-white/10 p-3 rounded-md">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-white/80 font-semibold">Respuesta cruda del backend</span>
+                              <div className="flex items-center gap-2">
+                                <button onClick={copyRawJson} className="text-xs px-2 py-1 bg-white/20 rounded">Copiar JSON</button>
+                              </div>
+                            </div>
+                            <pre className="text-[11px] mt-2 max-h-48 overflow-auto text-white/80">{typeof rawBackendJson === 'string' ? rawBackendJson : JSON.stringify(rawBackendJson, null, 2)}</pre>
+                          </div>
+                        ) : null}
                   </CardBody>
                 </Card>
               </motion.div>
