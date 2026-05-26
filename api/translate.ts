@@ -72,7 +72,7 @@ function buildPrompt(input: string): string {
   ].join('\n');
 }
 
-function buildMessages(input: string, compact = false) {
+function buildMessages(input: string, compact = false, context?: string) {
   const systemContent = compact
     ? [
         'Corrige el texto al español natural.',
@@ -90,16 +90,20 @@ function buildMessages(input: string, compact = false) {
         '- Conserva nombres propios y términos técnicos.',
       ].join('\n');
 
-  return [
+  const messages: any[] = [
     {
       role: 'system',
       content: systemContent,
     },
-    {
-      role: 'user',
-      content: `Texto: ${input}`,
-    },
   ];
+
+  if (context && context.trim()) {
+    messages.push({ role: 'assistant', content: `Contexto previo: ${context.trim()}` });
+  }
+
+  messages.push({ role: 'user', content: `Texto: ${input}` });
+
+  return messages;
 }
 
   function normalizeModelId(model: string): string {
@@ -179,13 +183,14 @@ async function translateWithRouterModel(
   modelId: string,
   waitForModel: boolean,
   compact = false,
-  opts?: { temperature?: number; maxTokens?: number }
+  opts?: { temperature?: number; maxTokens?: number },
+  context?: string,
 ): Promise<string> {
   // Use the model id as provided (avoid forcing the ':fastest' router variant which may reduce quality)
   const hfModel = modelId;
   const body: any = {
     model: hfModel,
-    messages: buildMessages(input, compact),
+    messages: buildMessages(input, compact, context),
     temperature: typeof opts?.temperature === 'number' ? opts.temperature : 0.2,
     max_tokens: typeof opts?.maxTokens === 'number' ? opts.maxTokens : getMaxTokensForText(input),
     stream: false,
@@ -225,9 +230,8 @@ async function translateLongInputInChunks(text: string, token: string, candidate
 
   for (const chunk of chunks) {
     try {
-      // Provide accumulated context from previous translated chunks to improve coherence
-      const inputForModel = contextAccum ? `${contextAccum}\n${chunk}` : chunk;
-      const translatedChunk = await translateWithRouterModel(inputForModel, token, modelId, waitForModel, chunk.length < 120);
+      // Provide accumulated original-source context from previous chunks to improve coherence
+      const translatedChunk = await translateWithRouterModel(chunk, token, modelId, waitForModel, chunk.length < 120, undefined, contextAccum);
       if (!translatedChunk) {
         const fallbackChunk = fallbackTranslation(chunk);
         translatedChunks.push(fallbackChunk || chunk);
@@ -235,8 +239,8 @@ async function translateLongInputInChunks(text: string, token: string, candidate
         continue;
       }
       translatedChunks.push(translatedChunk);
-      // Accumulate last translations up to a reasonable length to avoid huge prompts
-      contextAccum = (contextAccum ? `${contextAccum} ${translatedChunk}` : translatedChunk).trim();
+      // Accumulate original chunks as context for later fragments (avoid accumulating translated text to prevent repetition)
+      contextAccum = (contextAccum ? `${contextAccum} ${chunk}` : chunk).trim();
       if (contextAccum.length > 800) {
         contextAccum = contextAccum.slice(-800);
       }
