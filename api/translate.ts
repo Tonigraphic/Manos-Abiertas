@@ -6,7 +6,7 @@ export const config = {
   },
 };
 
-let LAST_HF_PAYLOAD: any = null;
+// debug payload removed
 
 type TranslateRequest = {
   text?: string;
@@ -118,22 +118,7 @@ function cleanTranslation(text: string): string {
     .replace(/\s+/g, ' ')
     .trim();
 
-  // Normalize spacing around punctuation
-  let normalized = cleaned;
-  // Remove spaces before punctuation
-  normalized = normalized.replace(/\s+([,.;!?])/g, '$1');
-  // Ensure single space after sentence punctuation
-  normalized = normalized.replace(/([,.;!?])(\s*)/g, (m, p1) => p1 + ' ');
-  // Fix currency spacing like "$2. 000" -> "$2.000"
-  normalized = normalized.replace(/\$\s*([0-9])/g, '\$$1');
-  // Collapse multiple spaces again
-  normalized = normalized.replace(/\s+/g, ' ').trim();
-
-  // Capitalize start of string and after sentence-ending punctuation
-  normalized = normalized.replace(/^\s*([a-záéíóúñ])/i, (_, c) => c.toUpperCase());
-  normalized = normalized.replace(/([\.\!\?]\s*)([a-záéíóúñ])/gi, (m, p1, p2) => p1 + p2.toUpperCase());
-
-  return normalized;
+  return cleaned;
 }
 
 function isLongInput(text: string): boolean {
@@ -210,13 +195,6 @@ async function translateWithRouterModel(input: string, token: string, modelId: s
     18000,
     2
   );
-
-  // Store last raw payload for debugging (trimmed when returned in API)
-  try {
-    LAST_HF_PAYLOAD = payload;
-  } catch (e) {
-    LAST_HF_PAYLOAD = null;
-  }
 
   return cleanTranslation(extractGeneratedText(payload?.choices?.[0]?.message?.content ?? payload));
 }
@@ -531,20 +509,19 @@ export default async function handler(req: any, res: any) {
     let unsupportedProviderErrors = 0;
     let classicNetworkFailed = false;
 
-    if (isLongInput(text)) {
-      const chunkedTranslation = await translateLongInputInChunks(text, HF_TOKEN, routerCandidateModels, WAIT_FOR_MODEL);
-      if (chunkedTranslation) {
-        return res.status(200).json({
-          success: true,
-          provider: 'huggingface',
-          model: `${routerCandidateModels[0] || 'openai/gpt-oss-20b'}:fastest`,
-          mode: 'chunked-router',
-          tokenSource,
-          translatedText: chunkedTranslation,
-          hfDebugExcerpt: LAST_HF_PAYLOAD ? String(JSON.stringify(LAST_HF_PAYLOAD)).slice(0, 800) : undefined,
-        });
+      if (isLongInput(text)) {
+        const chunkedTranslation = await translateLongInputInChunks(text, HF_TOKEN, routerCandidateModels, WAIT_FOR_MODEL);
+        if (chunkedTranslation) {
+          return res.status(200).json({
+            success: true,
+            provider: 'huggingface',
+            model: `${routerCandidateModels[0] || 'openai/gpt-oss-20b'}:fastest`,
+            mode: 'chunked-router',
+            tokenSource,
+            translatedText: chunkedTranslation,
+          });
+        }
       }
-    }
 
     for (const modelId of routerCandidateModels) {
       try {
@@ -557,7 +534,6 @@ export default async function handler(req: any, res: any) {
             model: `${modelId}:fastest`,
             tokenSource,
             translatedText: generatedText,
-            hfDebugExcerpt: LAST_HF_PAYLOAD ? String(JSON.stringify(LAST_HF_PAYLOAD)).slice(0, 800) : undefined,
           });
         }
 
