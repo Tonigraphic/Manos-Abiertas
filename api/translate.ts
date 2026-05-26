@@ -6,6 +6,8 @@ export const config = {
   },
 };
 
+let LAST_HF_PAYLOAD: any = null;
+
 type TranslateRequest = {
   text?: string;
 };
@@ -193,6 +195,13 @@ async function translateWithRouterModel(input: string, token: string, modelId: s
     18000,
     2
   );
+
+  // Store last raw payload for debugging (trimmed when returned in API)
+  try {
+    LAST_HF_PAYLOAD = payload;
+  } catch (e) {
+    LAST_HF_PAYLOAD = null;
+  }
 
   return cleanTranslation(extractGeneratedText(payload?.choices?.[0]?.message?.content ?? payload));
 }
@@ -517,6 +526,7 @@ export default async function handler(req: any, res: any) {
           mode: 'chunked-router',
           tokenSource,
           translatedText: chunkedTranslation,
+          hfDebugExcerpt: LAST_HF_PAYLOAD ? String(JSON.stringify(LAST_HF_PAYLOAD)).slice(0, 800) : undefined,
         });
       }
     }
@@ -532,6 +542,7 @@ export default async function handler(req: any, res: any) {
             model: `${modelId}:fastest`,
             tokenSource,
             translatedText: generatedText,
+            hfDebugExcerpt: LAST_HF_PAYLOAD ? String(JSON.stringify(LAST_HF_PAYLOAD)).slice(0, 800) : undefined,
           });
         }
 
