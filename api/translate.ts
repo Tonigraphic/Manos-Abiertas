@@ -70,11 +70,14 @@ function buildPrompt(input: string): string {
   ].join('\n');
 }
 
-function buildMessages(input: string) {
-  return [
-    {
-      role: 'system',
-      content: [
+function buildMessages(input: string, compact = false) {
+  const systemContent = compact
+    ? [
+        'Corrige el texto al español natural.',
+        'Devuelve solo la versión final.',
+        'No expliques el proceso.',
+      ].join('\n')
+    : [
         'Eres un corrector experto en español colombiano y en texto escrito por personas sordas usuarias de Lengua de Señas Colombiana.',
         'Tu tarea es convertir el texto de entrada al español convencional natural, sin explicar el proceso.',
         'Reglas:',
@@ -83,7 +86,12 @@ function buildMessages(input: string) {
         '- No inventes significado.',
         '- Si el texto ya está correcto, devuélvelo casi igual.',
         '- Conserva nombres propios y términos técnicos.',
-      ].join('\n'),
+      ].join('\n');
+
+  return [
+    {
+      role: 'system',
+      content: systemContent,
     },
     {
       role: 'user',
@@ -113,64 +121,50 @@ function cleanTranslation(text: string): string {
 
 function isLongInput(text: string): boolean {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
-  return text.length > 90 || words > 12;
+  return text.length > 70 || words > 9;
 }
 
-function splitIntoChunks(text: string, maxChars = 90): string[] {
+function splitIntoChunks(text: string, maxWords = 8): string[] {
   const normalized = text.replace(/\s+/g, ' ').trim();
   if (!normalized) return [];
 
-  const sentences = normalized.match(/[^.!?]+[.!?]*|[^.!?]+$/g) || [normalized];
+  const paragraphs = normalized.split(/\n+/).map(part => part.trim()).filter(Boolean);
   const chunks: string[] = [];
-  let current = '';
-
-  for (const sentence of sentences) {
-    const part = sentence.trim();
-    if (!part) continue;
-
-    if (!current) {
-      current = part;
-      continue;
-    }
-
-    if ((current + ' ' + part).length <= maxChars) {
-      current = `${current} ${part}`;
-      continue;
-    }
-
-    chunks.push(current.trim());
-    current = part;
-  }
-
-  if (current) chunks.push(current.trim());
-
-  if (chunks.length === 1 && chunks[0].length > maxChars) {
-    const fallbackChunks: string[] = [];
-    const words = chunks[0].split(' ');
-    let segment = '';
+  const pushWordChunks = (input: string) => {
+    const words = input.split(/\s+/).filter(Boolean);
+    let segment: string[] = [];
 
     for (const word of words) {
-      if (!segment) {
-        segment = word;
-        continue;
-      }
-
-      if ((segment + ' ' + word).length <= maxChars) {
-        segment = `${segment} ${word}`;
-      } else {
-        fallbackChunks.push(segment.trim());
-        segment = word;
+      segment.push(word);
+      if (segment.length >= maxWords) {
+        chunks.push(segment.join(' '));
+        segment = [];
       }
     }
 
-    if (segment) fallbackChunks.push(segment.trim());
-    return fallbackChunks;
+    if (segment.length) {
+      chunks.push(segment.join(' '));
+    }
+  };
+
+  for (const paragraph of paragraphs) {
+    const sentences = paragraph.match(/[^.!?]+[.!?]*|[^.!?]+$/g) || [paragraph];
+    for (const sentence of sentences) {
+      const cleanedSentence = sentence.trim();
+      if (!cleanedSentence) continue;
+      pushWordChunks(cleanedSentence);
+    }
   }
 
   return chunks;
 }
 
-async function translateWithRouterModel(input: string, token: string, modelId: string, waitForModel: boolean): Promise<string> {
+function getMaxTokensForText(input: string): number {
+  const words = input.trim().split(/\s+/).filter(Boolean).length;
+  return Math.min(256, Math.max(96, words * 14));
+}
+
+async function translateWithRouterModel(input: string, token: string, modelId: string, waitForModel: boolean, compact = false): Promise<string> {
   const hfModel = `${modelId}:fastest`;
   const payload = await fetchJsonWithRetries(
     'https://router.huggingface.co/v1/chat/completions',
@@ -182,9 +176,9 @@ async function translateWithRouterModel(input: string, token: string, modelId: s
       },
       body: JSON.stringify({
         model: hfModel,
-        messages: buildMessages(input),
+        messages: buildMessages(input, compact),
         temperature: 0.2,
-        max_tokens: 128,
+        max_tokens: getMaxTokensForText(input),
         stream: false,
         ...(waitForModel ? { wait_for_model: true } : {}),
       }),
@@ -197,7 +191,7 @@ async function translateWithRouterModel(input: string, token: string, modelId: s
 }
 
 async function translateLongInputInChunks(text: string, token: string, candidateModels: string[], waitForModel: boolean): Promise<string | null> {
-  const chunks = splitIntoChunks(text, 90);
+  const chunks = splitIntoChunks(text, 8);
 
   if (chunks.length <= 1) {
     return null;
@@ -210,7 +204,7 @@ async function translateLongInputInChunks(text: string, token: string, candidate
 
   for (const chunk of chunks) {
     try {
-      const translatedChunk = await translateWithRouterModel(chunk, token, modelId, waitForModel);
+      const translatedChunk = await translateWithRouterModel(chunk, token, modelId, waitForModel, true);
       if (!translatedChunk) {
         return null;
       }
