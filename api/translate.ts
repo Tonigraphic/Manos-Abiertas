@@ -441,32 +441,13 @@ function fallbackTranslation(input: string): string {
 
 function getRouterCandidateModels(): string[] {
   const primary = normalizeModelId(process.env.HF_TRANSLATION_MODEL || '');
-  const extra = (process.env.HF_TRANSLATION_MODELS || '')
-    .split(',')
-    .map((model) => normalizeModelId(model))
-    .filter(Boolean);
+  const fallback = DEFAULT_HF_MODELS[0];
 
-  const unique = new Set<string>();
-  for (const model of [primary, ...extra, ...DEFAULT_HF_MODELS]) {
-    if (model) unique.add(model);
-  }
-
-  return Array.from(unique);
+  return [primary || fallback].filter(Boolean);
 }
 
 function getClassicCandidateModels(): string[] {
-  const primary = normalizeModelId(process.env.HF_TRANSLATION_CLASSIC_MODEL || '');
-  const extra = (process.env.HF_TRANSLATION_CLASSIC_MODELS || '')
-    .split(',')
-    .map((model) => normalizeModelId(model))
-    .filter(Boolean);
-
-  const unique = new Set<string>();
-  for (const model of [primary, ...extra, ...DEFAULT_CLASSIC_HF_MODELS]) {
-    if (model) unique.add(model);
-  }
-
-  return Array.from(unique);
+  return [];
 }
 
 function normalizeHfError(err: any): { status: number; bodyText: string; messageText: string; isNetwork: boolean } {
