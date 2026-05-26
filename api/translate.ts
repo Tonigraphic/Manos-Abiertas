@@ -221,10 +221,13 @@ async function translateLongInputInChunks(text: string, token: string, candidate
 
   const translatedChunks: string[] = [];
   let usedFallbackSegment = false;
+  let contextAccum = '';
 
   for (const chunk of chunks) {
     try {
-      const translatedChunk = await translateWithRouterModel(chunk, token, modelId, waitForModel, chunk.length < 120);
+      // Provide accumulated context from previous translated chunks to improve coherence
+      const inputForModel = contextAccum ? `${contextAccum}\n${chunk}` : chunk;
+      const translatedChunk = await translateWithRouterModel(inputForModel, token, modelId, waitForModel, chunk.length < 120);
       if (!translatedChunk) {
         const fallbackChunk = fallbackTranslation(chunk);
         translatedChunks.push(fallbackChunk || chunk);
@@ -232,6 +235,11 @@ async function translateLongInputInChunks(text: string, token: string, candidate
         continue;
       }
       translatedChunks.push(translatedChunk);
+      // Accumulate last translations up to a reasonable length to avoid huge prompts
+      contextAccum = (contextAccum ? `${contextAccum} ${translatedChunk}` : translatedChunk).trim();
+      if (contextAccum.length > 800) {
+        contextAccum = contextAccum.slice(-800);
+      }
     } catch (error) {
       console.warn('Chunked translation failed:', error);
       const fallbackChunk = fallbackTranslation(chunk);
