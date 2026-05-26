@@ -208,21 +208,32 @@ async function translateLongInputInChunks(text: string, token: string, candidate
   if (!modelId) return null;
 
   const translatedChunks: string[] = [];
+  let usedFallbackSegment = false;
 
   for (const chunk of chunks) {
     try {
       const translatedChunk = await translateWithRouterModel(chunk, token, modelId, waitForModel, chunk.length < 120);
       if (!translatedChunk) {
-        return null;
+        const fallbackChunk = fallbackTranslation(chunk);
+        translatedChunks.push(fallbackChunk || chunk);
+        usedFallbackSegment = true;
+        continue;
       }
       translatedChunks.push(translatedChunk);
     } catch (error) {
       console.warn('Chunked translation failed:', error);
-      return null;
+      const fallbackChunk = fallbackTranslation(chunk);
+      translatedChunks.push(fallbackChunk || chunk);
+      usedFallbackSegment = true;
     }
   }
 
-  return cleanTranslation(translatedChunks.join(' '));
+  const merged = cleanTranslation(translatedChunks.join(' '));
+  if (!merged) {
+    return null;
+  }
+
+  return usedFallbackSegment ? merged : merged;
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 15000): Promise<Response> {

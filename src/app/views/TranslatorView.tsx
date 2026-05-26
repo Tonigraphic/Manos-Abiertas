@@ -89,11 +89,19 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     return /fetch failed|network|timeout|conectar|caída|runtime|temporalmente no disponible/i.test(combined);
   };
 
+  const isMobileDevice = (): boolean => {
+    if (typeof navigator === 'undefined') return false;
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  };
+
   const getServerTimeoutMs = (inputText: string): number => {
     const wordCount = inputText.trim().split(/\s+/).filter(Boolean).length;
+    const mobile = isMobileDevice();
 
-    if (inputText.length > 600 || wordCount > 120) return 45000;
-    if (inputText.length > 300 || wordCount > 60) return 30000;
+    if (mobile && (inputText.length > 600 || wordCount > 120)) return 120000;
+    if (mobile && (inputText.length > 300 || wordCount > 60)) return 90000;
+    if (inputText.length > 600 || wordCount > 120) return 60000;
+    if (inputText.length > 300 || wordCount > 60) return 45000;
     return 14000;
   };
 
