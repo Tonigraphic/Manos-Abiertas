@@ -173,9 +173,25 @@ function getMaxTokensForText(input: string): number {
   return Math.min(320, Math.max(96, words * 16));
 }
 
-async function translateWithRouterModel(input: string, token: string, modelId: string, waitForModel: boolean, compact = false): Promise<string> {
+async function translateWithRouterModel(
+  input: string,
+  token: string,
+  modelId: string,
+  waitForModel: boolean,
+  compact = false,
+  opts?: { temperature?: number; maxTokens?: number }
+): Promise<string> {
   // Use the model id as provided (avoid forcing the ':fastest' router variant which may reduce quality)
   const hfModel = modelId;
+  const body: any = {
+    model: hfModel,
+    messages: buildMessages(input, compact),
+    temperature: typeof opts?.temperature === 'number' ? opts.temperature : 0.2,
+    max_tokens: typeof opts?.maxTokens === 'number' ? opts.maxTokens : getMaxTokensForText(input),
+    stream: false,
+    ...(waitForModel ? { wait_for_model: true } : {}),
+  };
+
   const payload = await fetchJsonWithRetries(
     'https://router.huggingface.co/v1/chat/completions',
     {
@@ -184,14 +200,7 @@ async function translateWithRouterModel(input: string, token: string, modelId: s
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: hfModel,
-        messages: buildMessages(input, compact),
-        temperature: 0.2,
-        max_tokens: getMaxTokensForText(input),
-        stream: false,
-        ...(waitForModel ? { wait_for_model: true } : {}),
-      }),
+      body: JSON.stringify(body),
     },
     18000,
     2
@@ -526,17 +535,33 @@ export default async function handler(req: any, res: any) {
 
     for (const modelId of routerCandidateModels) {
       try {
-        const generatedText = await translateWithRouterModel(text, HF_TOKEN, modelId, WAIT_FOR_MODEL);
+          let generatedText = await translateWithRouterModel(text, HF_TOKEN, modelId, WAIT_FOR_MODEL);
 
-        if (generatedText) {
-          return res.status(200).json({
-            success: true,
-            provider: 'huggingface',
-            model: modelId,
-            tokenSource,
-            translatedText: generatedText,
-          });
-        }
+          // If the model returned the same text (identity), retry once with stricter options
+          const normalizeForCompare = (s: string) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/gi, ' ').trim();
+          const inputNorm = normalizeForCompare(text);
+          const outNorm = normalizeForCompare(generatedText);
+
+          if (outNorm === inputNorm || !generatedText) {
+            try {
+              // Retry with wait_for_model and lower temperature and larger token budget
+              const retryMax = Math.min(512, getMaxTokensForText(text) * 2);
+              generatedText = await translateWithRouterModel(text, HF_TOKEN, modelId, true, false, { temperature: 0.0, maxTokens: retryMax });
+            } catch (retryErr) {
+              // ignore retry error, we'll fallback below if needed
+              console.warn('Retry with adjusted params failed:', retryErr);
+            }
+          }
+
+          if (generatedText) {
+            return res.status(200).json({
+              success: true,
+              provider: 'huggingface',
+              model: modelId,
+              tokenSource,
+              translatedText: generatedText,
+            });
+          }
 
         lastError = `Respuesta vacía del modelo ${modelId}`;
       } catch (hfErr: any) {
