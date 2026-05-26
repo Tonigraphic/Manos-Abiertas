@@ -113,10 +113,10 @@ function cleanTranslation(text: string): string {
 
 function isLongInput(text: string): boolean {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
-  return text.length > 220 || words > 35;
+  return text.length > 90 || words > 12;
 }
 
-function splitIntoChunks(text: string, maxChars = 220): string[] {
+function splitIntoChunks(text: string, maxChars = 90): string[] {
   const normalized = text.replace(/\s+/g, ' ').trim();
   if (!normalized) return [];
 
@@ -197,7 +197,7 @@ async function translateWithRouterModel(input: string, token: string, modelId: s
 }
 
 async function translateLongInputInChunks(text: string, token: string, candidateModels: string[], waitForModel: boolean): Promise<string | null> {
-  const chunks = splitIntoChunks(text, 220);
+  const chunks = splitIntoChunks(text, 90);
 
   if (chunks.length <= 1) {
     return null;
