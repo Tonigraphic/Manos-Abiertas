@@ -121,10 +121,10 @@ function cleanTranslation(text: string): string {
 
 function isLongInput(text: string): boolean {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
-  return text.length > 70 || words > 9;
+  return text.length > 110 || words > 14;
 }
 
-function splitIntoChunks(text: string, maxWords = 8): string[] {
+function splitIntoChunks(text: string, maxWords = 20): string[] {
   const normalized = text.replace(/\s+/g, ' ').trim();
   if (!normalized) return [];
 
@@ -152,7 +152,14 @@ function splitIntoChunks(text: string, maxWords = 8): string[] {
     for (const sentence of sentences) {
       const cleanedSentence = sentence.trim();
       if (!cleanedSentence) continue;
-      pushWordChunks(cleanedSentence);
+      const clauses = cleanedSentence.split(/,|;|\bpero\b|\by\b/gi).map(part => part.trim()).filter(Boolean);
+      if (clauses.length > 1) {
+        for (const clause of clauses) {
+          pushWordChunks(clause);
+        }
+      } else {
+        pushWordChunks(cleanedSentence);
+      }
     }
   }
 
@@ -161,7 +168,7 @@ function splitIntoChunks(text: string, maxWords = 8): string[] {
 
 function getMaxTokensForText(input: string): number {
   const words = input.trim().split(/\s+/).filter(Boolean).length;
-  return Math.min(256, Math.max(96, words * 14));
+  return Math.min(320, Math.max(96, words * 16));
 }
 
 async function translateWithRouterModel(input: string, token: string, modelId: string, waitForModel: boolean, compact = false): Promise<string> {
@@ -191,7 +198,7 @@ async function translateWithRouterModel(input: string, token: string, modelId: s
 }
 
 async function translateLongInputInChunks(text: string, token: string, candidateModels: string[], waitForModel: boolean): Promise<string | null> {
-  const chunks = splitIntoChunks(text, 8);
+  const chunks = splitIntoChunks(text, 20);
 
   if (chunks.length <= 1) {
     return null;
@@ -204,7 +211,7 @@ async function translateLongInputInChunks(text: string, token: string, candidate
 
   for (const chunk of chunks) {
     try {
-      const translatedChunk = await translateWithRouterModel(chunk, token, modelId, waitForModel, true);
+      const translatedChunk = await translateWithRouterModel(chunk, token, modelId, waitForModel, chunk.length < 120);
       if (!translatedChunk) {
         return null;
       }
