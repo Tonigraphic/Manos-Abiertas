@@ -174,7 +174,8 @@ function getMaxTokensForText(input: string): number {
 }
 
 async function translateWithRouterModel(input: string, token: string, modelId: string, waitForModel: boolean, compact = false): Promise<string> {
-  const hfModel = `${modelId}:fastest`;
+  // Use the model id as provided (avoid forcing the ':fastest' router variant which may reduce quality)
+  const hfModel = modelId;
   const payload = await fetchJsonWithRetries(
     'https://router.huggingface.co/v1/chat/completions',
     {
@@ -515,7 +516,7 @@ export default async function handler(req: any, res: any) {
           return res.status(200).json({
             success: true,
             provider: 'huggingface',
-            model: `${routerCandidateModels[0] || 'openai/gpt-oss-20b'}:fastest`,
+            model: routerCandidateModels[0] || 'openai/gpt-oss-20b',
             mode: 'chunked-router',
             tokenSource,
             translatedText: chunkedTranslation,
@@ -531,7 +532,7 @@ export default async function handler(req: any, res: any) {
           return res.status(200).json({
             success: true,
             provider: 'huggingface',
-            model: `${modelId}:fastest`,
+            model: modelId,
             tokenSource,
             translatedText: generatedText,
           });
