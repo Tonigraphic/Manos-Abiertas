@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { DesktopNavbar, MobileBottomNav } from './components/lsc/Navigation';
 import { LandingView } from './views/LandingView';
-import { AssistantView } from './views/AssistantView';
 import { PracticeView } from './views/PracticeView';
-import { DictionaryView } from './views/DictionaryView';
 import { TranslatorView } from './views/TranslatorView';
 import { FeedbackView } from './views/FeedbackView';
 
-type View = 'home' | 'translator' | 'assistant' | 'practice' | 'dictionary' | 'feedback';
+type View = 'home' | 'translator' | 'practice' | 'feedback';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<View>('home');
@@ -20,12 +18,8 @@ export default function App() {
         return <LandingView onNavigate={(view) => setCurrentView(view as View)} />;
       case 'translator':
         return <TranslatorView onNavigateHome={navigateHome} />;
-      case 'assistant':
-        return <AssistantView onNavigateHome={navigateHome} />;
       case 'practice':
         return <PracticeView onNavigateHome={navigateHome} />;
-      case 'dictionary':
-        return <DictionaryView onNavigateHome={navigateHome} />;
       case 'feedback':
         return <FeedbackView onNavigateHome={navigateHome} />;
       default:
@@ -37,12 +31,12 @@ export default function App() {
   const showNavigation = currentView !== 'home';
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface)] text-[var(--color-text-primary)]">
+    <div className="min-h-screen bg-[var(--color-surface)] text-[var(--color-text-primary)] flex flex-col">
       {showNavigation && (
         <DesktopNavbar currentView={currentView} onNavigate={(view) => setCurrentView(view as View)} />
       )}
 
-      <main className={showNavigation ? 'min-h-[calc(100vh-5rem)]' : 'min-h-screen'}>
+      <main className={showNavigation ? 'flex-1 pb-16 md:pb-0' : 'min-h-screen flex flex-col'}>
         {renderView()}
       </main>
 

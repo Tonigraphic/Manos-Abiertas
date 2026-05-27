@@ -1,10 +1,6 @@
-import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
-import { Badge } from '../components/lsc/Badge';
-import { Bot, Target, BookOpen, Sparkles, Video, CheckCircle, GraduationCap } from 'lucide-react';
 import { motion } from 'motion/react';
-
-// Importación del logo con la ruta corregida para el build
+import { PlayCircle, Info } from 'lucide-react';
 import logoPrincipal from '../../assets/logo.png'; 
 
 interface LandingViewProps {
@@ -12,165 +8,82 @@ interface LandingViewProps {
 }
 
 export function LandingView({ onNavigate }: LandingViewProps) {
-  const features = [
-    {
-      id: 'translator',
-      title: 'Traductor LSC a Español',
-      description: 'Convierte español sordo (sin conectores o simplificado) a español escrito correcto',
-      icon: Bot,
-      gradient: 'from-blue-500 to-blue-600',
-      badge: 'Módulo Principal',
-      highlights: ['Traducción instantánea', 'Reconocimiento de voz', 'Síntesis de voz'],
-    },
-    {
-      id: 'assistant',
-      title: 'Reconocimiento LSC',
-      description: 'Reconocimiento en tiempo real de señas utilizando Inteligencia Artificial y la cámara de tu dispositivo',
-      icon: Video,
-      gradient: 'from-purple-500 to-purple-600',
-      badge: 'Innovación',
-      highlights: ['Detección en tiempo real', 'Precisión avanzada', 'Múltiples categorías'],
-    },
-    {
-      id: 'dictionary',
-      title: 'Diccionario Visual',
-      description: 'Catálogo completo de señas organizadas por categorías con videos demostrativos',
-      icon: BookOpen,
-      gradient: 'from-green-500 to-green-600',
-      badge: 'Complementario',
-      highlights: ['Búsqueda avanzada', 'Categorización', 'Videos HD'],
-    },
-    {
-      id: 'practice',
-      title: 'Práctica Gamificada',
-      description: 'Sistema de puntos, rachas diarias y ejercicios progresivos para mejorar habilidades',
-      icon: Target,
-      gradient: 'from-orange-500 to-orange-600',
-      badge: 'Popular',
-      highlights: ['Sistema de puntos', 'Racha de días', 'Logros'],
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-[var(--color-surface)] relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--color-surface)] relative overflow-hidden flex flex-col items-center justify-center">
       {/* Decoración de Fondo */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/3" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-orange-200/30 to-pink-200/30 rounded-full blur-3xl transform -translate-x-1/3 translate-y-1/3" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-[var(--color-primary-200)] to-[var(--color-primary-400)] rounded-full blur-3xl opacity-20 transform translate-x-1/3 -translate-y-1/3" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-[var(--color-accent-200)] to-[var(--color-accent-400)] rounded-full blur-3xl opacity-20 transform -translate-x-1/3 translate-y-1/3" />
       </div>
 
       {/* Hero Section */}
-      <section className="relative pt-12 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            {/* Badge Institucional */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full mb-8 shadow-md border border-[var(--color-neutral-200)]">
-              <GraduationCap size={20} className="text-[var(--color-primary-600)]" />
-              <span className="text-sm font-semibold text-[var(--color-text-primary)]">
-                Universidad de Nariño - Programa de Diseño Gráfico
-              </span>
+      <section className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex flex-col items-center z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center w-full"
+        >
+          {/* LOGO */}
+          <div className="flex justify-center mb-8">
+            <img 
+              src={logoPrincipal} 
+              alt="Logo Manos Abiertas" 
+              className="h-24 sm:h-32 lg:h-40 w-auto object-contain drop-shadow-lg" 
+            />
+          </div>
+
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--color-text-primary)] mb-6 tracking-tight">
+            Manos Abiertas
+          </h1>
+
+          <p className="text-xl sm:text-2xl text-[var(--color-text-secondary)] max-w-3xl mx-auto mb-12 leading-relaxed font-medium">
+            Aprende, practica y comunícate usando Lengua de Señas Colombiana (LSC).
+          </p>
+
+          {/* Video Placeholder */}
+          <div className="w-full max-w-4xl mx-auto aspect-video bg-[var(--color-neutral-800)] rounded-2xl overflow-hidden shadow-2xl relative mb-12 flex items-center justify-center group cursor-pointer border-4 border-white/50">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <PlayCircle size={80} className="text-white/80 group-hover:scale-110 transition-transform drop-shadow-xl" />
+            <div className="absolute bottom-6 left-6 text-white text-left">
+              <p className="font-bold text-xl drop-shadow-md">Conoce Manos Abiertas</p>
+              <p className="text-sm text-white/80 drop-shadow-md">Video demostrativo (02:30)</p>
             </div>
+          </div>
 
-            {/* LOGO AJUSTADO: Tamaño equilibrado y responsive */}
-            <div className="flex justify-center mb-8">
-              <img 
-                src={logoPrincipal} 
-                alt="Logo Manos Abiertas" 
-                className="h-32 sm:h-52 lg:h-[280px] w-auto object-contain drop-shadow-xl" 
-              />
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--color-text-primary)] mb-6 leading-tight">
-              Asistente para la comunicación en LSC
-            </h1>
-
-            <p className="text-lg sm:text-xl text-[var(--color-text-secondary)] max-w-3xl mx-auto mb-10 leading-relaxed font-medium">
-              Herramienta digital integral desde el enfoque del diseño gráfico, orientada a fortalecer
-              los procesos de comunicación entre la comunidad sorda y oyente de la Universidad de Nariño.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={() => onNavigate('translator')}
-                className="w-full sm:w-auto px-6 py-4 text-base sm:px-8 sm:py-6 sm:text-lg font-bold shadow-xl hover:scale-105 transition-transform"
-              >
-                Probar Asistente
-              </Button>
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={() => {
-                  document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="w-full sm:w-auto border-2 border-[var(--color-neutral-300)] px-6 py-4 text-base sm:px-8 sm:py-6 sm:text-lg font-bold bg-white/50"
-              >
-                Ver Características
-              </Button>
-            </div>
-          </motion.div>
-        </div>
+          {/* Botones de Acción */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => onNavigate('practice')}
+              className="w-full sm:w-auto px-10 py-4 text-lg font-bold shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white flex items-center gap-2"
+            >
+              Comenzar
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={() => {
+                document.getElementById('more-info')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="w-full sm:w-auto px-10 py-4 text-lg font-bold bg-white/80 hover:bg-white text-[var(--color-text-primary)] border-2 border-[var(--color-neutral-200)] hover:border-[var(--color-primary-300)] shadow-md hover:shadow-lg transition-all rounded-xl flex items-center gap-2"
+            >
+              <Info size={20} />
+              Conocer más
+            </Button>
+          </div>
+        </motion.div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="relative py-20 px-4 sm:px-6 lg:px-8 bg-white/60 backdrop-blur-md border-t border-neutral-100">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge variant="primary" className="mb-4 text-sm px-6 py-2 uppercase font-black tracking-widest">
-              Módulos principales
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)] mb-4">
-              Nuestras Herramientas
-            </h2>
-            <p className="text-lg text-[var(--color-text-secondary)] max-w-2xl mx-auto font-medium">
-              Diseñamos una experiencia complementaria para fortalecer la inclusión académica en la Facultad de Artes.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={feature.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Card hoverable className="h-full border-none shadow-lg hover:shadow-2xl transition-all bg-white/80">
-                  <CardBody className="p-8">
-                    <div className={`w-14 h-14 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center mb-6 shadow-md`}>
-                      <feature.icon size={28} className="text-white" />
-                    </div>
-                    <Badge variant="accent" className="mb-3 px-3 py-1">{feature.badge}</Badge>
-                    <h3 className="text-xl font-bold mb-3 text-neutral-800">{feature.title}</h3>
-                    <p className="text-neutral-600 mb-6 leading-relaxed text-sm">
-                      {feature.description}
-                    </p>
-                    <ul className="space-y-2 mb-8">
-                      {feature.highlights.map((h, i) => (
-                        <li key={i} className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
-                          <CheckCircle size={16} className="text-green-500" />
-                          {h}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button 
-                      variant="primary" 
-                      className="w-full py-4 font-bold" 
-                      onClick={() => onNavigate(feature.id)}
-                    >
-                      Explorar módulo
-                    </Button>
-                  </CardBody>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+      {/* Info Section (Anchor for scroll) */}
+      <section id="more-info" className="relative w-full max-w-6xl mx-auto px-4 py-20 mt-10">
+        <div className="bg-white/60 backdrop-blur-md rounded-3xl p-10 text-center shadow-lg border border-[var(--color-neutral-100)]">
+           <h2 className="text-3xl font-bold text-[var(--color-text-primary)] mb-6">Sobre el Proyecto</h2>
+           <p className="text-lg text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed">
+             Manos Abiertas es una plataforma educativa diseñada para acercar la Lengua de Señas Colombiana a todos. 
+             Utilizamos tecnología moderna para ofrecer una experiencia de práctica interactiva y un traductor bidireccional.
+           </p>
         </div>
       </section>
     </div>

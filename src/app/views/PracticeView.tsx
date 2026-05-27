@@ -1,455 +1,148 @@
-import { useState, useEffect } from 'react';
-import { Card, CardBody, CardHeader } from '../components/lsc/Card';
+import { useState } from 'react';
+import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
-import { Badge } from '../components/lsc/Badge';
-import { BackToHome } from '../components/lsc/BackToHome';
-import { Trophy, Target, Flame, Star, Play, Camera, Check, X as XIcon, ArrowLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { InstructionsModal } from '../components/lsc/InstructionsModal';
-import { usePracticeGame } from '../../hooks/usePracticeGame';
-import { useLSCRecognition } from '../../hooks/useLSCRecognition';
-import confetti from 'canvas-confetti';
+import { Target, RefreshCw, BarChart2 } from 'lucide-react';
 
 interface PracticeViewProps {
   onNavigateHome?: () => void;
 }
 
 export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
-  const {
-    stats,
-    exercises,
-    achievements,
-    session,
-    startExercise,
-    checkAnswer,
-    nextSign,
-    completeExercise,
-    cancelExercise,
-  } = usePracticeGame();
+  const [showModal, setShowModal] = useState(false);
 
-  const {
-    state: recognitionState,
-    videoRef,
-    canvasRef,
-    startRecognition,
-    stopRecognition,
-  } = useLSCRecognition();
-
-  const PRACTICE_DISABLED = true;
-  const disabledClass = PRACTICE_DISABLED ? 'pointer-events-none filter grayscale opacity-60' : '';
-
-  const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  // Monitor recognition during practice
-  useEffect(() => {
-    if (!session.isActive || !session.currentExercise) return;
-
-    const lastRecognized = recognitionState.recognizedSigns[0];
-    if (!lastRecognized) return;
-
-    const isCorrect = checkAnswer(lastRecognized);
-    
-    if (isCorrect) {
-      setFeedbackMessage({ type: 'success', text: `¡Correcto! ${lastRecognized.sign}` });
+  // Estados Simulados
+  const mockCurrentSign = "HOLA";
+  const mockProgress = "3/10";
+  const mockConfidence = 85;
+  const mockRecognizedSign = "HOLA";
+  
+  return (
+    <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-[var(--color-surface)] relative">
       
-      // Confetti on correct answer
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.6 },
-      });
-
-      // Move to next sign after delay
-      setTimeout(() => {
-        const hasNext = nextSign();
-        if (!hasNext) {
-          // Exercise completed
-          const result = completeExercise();
-          stopRecognition();
-          
-          // Big confetti for completion
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 },
-          });
-        }
-        setFeedbackMessage(null);
-      }, 1500);
-    } else {
-      setFeedbackMessage({ 
-        type: 'error', 
-        text: `Incorrecto. Se esperaba: ${session.currentExercise.signs[session.currentSignIndex].name}` 
-      });
-      
-      setTimeout(() => {
-        setFeedbackMessage(null);
-      }, 2000);
-    }
-  }, [recognitionState.recognizedSigns]);
-
-  const handleStartExercise = async (exerciseId: string) => {
-    const exercise = exercises.find(ex => ex.id === exerciseId);
-    if (!exercise) return;
-    
-    startExercise(exerciseId);
-    
-    // Map exercise category to ONNX Model URL category
-    const onnxCategoryMap: Record<string, string> = {
-      'alphabet': 'Abecedario',
-      'colors': 'Colores',
-      'greetings': 'Saludos',
-      'office': 'Oficina',
-      'design': 'Diseño'
-    };
-    
-    const onnxCat = onnxCategoryMap[exercise.category] || 'Abecedario';
-    await startRecognition(onnxCat);
-  };
-
-  const handleCancelExercise = () => {
-    cancelExercise();
-    stopRecognition();
-  };
-
-  const currentSign = session.currentExercise?.signs[session.currentSignIndex];
-  const progress = session.currentExercise 
-    ? ((session.currentSignIndex + 1) / session.currentExercise.signs.length) * 100 
-    : 0;
-
-  if (session.isActive && session.currentExercise) {
-    return (
-      <div className={`${disabledClass} h-[calc(100vh-8rem)] md:h-[calc(100vh-5rem)] flex flex-col overflow-hidden`}>
-        {/* Header compacto */}
-        <div className="flex-shrink-0 px-4 sm:px-6 py-3 border-b border-[var(--color-neutral-200)] bg-white">
-          <div className="max-w-5xl mx-auto">
-            <div className="flex items-center justify-between mb-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                leftIcon={<ArrowLeft size={18} />}
-                onClick={handleCancelExercise}
-              >
-                Salir
-              </Button>
-              <Badge variant="primary">
-                {session.correctAnswers} / {session.currentExercise.signs.length}
-              </Badge>
+      {/* Header */}
+      <div className="flex-shrink-0 p-6 sm:p-8 bg-white border-b border-[var(--color-neutral-200)] shadow-sm">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="bg-[var(--color-accent-100)] p-3 rounded-2xl text-[var(--color-accent-600)] shadow-inner">
+              <Target size={28} />
             </div>
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
-                  {session.currentExercise.title}
-                </h2>
-                <p className="text-xs text-[var(--color-text-secondary)]">
-                  {session.currentSignIndex + 1}/{session.currentExercise.signs.length}
-                </p>
-              </div>
-              <div className="w-full bg-[var(--color-neutral-200)] rounded-full h-2">
-                <motion.div
-                  className="bg-gradient-to-r from-[var(--color-primary-500)] to-[var(--color-accent-500)] h-2 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
+              <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Práctica de Reconocimiento</h1>
+              <p className="text-sm text-[var(--color-text-secondary)] font-medium mt-1">Imita la seña frente a la cámara</p>
             </div>
           </div>
-        </div>
-        {PRACTICE_DISABLED && (
-          <div className="max-w-5xl mx-auto mt-3">
-            <div className="px-3 py-2 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md text-sm shadow-sm">
-              Práctica deshabilitada temporalmente — en mantenimiento
-            </div>
-          </div>
-        )}
-
-        {/* Content compacto */}
-        <div className="flex-1 overflow-hidden p-4 sm:p-6">
-          <div className="max-w-5xl mx-auto h-full grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
-            <div className="lg:col-span-2 h-[45vh] lg:h-full">
-              <Card className="overflow-hidden h-full flex flex-col">
-                <CardBody className="p-0 flex-1 flex flex-col">
-                  <div className="flex-1 bg-gradient-to-br from-[var(--color-neutral-100)] to-[var(--color-neutral-200)] flex items-center justify-center relative overflow-hidden">
-                    <video ref={videoRef} className="hidden" playsInline />
-                    <canvas ref={canvasRef} className="w-full h-full object-contain" />
-
-                    <AnimatePresence>
-                      {feedbackMessage && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          className={`absolute inset-0 flex items-center justify-center ${
-                            feedbackMessage.type === 'success' ? 'bg-green-500/20' : 'bg-red-500/20'
-                          } backdrop-blur-sm`}
-                        >
-                          <div className={`px-4 py-2 lg:px-6 lg:py-3 rounded-xl shadow-2xl ${
-                            feedbackMessage.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-                          }`}>
-                            <div className="flex items-center gap-2 lg:gap-3">
-                              {feedbackMessage.type === 'success' ? <Check size={20} className="lg:w-6 lg:h-6" /> : <XIcon size={20} className="lg:w-6 lg:h-6" />}
-                              <p className="text-base lg:text-xl font-bold">{feedbackMessage.text}</p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </CardBody>
-              </Card>
-            </div>
-
-            <div className="flex flex-col gap-3 h-[35vh] lg:h-full">
-              <Card className="bg-gradient-to-br from-[var(--color-primary-50)] to-[var(--color-accent-50)] border-0 flex-1 lg:flex-initial">
-                <CardBody className="p-3 lg:p-4 flex flex-col justify-center lg:justify-start h-full">
-                  <p className="text-xs text-[var(--color-text-secondary)] mb-1 lg:mb-2">Realiza esta seña:</p>
-                  <h3 className="text-2xl lg:text-3xl font-bold text-[var(--color-primary-600)] mb-1 lg:mb-2">
-                    {currentSign?.name}
-                  </h3>
-                  <p className="text-xs text-[var(--color-text-secondary)] line-clamp-3 lg:line-clamp-none">
-                    {currentSign?.description}
-                  </p>
-                </CardBody>
-              </Card>
-
-              <Card className="hidden lg:block">
-                <CardBody className="p-4">
-                  <h3 className="font-semibold text-sm text-[var(--color-text-primary)] mb-3">Progreso</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-[var(--color-text-secondary)]">Correctas</span>
-                      <span className="font-semibold text-green-600">{session.correctAnswers}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-[var(--color-text-secondary)]">Incorrectas</span>
-                      <span className="font-semibold text-red-600">{session.incorrectAnswers}</span>
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
-
-              <Card className="bg-[var(--color-neutral-50)] hidden lg:block">
-                <CardBody className="p-3">
-                  <h4 className="font-semibold text-xs text-[var(--color-text-primary)] mb-2">💡 Tips</h4>
-                  <ul className="space-y-1 text-xs text-[var(--color-text-secondary)]">
-                    <li>• Manos en el cuadro</li>
-                    <li>• Seña clara</li>
-                    <li>• Espera feedback</li>
-                  </ul>
-                </CardBody>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`${disabledClass} h-[calc(100vh-8rem)] md:h-[calc(100vh-5rem)] flex flex-col overflow-hidden bg-[var(--color-surface)] relative`}>
-      <InstructionsModal 
-        id="practice"
-        title="Práctica Gamificada"
-        instructions={[
-          "Completa ejercicios diarios para mantener tu racha y ganar puntos.",
-          "Cada ejercicio evaluará tu conocimiento de las señas LSC de forma interactiva.",
-          "Desbloquea logros a medida que avanzas y acumulas experiencia.",
-          "Asegúrate de practicar todos los días para no perder tu racha."
-        ]}
-      />
-
-      {/* Header compacto */}
-      <div className="flex-shrink-0 px-4 sm:px-6 py-4 border-b border-[var(--color-neutral-200)] bg-white">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-1">Práctica</h1>
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            Mejora tus habilidades con ejercicios diarios
-          </p>
+          <Button variant="ghost" onClick={() => setShowModal(true)}>
+             Simular Fin
+          </Button>
         </div>
       </div>
 
-      {PRACTICE_DISABLED && (
-        <div className="max-w-5xl mx-auto mt-4">
-          <div className="px-3 py-2 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md text-sm shadow-sm">
-            Práctica deshabilitada temporalmente — en mantenimiento
+      <div className="flex-1 overflow-auto p-4 sm:p-8">
+        <div className="max-w-6xl mx-auto h-full min-h-[500px]">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
+            
+            {/* Columna Izquierda: Instrucción */}
+            <div className="lg:col-span-1 h-full flex flex-col gap-4">
+               <Card className="flex-1 border-none shadow-lg bg-white overflow-hidden flex flex-col">
+                  <CardBody className="p-6 flex flex-col h-full items-center justify-center text-center">
+                     <p className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Seña actual</p>
+                     <h2 className="text-4xl font-black text-[var(--color-primary-600)] mb-6">{mockCurrentSign}</h2>
+                     
+                     {/* Imagen ilustrativa placeholder */}
+                     <div className="w-full aspect-square bg-[var(--color-neutral-100)] rounded-2xl border-2 border-dashed border-[var(--color-neutral-300)] flex items-center justify-center mb-6">
+                        <span className="text-[var(--color-neutral-400)] text-sm font-medium">Imagen Ilustrativa</span>
+                     </div>
+
+                     <div className="w-full mt-auto">
+                        <div className="flex justify-between text-sm font-bold text-[var(--color-text-secondary)] mb-2">
+                           <span>Progreso</span>
+                           <span>{mockProgress}</span>
+                        </div>
+                        <div className="w-full h-3 bg-[var(--color-neutral-200)] rounded-full overflow-hidden">
+                           <div className="h-full bg-[var(--color-primary-500)] w-[30%] rounded-full"></div>
+                        </div>
+                     </div>
+                  </CardBody>
+               </Card>
+            </div>
+
+            {/* Centro: Cámara */}
+            <div className="lg:col-span-2 h-full flex flex-col">
+               <Card className="flex-1 border-4 border-[var(--color-primary-100)] shadow-2xl bg-black overflow-hidden relative rounded-3xl">
+                  {/* Placeholder de Video */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-neutral-800)]">
+                     <span className="text-white/50 text-lg font-bold tracking-widest">FEED DE CÁMARA</span>
+                     
+                     {/* Overlay de esqueleto de manos simulado */}
+                     <div className="absolute inset-0 pointer-events-none opacity-30 flex items-center justify-center">
+                        <div className="w-64 h-64 border-2 border-green-400 rounded-full border-dashed animate-[spin_10s_linear_infinite]" />
+                     </div>
+                  </div>
+               </Card>
+            </div>
+
+            {/* Columna Derecha: Resultados */}
+            <div className="lg:col-span-1 h-full flex flex-col gap-4">
+               <Card className="flex-1 border-none shadow-lg bg-white overflow-hidden flex flex-col">
+                  <CardBody className="p-6 flex flex-col h-full justify-center">
+                     <div className="text-center mb-8">
+                        <div className="inline-block px-4 py-1.5 bg-[var(--color-accent-100)] text-[var(--color-accent-700)] rounded-full text-xs font-black uppercase tracking-widest mb-4 animate-pulse">
+                           Reconociendo...
+                        </div>
+                        <p className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Detectado</p>
+                        <h3 className="text-3xl font-black text-[var(--color-text-primary)]">{mockRecognizedSign}</h3>
+                     </div>
+
+                     <div className="w-full mt-auto">
+                        <p className="text-center text-sm font-bold text-[var(--color-text-secondary)] mb-3">Confianza</p>
+                        <div className="relative w-32 h-32 mx-auto">
+                           {/* Círculo de confianza */}
+                           <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                             <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-neutral-100)" strokeWidth="10" />
+                             <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-success-500)" strokeWidth="10" strokeDasharray="283" strokeDashoffset={283 - (283 * mockConfidence) / 100} className="transition-all duration-1000" />
+                           </svg>
+                           <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-2xl font-black text-[var(--color-success-700)]">{mockConfidence}%</span>
+                           </div>
+                        </div>
+                     </div>
+                  </CardBody>
+               </Card>
+            </div>
+
           </div>
         </div>
+      </div>
+
+      {/* Modal de Finalización */}
+      {showModal && (
+         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-[var(--color-primary-400)] to-[var(--color-primary-600)]" />
+               <div className="relative z-10">
+                  <div className="w-24 h-24 bg-white rounded-full mx-auto shadow-lg flex items-center justify-center mb-6">
+                     <span className="text-4xl">🎉</span>
+                  </div>
+                  <h2 className="text-2xl font-black text-[var(--color-text-primary)] mb-2">¡Práctica Completada!</h2>
+                  <p className="text-[var(--color-text-secondary)] font-medium mb-8">Has finalizado las 10 señas de hoy.</p>
+                  
+                  <div className="mb-8">
+                     <div className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Aciertos</div>
+                     <div className="text-5xl font-black text-[var(--color-primary-600)]">80%</div>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                     <Button className="w-full py-4 text-base font-bold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] rounded-xl flex justify-center items-center gap-2" onClick={() => setShowModal(false)}>
+                        <RefreshCw size={18} /> Intentar de nuevo
+                     </Button>
+                     <Button variant="ghost" className="w-full py-4 text-base font-bold text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] rounded-xl flex justify-center items-center gap-2 border-2 border-[var(--color-neutral-200)]" onClick={() => setShowModal(false)}>
+                        <BarChart2 size={18} /> Ver progreso
+                     </Button>
+                  </div>
+               </div>
+            </div>
+         </div>
       )}
-
-      {/* Stats compactos */}
-      <div className="flex-shrink-0 px-4 sm:px-6 py-3 bg-[var(--color-neutral-50)] border-b border-[var(--color-neutral-200)]">
-        <div className="max-w-5xl mx-auto grid grid-cols-3 gap-3">
-          <Card>
-            <CardBody className="flex items-center gap-3 p-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center">
-                <Trophy size={20} className="text-white" />
-              </div>
-              <div>
-                <p className="text-xs text-[var(--color-text-secondary)]">Puntaje</p>
-                <p className="text-xl font-bold text-[var(--color-text-primary)]">{stats.score}</p>
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardBody className="flex items-center gap-3 p-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-600 rounded-lg flex items-center justify-center">
-                <Flame size={20} className="text-white" />
-              </div>
-              <div>
-                <p className="text-xs text-[var(--color-text-secondary)]">Racha</p>
-                <p className="text-xl font-bold text-[var(--color-text-primary)]">{stats.streak} días</p>
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardBody className="flex items-center gap-3 p-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
-                <Target size={20} className="text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-[var(--color-text-secondary)] mb-1">Objetivo</p>
-                <div className="w-full bg-[var(--color-neutral-200)] rounded-full h-1.5">
-                  <div
-                    className="bg-gradient-to-r from-[var(--color-primary-500)] to-[var(--color-accent-500)] h-1.5 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min((stats.dailyProgress / stats.dailyGoal) * 100, 100)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
-                  {stats.dailyProgress}/{stats.dailyGoal}
-                </p>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      </div>
-
-      {/* Content scrollable */}
-      <div className="flex-1 overflow-auto p-4 sm:p-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader className="px-4 py-3">
-                <h3 className="font-semibold text-sm text-[var(--color-text-primary)]">Ejercicios disponibles</h3>
-              </CardHeader>
-              <CardBody className="p-4">
-                <div className="space-y-2">
-                  {exercises.map((exercise, index) => (
-                    <motion.div
-                      key={exercise.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="flex items-center justify-between p-3 bg-[var(--color-neutral-50)] rounded-lg border border-[var(--color-neutral-200)] hover:border-[var(--color-primary-300)] transition-all group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-                          <span className="text-xl">{exercise.completed ? '✅' : '📚'}</span>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-sm text-[var(--color-text-primary)]">{exercise.title}</h4>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <Badge
-                              variant={
-                                exercise.difficulty === 'Fácil' ? 'success' :
-                                exercise.difficulty === 'Intermedio' ? 'warning' : 'error'
-                              }
-                              className="text-xs px-2 py-0"
-                            >
-                              {exercise.difficulty}
-                            </Badge>
-                            <span className="text-xs text-[var(--color-text-secondary)]">
-                              +{exercise.points} pts · {exercise.signs.length} señas
-                            </span>
-                          </div>
-                          {exercise.bestScore > 0 && (
-                            <p className="text-xs text-[var(--color-primary-600)] mt-0.5">
-                              Mejor: {exercise.bestScore}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <Button
-                        variant={exercise.completed ? 'ghost' : 'primary'}
-                        size="sm"
-                        leftIcon={<Play size={16} />}
-                        onClick={() => handleStartExercise(exercise.id)}
-                      >
-                        {exercise.completed ? 'Repetir' : 'Iniciar'}
-                      </Button>
-                    </motion.div>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
-          </div>
-
-          <div className="space-y-3">
-            <Card>
-              <CardHeader className="px-4 py-3">
-                <h3 className="font-semibold text-sm text-[var(--color-text-primary)]">Logros</h3>
-              </CardHeader>
-              <CardBody className="p-4">
-                <div className="space-y-2">
-                  {achievements.slice(0, 4).map((achievement, index) => (
-                    <motion.div
-                      key={achievement.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`flex items-center gap-2 p-2 rounded-lg border ${
-                        achievement.unlocked
-                          ? 'bg-[var(--color-primary-50)] border-[var(--color-primary-200)]'
-                          : 'bg-[var(--color-neutral-50)] border-[var(--color-neutral-200)] opacity-50'
-                      }`}
-                    >
-                      <span className="text-xl">{achievement.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-xs text-[var(--color-text-primary)] truncate">
-                          {achievement.title}
-                        </p>
-                        <p className="text-xs text-[var(--color-text-tertiary)] truncate">
-                          {achievement.description}
-                        </p>
-                        {!achievement.unlocked && achievement.progress > 0 && (
-                          <div className="mt-1">
-                            <div className="w-full bg-[var(--color-neutral-200)] rounded-full h-1">
-                              <div
-                                className="bg-[var(--color-primary-500)] h-1 rounded-full"
-                                style={{ width: `${(achievement.progress / achievement.requirement) * 100}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      {achievement.unlocked && <Star size={14} className="text-[var(--color-primary-600)] flex-shrink-0" />}
-                    </motion.div>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-[var(--color-accent-50)] to-[var(--color-accent-100)] border-[var(--color-accent-200)]">
-              <CardBody className="p-4">
-                <h4 className="font-semibold text-sm text-[var(--color-text-primary)] mb-2">📊 Estadísticas</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-[var(--color-text-secondary)]">Total practicado</span>
-                    <span className="font-semibold text-sm text-[var(--color-text-primary)]">{stats.totalPracticed}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-[var(--color-text-secondary)]">Precisión</span>
-                    <span className="font-semibold text-sm text-[var(--color-text-primary)]">{stats.accuracy}%</span>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-          </div>
-        </div>
-        {onNavigateHome && <BackToHome onNavigate={onNavigateHome} />}
-      </div>
     </div>
   );
 }
