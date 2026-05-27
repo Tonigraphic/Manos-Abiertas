@@ -18,10 +18,12 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    const [attempts, setAttempts] = useState(0);
    const [statusMessage, setStatusMessage] = useState('Presiona iniciar para activar la cámara y comenzar la práctica.');
    const [isCompleting, setIsCompleting] = useState(false);
+   const [isAdvancing, setIsAdvancing] = useState(false);
 
    const processedRecognitionRef = useRef<string>('');
    const lastNonMatchRef = useRef<string>('');
    const completionTimerRef = useRef<number | null>(null);
+   const advanceTimerRef = useRef<number | null>(null);
 
    const practiceSigns = useMemo(() => {
       const allSigns = signRecognitionService.getAllSigns();
@@ -59,9 +61,14 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
          window.clearTimeout(completionTimerRef.current);
          completionTimerRef.current = null;
       }
+      if (advanceTimerRef.current) {
+         window.clearTimeout(advanceTimerRef.current);
+         advanceTimerRef.current = null;
+      }
       stopRecognition();
       setIsPracticeStarted(false);
       setIsCompleting(true);
+      setIsAdvancing(false);
       setShowModal(true);
    };
 
@@ -84,6 +91,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
       setShowModal(false);
       setIsCompleting(false);
+      setIsAdvancing(false);
       setCurrentIndex(0);
       setCorrectAnswers(0);
       setAttempts(0);
@@ -105,6 +113,10 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
          window.clearTimeout(completionTimerRef.current);
          completionTimerRef.current = null;
       }
+      if (advanceTimerRef.current) {
+         window.clearTimeout(advanceTimerRef.current);
+         advanceTimerRef.current = null;
+      }
       stopRecognition();
       setIsPracticeStarted(false);
       setStatusMessage('La práctica se ha detenido.');
@@ -121,6 +133,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
          if (completionTimerRef.current) {
             window.clearTimeout(completionTimerRef.current);
          }
+         if (advanceTimerRef.current) {
+            window.clearTimeout(advanceTimerRef.current);
+         }
          stopRecognition();
       };
    }, [stopRecognition]);
@@ -131,6 +146,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
       if (recState.handsDetected === 0) {
          processedRecognitionRef.current = '';
          lastNonMatchRef.current = '';
+         setIsAdvancing(false);
          return;
       }
 
@@ -162,7 +178,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
       setCorrectAnswers(prev => prev + 1);
       setStatusMessage(`Correcto: ${currentSign.name}`);
-      completionTimerRef.current = window.setTimeout(() => {
+      setIsAdvancing(true);
+      advanceTimerRef.current = window.setTimeout(() => {
+         setIsAdvancing(false);
          if (currentIndex >= practiceSigns.length - 1) {
             finishPractice();
             return;
@@ -170,7 +188,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
          setCurrentIndex(prev => prev + 1);
          processedRecognitionRef.current = '';
          setStatusMessage(`Buen trabajo. Ahora intenta con ${practiceSigns[currentIndex + 1]?.name ?? 'la siguiente seña'}.`);
-      }, 900);
+      }, 650);
    }, [currentIndex, currentSign, isCompleting, isPracticeStarted, practiceSigns.length, recState.currentSign, recState.handsDetected]);
 
    const confidence = recState.currentSign ? Math.round(recState.currentSign.confidence * 100) : 0;
@@ -211,7 +229,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                      <Card className="flex-1 border-none shadow-lg bg-white overflow-hidden flex flex-col">
                         <CardBody className="p-6 flex flex-col h-full items-center text-center">
                            <p className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Seña objetivo</p>
-                           <h2 className="text-4xl font-black text-[var(--color-primary-600)] mb-3">{currentSign?.name ?? 'Sin ejercicio'}</h2>
+                           <h2 className={`text-4xl font-black text-[var(--color-primary-600)] mb-3 transition-all duration-300 ${isAdvancing ? 'opacity-60 scale-95' : 'opacity-100 scale-100'}`}>
+                              {currentSign?.name ?? 'Sin ejercicio'}
+                           </h2>
                            <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-accent-100)] text-[var(--color-accent-700)] text-xs font-bold uppercase tracking-widest">
                               {currentSign ? getCategoryLabel(currentSign.category) : 'Práctica'}
                            </div>
@@ -312,11 +332,13 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                      <Card className="flex-1 border-none shadow-lg bg-white overflow-hidden flex flex-col">
                         <CardBody className="p-6 flex flex-col h-full justify-center">
                            <div className="text-center mb-8">
-                              <div className="inline-block px-4 py-1.5 bg-[var(--color-accent-100)] text-[var(--color-accent-700)] rounded-full text-xs font-black uppercase tracking-widest mb-4 animate-pulse">
+                              <div className={`inline-block px-4 py-1.5 bg-[var(--color-accent-100)] text-[var(--color-accent-700)] rounded-full text-xs font-black uppercase tracking-widest mb-4 transition-all duration-300 ${isAdvancing ? 'opacity-70 scale-95' : 'animate-pulse'}`}>
                                  {recState.isActive ? 'Reconociendo...' : 'Esperando inicio'}
                               </div>
                               <p className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Detectado</p>
-                                <h3 className="text-3xl font-black text-[var(--color-text-primary)]">{currentSign?.name ?? 'Sin ejercicio'}</h3>
+                                <h3 className="text-3xl font-black text-[var(--color-text-primary)] transition-all duration-300">
+                                   {recState.isActive ? (recState.currentSign?.sign ?? 'Sin detección') : 'Sin detección'}
+                                </h3>
                                 <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{statusMessage}</p>
                            </div>
 
