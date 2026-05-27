@@ -4,6 +4,7 @@ import { Button } from '../components/lsc/Button';
 import { Camera, CameraOff, RefreshCw, BarChart2, Target, Trophy, PlayCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { useLSCRecognition } from '../../hooks/useLSCRecognition';
 import { signRecognitionService } from '../../services/signRecognitionService';
+import { InstructionsModal } from '../components/lsc/InstructionsModal';
 
 interface PracticeViewProps {
   onNavigateHome?: () => void;
@@ -196,6 +197,16 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
   
   return (
     <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-[var(--color-surface)] relative">
+         <InstructionsModal
+            id="practice"
+            title="Práctica de Colores"
+            instructions={[
+               'La práctica te mostrará una seña objetivo del vocabulario de colores.',
+               'Realiza la seña frente a la cámara y espera la confirmación antes de pasar a la siguiente.',
+               'Si bajas las manos, el sistema limpiará la detección y no contará un intento falso.',
+               'Usa Omitir solo cuando quieras avanzar manualmente a otro objetivo.'
+            ]}
+         />
       
       {/* Header */}
       <div className="flex-shrink-0 p-6 sm:p-8 bg-white border-b border-[var(--color-neutral-200)] shadow-sm">

@@ -5,6 +5,7 @@ import { Languages, Volume2, Search, CheckCircle, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { translateLSCtoSpanish } from '../../lib/translationEngine';
 import { LSC_VOCABULARY } from '../../lib/lscData';
+import { InstructionsModal } from '../components/lsc/InstructionsModal';
 
 type VocabularyEntry = {
   label: string;
@@ -248,6 +249,16 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
 
   return (
     <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-[var(--color-surface)] relative">
+      <InstructionsModal
+        id="translator"
+        title="Traductor LSC"
+        instructions={[
+          'En modo oyente, escribe una frase en español para verla convertida a glosa LSC y señas disponibles.',
+          'En modo sordo, escribe la estructura LSC para recibir sugerencias en español correcto.',
+          'Puedes escuchar en voz alta la sugerencia seleccionada cuando lo necesites.',
+          'Usa la confirmación para validar la opción que mejor represente lo que deseas decir.'
+        ]}
+      />
       <div className="flex-shrink-0 p-6 sm:p-8 bg-white border-b border-[var(--color-neutral-200)] shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center gap-4">
           <div className="bg-[var(--color-primary-100)] p-3 rounded-2xl text-[var(--color-primary-600)] shadow-inner">

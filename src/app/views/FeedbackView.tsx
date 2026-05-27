@@ -3,6 +3,7 @@ import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
 import { MessageSquare, Ear, Hand, Send, CheckCircle2, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { InstructionsModal } from '../components/lsc/InstructionsModal';
 
 interface FeedbackViewProps {
   onNavigateHome?: () => void;
@@ -149,6 +150,16 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
 
   return (
     <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-[var(--color-surface)] relative">
+      <InstructionsModal
+        id="feedback"
+        title="Sugerencias y Retroalimentación"
+        instructions={[
+          'Selecciona si eres persona oyente o sorda para mostrar el formulario correcto.',
+          'Si eres persona sorda, puedes corregir una seña o sugerir una nueva palabra.',
+          'Cuando actives la cámara, recuerda detenerla antes de salir de este apartado.',
+          'Envía tu aporte para que quede registrado en el sistema de retroalimentación.'
+        ]}
+      />
       <div className="flex-shrink-0 p-6 sm:p-8 bg-white border-b border-[var(--color-neutral-200)] shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center gap-4">
           <div className="bg-[var(--color-primary-100)] p-3 rounded-2xl text-[var(--color-primary-600)] shadow-inner">

@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Button } from '../components/lsc/Button';
-import { motion } from 'motion/react';
-import { PlayCircle, Languages, Target, MessageSquare } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { X, PlayCircle, Languages, Target, MessageSquare } from 'lucide-react';
 import logoPrincipal from '../../assets/logo.png'; 
 
 interface LandingViewProps {
@@ -8,6 +9,12 @@ interface LandingViewProps {
 }
 
 export function LandingView({ onNavigate }: LandingViewProps) {
+  const [isDemoOpen, setIsDemoOpen] = useState(true);
+
+  useEffect(() => {
+    setIsDemoOpen(true);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[var(--color-surface)] relative overflow-x-hidden flex flex-col items-center justify-center">
       {/* Decoración de Fondo */}
@@ -15,6 +22,43 @@ export function LandingView({ onNavigate }: LandingViewProps) {
         <div className="absolute top-0 right-0 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-gradient-to-br from-[var(--color-primary-200)] to-[var(--color-primary-400)] rounded-full blur-3xl opacity-20 transform translate-x-1/3 -translate-y-1/3" />
         <div className="absolute bottom-0 left-0 w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-gradient-to-tr from-[var(--color-accent-200)] to-[var(--color-accent-400)] rounded-full blur-3xl opacity-20 transform -translate-x-1/3 translate-y-1/3" />
       </div>
+
+      <AnimatePresence>
+        {isDemoOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 12 }}
+              className="relative w-full max-w-5xl rounded-3xl overflow-hidden shadow-2xl bg-black border border-white/10"
+            >
+              <button
+                onClick={() => setIsDemoOpen(false)}
+                className="absolute top-4 right-4 z-20 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition-colors"
+                aria-label="Cerrar video demo"
+              >
+                <X size={20} />
+              </button>
+
+              <video
+                autoPlay
+                controls
+                playsInline
+                muted={false}
+                onEnded={() => setIsDemoOpen(false)}
+                className="w-full aspect-video object-cover bg-black"
+                src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+              />
+
+              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 bg-gradient-to-t from-black/85 via-black/40 to-transparent text-white pointer-events-none">
+                <p className="text-xs uppercase tracking-[0.35em] text-white/70 font-bold mb-2">Video demo</p>
+                <h2 className="text-2xl md:text-4xl font-black mb-2">Conoce Manos Abiertas</h2>
+                <p className="text-sm md:text-base text-white/80 max-w-2xl">Este video se cierra al terminar o puedes cerrarlo manualmente para ver la página principal.</p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Hero Section */}
       <section className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col items-center z-10">
@@ -76,15 +120,17 @@ export function LandingView({ onNavigate }: LandingViewProps) {
              </motion.div>
           </div>
 
-          {/* Video Placeholder */}
-          <div className="w-full max-w-4xl mx-auto aspect-video bg-[var(--color-neutral-800)] rounded-3xl overflow-hidden shadow-2xl relative flex items-center justify-center group cursor-pointer border-4 border-white">
+          <button
+            onClick={() => setIsDemoOpen(true)}
+            className="w-full max-w-4xl mx-auto aspect-video bg-[var(--color-neutral-800)] rounded-3xl overflow-hidden shadow-2xl relative flex items-center justify-center group cursor-pointer border-4 border-white"
+          >
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
             <PlayCircle size={80} className="text-white/90 group-hover:scale-110 transition-transform drop-shadow-xl" />
             <div className="absolute bottom-4 left-4 md:bottom-8 md:left-8 text-white text-left">
               <p className="font-black text-lg md:text-2xl drop-shadow-md">Conoce Manos Abiertas</p>
-              <p className="text-xs md:text-sm text-white/80 font-medium drop-shadow-md mt-1">Video demostrativo (02:30)</p>
+              <p className="text-xs md:text-sm text-white/80 font-medium drop-shadow-md mt-1">Abrir video demostrativo</p>
             </div>
-          </div>
+          </button>
 
         </motion.div>
       </section>
