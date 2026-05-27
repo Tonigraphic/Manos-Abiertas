@@ -17,7 +17,7 @@ type TranslationOption = {
   description: string;
 };
 
-const VOCABULARY_ENTRIES: VocabularyEntry[] = Object.values(LSC_VOCABULARY).flat();
+const INDIVIDUAL_SIGN_ENTRIES: VocabularyEntry[] = Object.values(LSC_VOCABULARY).flat();
 
 const SPECIAL_PHRASES = [
   { pattern: /\bhorario de clase\b/, label: 'HORARIO DE CLASE' },
@@ -66,7 +66,7 @@ function capitalize(text: string): string {
 
 function findVocabularyEntry(label: string): VocabularyEntry | undefined {
   const normalized = normalizeValue(label);
-  return VOCABULARY_ENTRIES.find(entry => normalizeValue(entry.label) === normalized);
+  return INDIVIDUAL_SIGN_ENTRIES.find(entry => normalizeValue(entry.label) === normalized);
 }
 
 function buildSpanishToLscGloss(input: string): { gloss: string; matches: VocabularyEntry[] } {
@@ -253,6 +253,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
         id="translator"
         title="Traductor LSC"
         instructions={[
+          'Para señas individuales, el traductor usa el vocabulario completo del diccionario, con sus 75 clases disponibles.',
           'En modo oyente, escribe una frase en español para verla convertida a glosa LSC y señas disponibles.',
           'En modo sordo, escribe la estructura LSC para recibir sugerencias en español correcto.',
           'Puedes escuchar en voz alta la sugerencia seleccionada cuando lo necesites.',
