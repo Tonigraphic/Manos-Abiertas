@@ -3,6 +3,191 @@ import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
 import { Languages, Volume2, Search, CheckCircle, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { translateLSCtoSpanish } from '../../lib/translationEngine';
+import { LSC_VOCABULARY } from '../../lib/lscData';
+
+type VocabularyEntry = {
+  label: string;
+  url: string;
+};
+
+type TranslationOption = {
+  text: string;
+  description: string;
+};
+
+const VOCABULARY_ENTRIES: VocabularyEntry[] = Object.values(LSC_VOCABULARY).flat();
+
+const SPECIAL_PHRASES = [
+  { pattern: /\bhorario de clase\b/, label: 'HORARIO DE CLASE' },
+  { pattern: /\bhorario de materia\b/, label: 'HORARIO DE MATERIA' },
+  { pattern: /\bhorario\b/, label: 'HORARIO' },
+  { pattern: /\bproceso de matricula\b/, label: 'PROCESO DE MATRÍCULA' },
+  { pattern: /\bmatricula academica\b/, label: 'MATRÍCULA ACADÉMICA' },
+  { pattern: /\bmatricula financiera\b/, label: 'MATRICULA FINANCIERA' },
+  { pattern: /\bmatricula materias\b/, label: 'MATRÍCULA MATERIAS' },
+  { pattern: /\bsolicitar certificado\b/, label: 'SOLICITAR CERTIFICADO' },
+  { pattern: /\benviar tarea\b/, label: 'ENVIAR TAREA' },
+  { pattern: /\bmi nombre\b/, label: 'MI NOMBRE' },
+  { pattern: /\bmi sena\b/, label: 'MI SEÑA' },
+  { pattern: /\bhola\b/, label: 'HOLA' },
+  { pattern: /\bgracias\b/, label: 'GRACIAS' },
+  { pattern: /\bprofesor(a)?\b/, label: 'PROFESOR' },
+];
+
+const STOP_WORDS = new Set(['a', 'al', 'de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'unos', 'unas', 'y', 'o', 'en']);
+
+const VERB_TO_GLOSS: Record<string, string> = {
+  voy: 'IR', vas: 'IR', va: 'IR', vamos: 'IR', van: 'IR',
+  fui: 'IR', fuiste: 'IR', fue: 'IR', fuimos: 'IR', fueron: 'IR',
+  iré: 'IR', iras: 'IR', irá: 'IR', iremos: 'IR', irán: 'IR',
+  tengo: 'TENER', tienes: 'TENER', tiene: 'TENER', tenemos: 'TENER', tienen: 'TENER',
+  quiero: 'QUERER', quieres: 'QUERER', quiere: 'QUERER', queremos: 'QUERER', quieren: 'QUERER',
+  necesito: 'NECESITAR', necesitas: 'NECESITAR', necesita: 'NECESITAR', necesitamos: 'NECESITAR', necesitan: 'NECESITAR',
+  puedo: 'PODER', puedes: 'PODER', puede: 'PODER', podemos: 'PODER', pueden: 'PODER',
+  hago: 'HACER', haces: 'HACER', hace: 'HACER', hacemos: 'HACER', hacen: 'HACER',
+  estudio: 'ESTUDIAR', estudias: 'ESTUDIAR', estudia: 'ESTUDIAR', estudiamos: 'ESTUDIAR', estudian: 'ESTUDIAR',
+  explico: 'EXPLICAR', explicas: 'EXPLICAR', explica: 'EXPLICAR', explicamos: 'EXPLICAR', explican: 'EXPLICAR',
+};
+
+function normalizeValue(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function capitalize(text: string): string {
+  if (!text) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function findVocabularyEntry(label: string): VocabularyEntry | undefined {
+  const normalized = normalizeValue(label);
+  return VOCABULARY_ENTRIES.find(entry => normalizeValue(entry.label) === normalized);
+}
+
+function buildSpanishToLscGloss(input: string): { gloss: string; matches: VocabularyEntry[] } {
+  const normalizedInput = normalizeValue(input).replace(/[¿?¡!.,;:_]/g, ' ');
+  const matchedEntries: VocabularyEntry[] = [];
+  let working = normalizedInput;
+
+  for (const phrase of SPECIAL_PHRASES) {
+    phrase.pattern.lastIndex = 0;
+    if (phrase.pattern.test(working)) {
+      const entry = findVocabularyEntry(phrase.label);
+      if (entry && !matchedEntries.some(item => normalizeValue(item.label) === normalizeValue(entry.label))) {
+        matchedEntries.push(entry);
+      }
+      working = working.replace(phrase.pattern, ' ');
+    }
+  }
+
+  const tokens = working.split(/\s+/).filter(Boolean);
+  const glossTokens: string[] = [];
+
+  for (const token of tokens) {
+    if (STOP_WORDS.has(token)) continue;
+
+    const mappedVerb = VERB_TO_GLOSS[token];
+    if (mappedVerb) {
+      glossTokens.push(mappedVerb);
+      continue;
+    }
+
+    const entry = findVocabularyEntry(token);
+    if (entry) {
+      glossTokens.push(entry.label);
+      if (!matchedEntries.some(item => normalizeValue(item.label) === normalizeValue(entry.label))) {
+        matchedEntries.push(entry);
+      }
+      continue;
+    }
+
+    if (/^\d+$/.test(token)) {
+      glossTokens.push(token);
+      continue;
+    }
+
+    glossTokens.push(token.toUpperCase());
+  }
+
+  const uniqueGlossTokens = glossTokens.filter((token, index) => glossTokens.indexOf(token) === index);
+
+  return {
+    gloss: uniqueGlossTokens.join(' '),
+    matches: matchedEntries,
+  };
+}
+
+function buildSpanishSuggestions(input: string, primary: string): TranslationOption[] {
+  const normalized = normalizeValue(input);
+  const options: TranslationOption[] = [
+    { text: primary, description: 'Versión más directa' },
+  ];
+
+  const timeWord = ['mañana', 'hoy', 'ayer', 'ahora'].find(word => normalized.includes(word));
+  const barePrimary = primary.replace(/^Yo\s+/i, '').replace(/^No\s+/i, '').trim();
+
+  if (timeWord && barePrimary) {
+    options.push({
+      text: `${capitalize(timeWord)} ${barePrimary}`.replace(/\s+/g, ' ').trim(),
+      description: 'Con marcador temporal al inicio',
+    });
+  }
+
+  if (/\byo\b/.test(normalized) && barePrimary) {
+    options.push({
+      text: `Yo ${barePrimary}`.replace(/\s+/g, ' ').trim(),
+      description: 'Estructura más explícita',
+    });
+  }
+
+  if (options.length < 3 && barePrimary) {
+    options.push({
+      text: `${barePrimary}`,
+      description: 'Versión corta de validación',
+    });
+  }
+
+  return options.filter((option, index, array) => array.findIndex(item => item.text.toLowerCase() === option.text.toLowerCase()) === index).slice(0, 3);
+}
+
+function speakText(text: string): void {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'es-CO';
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+}
+
+async function translateLSCToSpanishText(input: string): Promise<string> {
+  try {
+    const response = await fetch('/api/translate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: input }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Translation response ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const translatedText = String(payload?.translatedText || '').trim();
+    if (translatedText) return translatedText;
+  } catch (error) {
+    console.warn('Endpoint de traducción no disponible, usando el motor local.', error);
+  }
+
+  return translateLSCtoSpanish(input);
+}
 
 interface TranslatorViewProps {
   onNavigateHome?: () => void;
@@ -11,27 +196,55 @@ interface TranslatorViewProps {
 export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [role, setRole] = useState<'sordo' | 'oyente'>('oyente');
   const [inputText, setInputText] = useState('');
-
-  // Estados Simulados
   const [isTranslating, setIsTranslating] = useState(false);
   const [translatedText, setTranslatedText] = useState('');
+  const [availableSigns, setAvailableSigns] = useState<VocabularyEntry[]>([]);
+  const [translationOptions, setTranslationOptions] = useState<TranslationOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [confirmationMessage, setConfirmationMessage] = useState('');
 
-  const handleTranslate = () => {
-    setIsTranslating(true);
-    setTimeout(() => {
-      setIsTranslating(false);
-      if (role === 'oyente') {
-         setTranslatedText("YO IR UNIVERSIDAD MAÑANA");
-      }
-    }, 1000);
+  const resetRoleState = () => {
+    setTranslatedText('');
+    setAvailableSigns([]);
+    setTranslationOptions([]);
+    setSelectedOption(null);
+    setConfirmationMessage('');
   };
 
-  const mockOptions = [
-    "Mañana iré a la universidad.",
-    "Voy a la universidad por la mañana.",
-    "Yo fui a la universidad ayer." // Opcion incorrecta simulada
-  ];
+  const handleTranslate = async () => {
+    if (!inputText.trim()) return;
+
+    setIsTranslating(true);
+    setConfirmationMessage('');
+
+    try {
+      if (role === 'oyente') {
+        const result = buildSpanishToLscGloss(inputText);
+        setTranslatedText(result.gloss || inputText.toUpperCase());
+        setAvailableSigns(result.matches);
+        setTranslationOptions([]);
+        setSelectedOption(null);
+      } else {
+        const primaryTranslation = await translateLSCToSpanishText(inputText);
+        const options = buildSpanishSuggestions(inputText, primaryTranslation || inputText);
+        setTranslatedText(primaryTranslation || inputText);
+        setTranslationOptions(options);
+        setSelectedOption(0);
+        setAvailableSigns([]);
+      }
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const handleConfirmSelection = (accepted: boolean) => {
+    if (accepted && selectedOption !== null && translationOptions[selectedOption]) {
+      setTranslatedText(translationOptions[selectedOption].text);
+      setConfirmationMessage('La sugerencia seleccionada quedó confirmada.');
+    } else if (!accepted) {
+      setConfirmationMessage('Selecciona otra sugerencia o ajusta tu entrada.');
+    }
+  };
 
   return (
     <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-[var(--color-surface)] relative">
@@ -53,13 +266,13 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
           {/* Tabs Selector */}
           <div className="flex bg-[var(--color-neutral-200)] p-1 rounded-xl w-full sm:w-fit mx-auto shadow-inner">
              <button
-                onClick={() => { setRole('oyente'); setInputText(''); setTranslatedText(''); }}
+               onClick={() => { setRole('oyente'); setInputText(''); resetRoleState(); }}
                 className={`flex-1 sm:w-48 py-2 px-4 rounded-lg text-sm font-bold transition-all ${role === 'oyente' ? 'bg-white text-[var(--color-primary-600)] shadow' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
              >
                 Soy Oyente
              </button>
              <button
-                onClick={() => { setRole('sordo'); setInputText(''); setTranslatedText(''); setSelectedOption(null); }}
+               onClick={() => { setRole('sordo'); setInputText(''); resetRoleState(); }}
                 className={`flex-1 sm:w-48 py-2 px-4 rounded-lg text-sm font-bold transition-all ${role === 'sordo' ? 'bg-white text-[var(--color-primary-600)] shadow' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
              >
                 Soy Sordo
@@ -87,7 +300,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                         className="w-full mt-4 py-4 text-base font-bold shadow-md bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] rounded-xl"
                         disabled={!inputText || isTranslating}
                      >
-                        {isTranslating ? 'Traduciendo...' : 'Traducir a LSC'}
+                      {isTranslating ? 'Traduciendo...' : 'Traducir a LSC'}
                      </Button>
                    </CardBody>
                  </Card>
@@ -108,16 +321,17 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                           <label className="block text-xs font-bold text-[var(--color-accent-600)] uppercase tracking-widest mb-3">
                              Señas Individuales
                           </label>
-                          <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
-                             {translatedText.split(' ').map((word, i) => (
-                               <div key={i} className="flex-shrink-0 flex flex-col items-center gap-2">
-                                  <div className="w-24 h-24 bg-white rounded-xl border border-[var(--color-accent-200)] shadow-sm flex items-center justify-center overflow-hidden">
-                                    {/* Placeholder para la imagen de la seña */}
-                                    <span className="text-[var(--color-neutral-400)] text-xs text-center px-2">Img: {word}</span>
-                                  </div>
-                                  <span className="text-xs font-bold text-[var(--color-accent-800)]">{word}</span>
+                            <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
+                              {availableSigns.length > 0 ? availableSigns.map((sign, i) => (
+                               <div key={`${sign.label}-${i}`} className="flex-shrink-0 flex flex-col items-center gap-2">
+                                 <div className="w-24 h-24 bg-white rounded-xl border border-[var(--color-accent-200)] shadow-sm flex items-center justify-center overflow-hidden">
+                                  <video src={sign.url} autoPlay loop muted playsInline className="w-full h-full object-contain bg-black" />
+                                 </div>
+                                 <span className="text-xs font-bold text-[var(--color-accent-800)]">{sign.label}</span>
                                </div>
-                             ))}
+                              )) : (
+                               <div className="text-sm text-[var(--color-text-secondary)]">No se encontraron señas exactas en el vocabulario para esta frase.</div>
+                              )}
                           </div>
                         </CardBody>
                      </Card>
@@ -140,7 +354,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                         className="w-full h-32 p-4 bg-[var(--color-neutral-50)] border-2 rounded-xl focus:bg-white focus:border-[var(--color-accent-400)] outline-none resize-none text-lg transition-colors border-[var(--color-neutral-200)] text-[var(--color-text-primary)] font-bold uppercase"
                      />
                      <Button 
-                        onClick={() => { setIsTranslating(true); setTimeout(() => setIsTranslating(false), 800); }} 
+                        onClick={handleTranslate} 
                         className="w-full mt-4 py-4 text-base font-bold shadow-md bg-[var(--color-accent-500)] text-white hover:bg-[var(--color-accent-600)] rounded-xl"
                         disabled={!inputText || isTranslating}
                      >
@@ -150,7 +364,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                  </Card>
 
                  {/* Sugerencias Español */}
-                 {inputText && !isTranslating && (
+                 {translationOptions.length > 0 && !isTranslating && (
                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                      <Card className="border-2 border-[var(--color-primary-300)] shadow-xl bg-white">
                         <CardBody className="p-6">
@@ -159,7 +373,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                           </label>
                           
                           <div className="space-y-3 mb-6">
-                            {mockOptions.map((opt, i) => (
+                            {translationOptions.map((opt, i) => (
                               <div 
                                 key={i} 
                                 className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedOption === i ? 'border-[var(--color-primary-500)] bg-[var(--color-primary-50)]' : 'border-[var(--color-neutral-200)] hover:border-[var(--color-primary-200)]'}`}
@@ -169,11 +383,14 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedOption === i ? 'border-[var(--color-primary-500)]' : 'border-[var(--color-neutral-300)]'}`}>
                                     {selectedOption === i && <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-primary-500)]" />}
                                   </div>
-                                  <span className={`font-semibold text-base ${selectedOption === i ? 'text-[var(--color-primary-800)]' : 'text-[var(--color-text-primary)]'}`}>
-                                    {opt}
-                                  </span>
+                                  <div>
+                                    <span className={`block font-semibold text-base ${selectedOption === i ? 'text-[var(--color-primary-800)]' : 'text-[var(--color-text-primary)]'}`}>
+                                      {opt.text}
+                                    </span>
+                                    <span className="block text-xs text-[var(--color-text-secondary)] mt-1">{opt.description}</span>
+                                  </div>
                                 </div>
-                                <button className="p-2 text-[var(--color-primary-500)] hover:bg-[var(--color-primary-100)] rounded-lg transition-colors">
+                                <button type="button" onClick={(e) => { e.stopPropagation(); speakText(opt.text); }} className="p-2 text-[var(--color-primary-500)] hover:bg-[var(--color-primary-100)] rounded-lg transition-colors">
                                    <Volume2 size={20} />
                                 </button>
                               </div>
@@ -183,13 +400,16 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                           <div className="pt-4 border-t border-[var(--color-neutral-100)]">
                              <p className="text-center text-sm font-bold text-[var(--color-text-secondary)] mb-4">¿Es correcta alguna de estas opciones?</p>
                              <div className="flex gap-4 justify-center">
-                                <Button className="w-32 bg-[var(--color-success-500)] hover:bg-[var(--color-success-700)] text-white shadow flex items-center justify-center gap-2">
+                                <Button type="button" onClick={() => handleConfirmSelection(true)} className="w-32 bg-[var(--color-success-500)] hover:bg-[var(--color-success-700)] text-white shadow flex items-center justify-center gap-2">
                                    <CheckCircle size={18} /> Sí
                                 </Button>
-                                <Button className="w-32 bg-[var(--color-error-500)] hover:bg-[var(--color-error-700)] text-white shadow flex items-center justify-center gap-2">
+                                <Button type="button" onClick={() => handleConfirmSelection(false)} className="w-32 bg-[var(--color-error-500)] hover:bg-[var(--color-error-700)] text-white shadow flex items-center justify-center gap-2">
                                    <XCircle size={18} /> No
                                 </Button>
                              </div>
+                             {confirmationMessage && (
+                               <p className="mt-4 text-center text-sm text-[var(--color-text-secondary)]">{confirmationMessage}</p>
+                             )}
                           </div>
 
                         </CardBody>

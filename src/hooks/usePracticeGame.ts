@@ -93,7 +93,7 @@ export function usePracticeGame() {
         points: 10,
         signs: allSigns.filter(s =>
           s.category === 'colors' &&
-          ['Amarillo', 'Azul', 'Rojo'].includes(s.name)
+          ['AMARILLO', 'AZUL', 'ROJO'].includes(s.name.toUpperCase())
         ),
         completed: false,
         bestScore: 0,
@@ -107,7 +107,7 @@ export function usePracticeGame() {
         points: 10,
         signs: allSigns.filter(s =>
           s.category === 'colors' &&
-          ['Naranja', 'Verde', 'Violeta', 'Morado'].includes(s.name)
+          ['NARANJA', 'VERDE', 'VIOLETA', 'MORADO'].includes(s.name.toUpperCase())
         ),
         completed: false,
         bestScore: 0,
@@ -121,7 +121,7 @@ export function usePracticeGame() {
         points: 10,
         signs: allSigns.filter(s =>
           s.category === 'colors' &&
-          ['Blanco', 'Negro', 'Gris', 'Café', 'Crema'].includes(s.name)
+          ['BLANCO', 'NEGRO', 'GRIS', 'CAFÉ', 'CAFE', 'CREMA'].includes(s.name.toUpperCase())
         ),
         completed: false,
         bestScore: 0,

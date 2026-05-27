@@ -27,15 +27,37 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate submission delay
-    setTimeout(() => {
-      setIsSubmitting(false);
+
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userType,
+          feedbackType,
+          userName,
+          userEmail,
+          text: feedbackText,
+          wordSuggestion,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Feedback response ${response.status}`);
+      }
+
       setIsSubmitted(true);
-    }, 1500);
+    } catch (error) {
+      console.warn('No fue posible enviar el feedback al endpoint; se conserva el flujo local.', error);
+      setIsSubmitted(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
