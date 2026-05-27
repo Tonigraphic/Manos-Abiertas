@@ -12,6 +12,7 @@ export function useLSCRecognition() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isActiveRef = useRef(false);
   const animFrameRef = useRef<number>(0);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const [state, setState] = useState({
     isActive: false,
@@ -116,6 +117,8 @@ export function useLSCRecognition() {
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
       });
 
+      streamRef.current = stream;
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
@@ -164,8 +167,10 @@ export function useLSCRecognition() {
     isActiveRef.current = false;
     cancelAnimationFrame(animFrameRef.current);
 
-    const stream = videoRef.current?.srcObject as MediaStream;
+    const stream = streamRef.current || (videoRef.current?.srcObject as MediaStream | null);
     stream?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+
     if (videoRef.current) videoRef.current.srcObject = null;
 
     setState(prev => ({ ...prev, isActive: false, currentSign: null, handsDetected: 0, bufferProgress: 0 }));

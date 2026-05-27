@@ -25,17 +25,16 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    const practiceSigns = useMemo(() => {
       const allSigns = signRecognitionService.getAllSigns();
       return allSigns
-         .filter(sign => sign.category === 'alphabet')
+         .filter(sign => sign.category === 'colors')
          .slice(0, 10);
    }, []);
 
    const currentSign = practiceSigns[currentIndex] ?? null;
 
-   const currentModelCategory = 'Abecedario';
+   const currentModelCategory = 'Colores';
 
    const getCategoryLabel = (category: string) => {
       const labels: Record<string, string> = {
-         alphabet: 'Abecedario',
          colors: 'Colores',
          greetings: 'Saludos',
          office: 'Oficina',
@@ -174,7 +173,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Práctica de Reconocimiento</h1>
-                     <p className="text-sm text-[var(--color-text-secondary)] font-medium mt-1">Reconocimiento en tiempo real con vocabulario disponible</p>
+                     <p className="text-sm text-[var(--color-text-secondary)] font-medium mt-1">Reconocimiento en tiempo real con vocabulario de colores</p>
             </div>
           </div>
                <div className="flex items-center gap-2">

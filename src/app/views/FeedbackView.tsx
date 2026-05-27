@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
 import { MessageSquare, Ear, Hand, Send, CheckCircle2, Camera } from 'lucide-react';
@@ -23,6 +23,7 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,6 +75,7 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
   const startCamera = async () => {
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: true });
+      streamRef.current = s;
       setStream(s);
     } catch (err) {
       alert("No se pudo acceder a la cámara.");
@@ -81,8 +83,10 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
   };
 
   const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(t => t.stop());
+    const activeStream = streamRef.current || stream;
+    if (activeStream) {
+      activeStream.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
       setStream(null);
     }
   };
@@ -125,6 +129,23 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
     setRecordedBlob(null);
     stopCamera();
   };
+
+  useEffect(() => {
+    if (userType !== 'sordo') {
+      stopCamera();
+      setRecordedBlob(null);
+      setIsRecording(false);
+    }
+  }, [userType]);
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-[var(--color-surface)] relative">

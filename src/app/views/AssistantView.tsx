@@ -6,7 +6,6 @@ import { Camera, CameraOff, Hand, Video, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useLSCRecognition } from '../../hooks/useLSCRecognition';
 import { InstructionsModal } from '../components/lsc/InstructionsModal';
-
 interface AssistantViewProps {
   onNavigateHome?: () => void;
 }
@@ -30,7 +29,7 @@ export function AssistantView({ onNavigateHome }: AssistantViewProps = {}) {
         title="Asistente LSC en Tiempo Real"
         instructions={[
           "Este módulo utiliza la cámara de tu dispositivo para reconocer señas en tiempo real.",
-          "Para empezar, selecciona una categoría (ej. Abecedario o Colores).",
+          "Para empezar, selecciona la categoría de colores.",
           "Ubica tus manos frente a la cámara dentro del encuadre para que la IA las detecte.",
           "La detección solo se activará cuando tus manos sean visibles en la pantalla."
         ]}
@@ -87,23 +86,16 @@ export function AssistantView({ onNavigateHome }: AssistantViewProps = {}) {
               {!recState.isActive && !recState.isLoading && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-neutral-800/90 to-neutral-900/95 text-white p-6 text-center z-20 backdrop-blur-sm">
                   <Camera size={48} className="mb-4 text-white/30" />
-                  <p className="mb-8 font-medium text-lg">Selecciona un vocabulario para iniciar</p>
+                  <p className="mb-8 font-medium text-lg">Selecciona el vocabulario de colores para iniciar</p>
                   <div className="flex flex-wrap justify-center gap-3 w-full max-w-md">
-                    {['Abecedario', 'Colores', 'Saludos', 'Diseño', 'Oficina'].map(cat => {
-                      const isDisabled = ONLY_COLORS_MODEL && cat !== 'Colores';
-                      return (
-                        <Button 
-                          key={cat} 
-                          variant={isDisabled ? 'ghost' : 'outline'} 
-                          size="sm" 
-                          onClick={() => { if (!isDisabled) startRecognition(cat); }} 
-                          className={`bg-white/10 hover:bg-white hover:text-black border-white/20 px-6 py-4 font-bold transition-all shadow-lg hover:scale-105 ${isDisabled ? modelDisabledClass : ''}`}
-                          aria-disabled={isDisabled}
-                        >
-                          {cat}
-                        </Button>
-                      );
-                    })}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => startRecognition('Colores')} 
+                      className="bg-white/10 hover:bg-white hover:text-black border-white/20 px-6 py-4 font-bold transition-all shadow-lg hover:scale-105"
+                    >
+                      Colores
+                    </Button>
                   </div>
                 </div>
               )}

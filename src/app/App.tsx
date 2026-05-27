@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DesktopNavbar, MobileBottomNav } from './components/lsc/Navigation';
 import { LandingView } from './views/LandingView';
 import { PracticeView } from './views/PracticeView';
@@ -9,6 +9,19 @@ type View = 'home' | 'translator' | 'practice' | 'feedback';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<View>('home');
+
+  useEffect(() => {
+    if (currentView === 'practice' || currentView === 'feedback') return;
+
+    const videos = Array.from(document.querySelectorAll('video')) as HTMLVideoElement[];
+    videos.forEach((video) => {
+      const stream = video.srcObject as MediaStream | null;
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+      }
+    });
+  }, [currentView]);
 
   const renderView = () => {
     const navigateHome = () => setCurrentView('home');
