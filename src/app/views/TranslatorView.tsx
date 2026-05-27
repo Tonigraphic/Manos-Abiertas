@@ -18,6 +18,7 @@ type TranslationOption = {
 };
 
 const INDIVIDUAL_SIGN_ENTRIES: VocabularyEntry[] = Object.values(LSC_VOCABULARY).flat();
+const INDIVIDUAL_SIGN_GROUPS = Object.entries(LSC_VOCABULARY) as [string, VocabularyEntry[]][];
 
 const SPECIAL_PHRASES = [
   { pattern: /\bhorario de clase\b/, label: 'HORARIO DE CLASE' },
@@ -344,6 +345,32 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                               )) : (
                                <div className="text-sm text-[var(--color-text-secondary)]">No se encontraron señas exactas en el vocabulario para esta frase.</div>
                               )}
+                          </div>
+
+                          <div className="mt-8 pt-6 border-t border-[var(--color-accent-100)]">
+                            <label className="block text-xs font-bold text-[var(--color-accent-600)] uppercase tracking-widest mb-4">
+                              Catálogo individual completo
+                            </label>
+                            <div className="space-y-5 max-h-[34rem] overflow-y-auto pr-2 custom-scrollbar">
+                              {INDIVIDUAL_SIGN_GROUPS.map(([category, signs]) => (
+                                <div key={category} className="space-y-3">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <h4 className="text-sm font-black text-[var(--color-text-primary)] uppercase tracking-wide">{category}</h4>
+                                    <span className="text-[11px] font-bold text-[var(--color-text-secondary)]">{signs.length} señas</span>
+                                  </div>
+                                  <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+                                    {signs.map((sign) => (
+                                      <div key={`${category}-${sign.label}`} className="flex-shrink-0 w-24 flex flex-col items-center gap-2">
+                                        <div className="w-24 h-24 bg-white rounded-xl border border-[var(--color-accent-200)] shadow-sm flex items-center justify-center overflow-hidden">
+                                          <video src={sign.url} autoPlay loop muted playsInline className="w-full h-full object-contain bg-black" />
+                                        </div>
+                                        <span className="text-[11px] font-bold text-[var(--color-accent-800)] text-center leading-tight">{sign.label}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </CardBody>
                      </Card>

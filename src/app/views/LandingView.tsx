@@ -9,10 +9,10 @@ interface LandingViewProps {
 }
 
 export function LandingView({ onNavigate }: LandingViewProps) {
-  const [isDemoOpen, setIsDemoOpen] = useState(true);
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
 
   useEffect(() => {
-    setIsDemoOpen(true);
+    setIsDemoOpen(false);
   }, []);
 
   return (
@@ -122,14 +122,10 @@ export function LandingView({ onNavigate }: LandingViewProps) {
 
           <button
             onClick={() => setIsDemoOpen(true)}
-            className="w-full max-w-4xl mx-auto aspect-video bg-[var(--color-neutral-800)] rounded-3xl overflow-hidden shadow-2xl relative flex items-center justify-center group cursor-pointer border-4 border-white"
+            className="inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-black text-white font-black shadow-xl hover:bg-neutral-900 transition-colors"
           >
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            <PlayCircle size={80} className="text-white/90 group-hover:scale-110 transition-transform drop-shadow-xl" />
-            <div className="absolute bottom-4 left-4 md:bottom-8 md:left-8 text-white text-left">
-              <p className="font-black text-lg md:text-2xl drop-shadow-md">Conoce Manos Abiertas</p>
-              <p className="text-xs md:text-sm text-white/80 font-medium drop-shadow-md mt-1">Abrir video demostrativo</p>
-            </div>
+            <PlayCircle size={24} />
+            Ver video demostrativo
           </button>
 
         </motion.div>
