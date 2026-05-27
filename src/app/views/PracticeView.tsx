@@ -20,6 +20,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    const [isCompleting, setIsCompleting] = useState(false);
 
    const processedRecognitionRef = useRef<string>('');
+   const lastNonMatchRef = useRef<string>('');
    const completionTimerRef = useRef<number | null>(null);
 
    const practiceSigns = useMemo(() => {
@@ -125,14 +126,32 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    }, [stopRecognition]);
 
    useEffect(() => {
-      if (!isPracticeStarted || isCompleting || !currentSign || !recState.currentSign) return;
+      if (!isPracticeStarted || isCompleting || !currentSign) return;
+
+      if (recState.handsDetected === 0) {
+         processedRecognitionRef.current = '';
+         lastNonMatchRef.current = '';
+         return;
+      }
+
+      if (!recState.currentSign) return;
 
       const detected = normalizeSign(recState.currentSign.sign);
       const target = normalizeSign(currentSign.name);
-      const recognitionKey = `${currentIndex}:${detected}`;
+      const matchKey = `${currentIndex}:${target}`;
+      const nonMatchKey = `${currentIndex}:${detected}`;
 
-      if (processedRecognitionRef.current === recognitionKey) return;
-      processedRecognitionRef.current = recognitionKey;
+      if (detected !== target) {
+         if (lastNonMatchRef.current !== nonMatchKey) {
+            lastNonMatchRef.current = nonMatchKey;
+            setStatusMessage(`Mantén la seña objetivo: ${currentSign.name}`);
+         }
+         return;
+      }
+
+      if (processedRecognitionRef.current === matchKey) return;
+      processedRecognitionRef.current = matchKey;
+      lastNonMatchRef.current = '';
 
       if (completionTimerRef.current) {
          window.clearTimeout(completionTimerRef.current);
@@ -141,22 +160,18 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
       setAttempts(prev => prev + 1);
 
-      if (detected === target) {
-         setCorrectAnswers(prev => prev + 1);
-         setStatusMessage(`Correcto: ${currentSign.name}`);
-         completionTimerRef.current = window.setTimeout(() => {
-            if (currentIndex >= practiceSigns.length - 1) {
-               finishPractice();
-               return;
-            }
-            setCurrentIndex(prev => prev + 1);
-            processedRecognitionRef.current = '';
-            setStatusMessage(`Buen trabajo. Ahora intenta con ${practiceSigns[currentIndex + 1]?.name ?? 'la siguiente seña'}.`);
-         }, 900);
-      } else {
-         setStatusMessage(`Detectado: ${recState.currentSign.sign}. Intenta nuevamente con ${currentSign.name}.`);
-      }
-   }, [currentIndex, currentSign, isCompleting, isPracticeStarted, practiceSigns.length, recState.currentSign]);
+      setCorrectAnswers(prev => prev + 1);
+      setStatusMessage(`Correcto: ${currentSign.name}`);
+      completionTimerRef.current = window.setTimeout(() => {
+         if (currentIndex >= practiceSigns.length - 1) {
+            finishPractice();
+            return;
+         }
+         setCurrentIndex(prev => prev + 1);
+         processedRecognitionRef.current = '';
+         setStatusMessage(`Buen trabajo. Ahora intenta con ${practiceSigns[currentIndex + 1]?.name ?? 'la siguiente seña'}.`);
+      }, 900);
+   }, [currentIndex, currentSign, isCompleting, isPracticeStarted, practiceSigns.length, recState.currentSign, recState.handsDetected]);
 
    const confidence = recState.currentSign ? Math.round(recState.currentSign.confidence * 100) : 0;
    const recognitionStateLabel = recState.isActive ? 'Reconocimiento activo' : 'Reconocimiento detenido';
@@ -301,8 +316,8 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                  {recState.isActive ? 'Reconociendo...' : 'Esperando inicio'}
                               </div>
                               <p className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Detectado</p>
-                              <h3 className="text-3xl font-black text-[var(--color-text-primary)]">{recState.currentSign?.sign ?? 'Sin detección'}</h3>
-                              <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{statusMessage}</p>
+                                <h3 className="text-3xl font-black text-[var(--color-text-primary)]">{currentSign?.name ?? 'Sin ejercicio'}</h3>
+                                <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{statusMessage}</p>
                            </div>
 
                            <div className="w-full mt-auto">
@@ -329,7 +344,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                               </div>
 
                               <div className="mt-4 text-center text-xs font-bold uppercase tracking-widest text-[var(--color-text-tertiary)]">
-                                 {currentSign ? `Seña actual: ${currentSign.name}` : 'Selecciona una seña'}
+                                 {currentSign ? `Objetivo activo: ${currentSign.name}` : 'Selecciona una seña'}
                               </div>
                            </div>
                         </CardBody>
