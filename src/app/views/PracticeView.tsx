@@ -29,9 +29,17 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
    const practiceSigns = useMemo(() => {
       const allSigns = signRecognitionService.getAllSigns();
+      // Limitar la práctica al último modelo de colores (5 señas entrenadas)
+      const allowed = new Set(['AMARILLO', 'AZUL', 'BLANCO', 'NEGRO', 'ROJO']);
       return allSigns
-         .filter(sign => sign.category === 'colors')
-         .slice(0, 10);
+         .filter(sign => sign.category === 'colors' && allowed.has((sign.name || sign.label || '').toUpperCase()))
+         // Mantener orden predecible según 'allowed' si hace falta
+         .sort((a, b) => {
+            const order = ['AMARILLO', 'AZUL', 'BLANCO', 'NEGRO', 'ROJO'];
+            const an = (a.name || a.label || '').toUpperCase();
+            const bn = (b.name || b.label || '').toUpperCase();
+            return order.indexOf(an) - order.indexOf(bn);
+         });
    }, []);
 
    const currentSign = practiceSigns[currentIndex] ?? null;
@@ -399,7 +407,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                         <Trophy size={42} className="text-[var(--color-primary-600)]" />
                      </div>
                      <h2 className="text-2xl font-black text-[var(--color-text-primary)] mb-2">¡Práctica completada!</h2>
-                     <p className="text-[var(--color-text-secondary)] font-medium mb-8">Terminaste el recorrido de 10 señas usando el vocabulario disponible.</p>
+                     <p className="text-[var(--color-text-secondary)] font-medium mb-8">Terminaste el recorrido de las 5 señas del modelo de colores.</p>
 
                      <div className="mb-8">
                         <div className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Aciertos</div>
