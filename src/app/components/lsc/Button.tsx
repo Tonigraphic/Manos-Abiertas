@@ -26,6 +26,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   }, ref) => {
     const baseStyles = 'inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
+    const hasLightBackground = /(?:^|\s)(?:bg-white|bg-white\/|bg-\[var\(--color-neutral-50\)\]|bg-\[var\(--color-neutral-100\)\]|bg-\[var\(--color-primary-50\)\]|bg-\[var\(--color-primary-100\)\]|bg-\[var\(--color-accent-50\)\]|bg-\[var\(--color-accent-100\)\]|bg-\[var\(--color-success-50\)\]|bg-\[var\(--color-warning-50\)\]|bg-\[var\(--color-error-50\)\])(?:\s|$)/.test(className);
+    const hasExplicitTextColor = /(?:^|\s)text-(?:white|black|\[|slate-|gray-|zinc-|neutral-|stone-|red-|orange-|amber-|yellow-|lime-|green-|emerald-|teal-|cyan-|blue-|indigo-|violet-|purple-|fuchsia-|pink-)/.test(className);
+    const accessibleTextClass = hasLightBackground && !hasExplicitTextColor ? 'text-[var(--color-text-primary)]' : '';
+
     const variantStyles = {
       primary: 'bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] focus:ring-[var(--color-primary-500)] shadow-md hover:shadow-lg',
       secondary: 'bg-[var(--color-accent-500)] text-white hover:bg-[var(--color-accent-600)] focus:ring-[var(--color-accent-400)] shadow-md hover:shadow-lg',
@@ -42,12 +46,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <motion.button
         ref={ref}
         whileTap={{ scale: disabled || isLoading ? 1 : 0.98 }}
-        className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
+        className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className} ${accessibleTextClass}`}
         disabled={disabled || isLoading}
         {...props}
       >
         {isLoading ? (
-          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
         ) : (
           <>
             {leftIcon && <span className="flex-shrink-0">{leftIcon}</span>}
