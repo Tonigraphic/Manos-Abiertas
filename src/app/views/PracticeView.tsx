@@ -415,10 +415,13 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                  {recState.isActive ? 'Reconociendo...' : 'Esperando inicio'}
                               </div>
                               <p className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Estado</p>
-                                <h3 className="text-2xl font-black text-[var(--color-text-primary)] transition-all duration-300 text-center leading-tight">
-                                   {displayedDetectionLabel}
-                                </h3>
-                                <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{statusMessage}</p>
+                              <h3 className="text-3xl font-black text-[var(--color-primary-600)] transition-all duration-300 text-center leading-tight mb-2">
+                                 {currentSign?.name ?? 'Sin seña'}
+                              </h3>
+                              <p className="text-base font-bold text-[var(--color-text-primary)] text-center leading-snug">
+                                 {displayedDetectionLabel}
+                              </p>
+                              <p className="mt-2 text-sm text-[var(--color-text-secondary)] text-center">{statusMessage}</p>
                            </div>
 
                            <div className="w-full mt-auto">
