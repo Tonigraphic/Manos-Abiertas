@@ -37,7 +37,7 @@
     { label: "AZUL", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AZUL.mp4" },
     { label: "AZUL VERDE", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AZUL_VERDE.mp4" },
     { label: "AZUL VIOLETA", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AZUL_VIOLETA.mp4" },
-    { label: "BLANCO", url: "https://github.com/user-attachments/assets/bd5c38ba-a211-49c7-91cc-53e0c83b5876" },
+    { label: "BLANCO", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/BLANCO.mp4?download=true" },
     { label: "CAFÉ", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/CAF%C3%89.mp4" },
     { label: "COLORES", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/COLORES.mp4" },
     { label: "CREMA", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/CREMA.mp4" },
