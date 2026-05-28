@@ -28,6 +28,16 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    const completionTimerRef = useRef<number | null>(null);
    const advanceTimerRef = useRef<number | null>(null);
    const handsDownTimerRef = useRef<number | null>(null);
+   const latestHandsDetectedRef = useRef(0);
+   const latestCurrentIndexRef = useRef(0);
+
+   useEffect(() => {
+      latestHandsDetectedRef.current = recState.handsDetected;
+   }, [recState.handsDetected]);
+
+   useEffect(() => {
+      latestCurrentIndexRef.current = currentIndex;
+   }, [currentIndex]);
 
    const practiceSigns = useMemo(() => {
       const allSigns = signRecognitionService.getAllSigns();
@@ -177,11 +187,11 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                handsDownTimerRef.current = window.setTimeout(() => {
                   handsDownTimerRef.current = null;
                   if (!awaitingResetRef.current || !isPracticeStarted || isCompleting) return;
-                  if (recState.handsDetected !== 0) return;
+                  if (latestHandsDetectedRef.current !== 0) return;
 
                   awaitingResetRef.current = false;
                   setIsAdvancing(false);
-                  if (currentIndex >= practiceSigns.length - 1) {
+                  if (latestCurrentIndexRef.current >= practiceSigns.length - 1) {
                      finishPractice();
                      return;
                   }
@@ -189,7 +199,8 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                   setCurrentIndex(prev => prev + 1);
                   processedRecognitionRef.current = '';
                   lastNonMatchRef.current = '';
-                  setStatusMessage(`Buen trabajo. Ahora intenta con ${practiceSigns[currentIndex + 1]?.name ?? 'la siguiente seña'}.`);
+                  const nextSign = practiceSigns[latestCurrentIndexRef.current + 1]?.name ?? 'la siguiente seña';
+                  setStatusMessage(`Buen trabajo. Ahora intenta con ${nextSign}.`);
                }, 900);
             }
          } else if (handsDownTimerRef.current) {
@@ -246,6 +257,8 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    );
    const displayedDetectionLabel = !recState.isActive
       ? 'Sin detección'
+      : isAdvancing
+         ? 'Baja las manos para continuar'
       : detectedMatchesTarget
          ? currentSign?.name ?? 'Sin detección'
          : 'Esperando coincidencia con el objetivo';

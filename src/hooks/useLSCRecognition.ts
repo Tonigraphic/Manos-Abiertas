@@ -13,6 +13,7 @@ export function useLSCRecognition() {
   const isActiveRef = useRef(false);
   const animFrameRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
+  const noHandsTimerRef = useRef<number | null>(null);
 
   const [state, setState] = useState({
     isActive: false,
@@ -79,6 +80,22 @@ export function useLSCRecognition() {
     const hasLeft = !!results.leftHandLandmarks;
     const hasRight = !!results.rightHandLandmarks;
     const count = (hasLeft ? 1 : 0) + (hasRight ? 1 : 0);
+
+    if (count === 0) {
+      if (!noHandsTimerRef.current) {
+        noHandsTimerRef.current = window.setTimeout(() => {
+          noHandsTimerRef.current = null;
+          if (!isActiveRef.current) return;
+          setState(prev => ({
+            ...prev,
+            currentSign: null,
+          }));
+        }, 450);
+      }
+    } else if (noHandsTimerRef.current) {
+      window.clearTimeout(noHandsTimerRef.current);
+      noHandsTimerRef.current = null;
+    }
 
     drawLandmarks(ctx, results, canvas.width, canvas.height);
 
@@ -166,6 +183,11 @@ export function useLSCRecognition() {
   const stopRecognition = useCallback(() => {
     isActiveRef.current = false;
     cancelAnimationFrame(animFrameRef.current);
+
+    if (noHandsTimerRef.current) {
+      clearTimeout(noHandsTimerRef.current);
+      noHandsTimerRef.current = null;
+    }
 
     const stream = streamRef.current || (videoRef.current?.srcObject as MediaStream | null);
     stream?.getTracks().forEach(t => t.stop());
