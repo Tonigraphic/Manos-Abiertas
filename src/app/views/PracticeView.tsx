@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
-import { Camera, CameraOff, RefreshCw, BarChart2, Target, Trophy, PlayCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { Camera, CameraOff, RefreshCw, BarChart2, Target, Trophy, PlayCircle, CheckCircle2, XCircle, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useLSCRecognition } from '../../hooks/useLSCRecognition';
 import { signRecognitionService } from '../../services/signRecognitionService';
 import { InstructionsModal } from '../components/lsc/InstructionsModal';
@@ -305,12 +306,24 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
             
             {/* Columna Izquierda: Instrucción */}
             <div className="lg:col-span-1 h-full flex flex-col gap-4">
-                     <Card className="flex-1 border-none shadow-lg bg-white overflow-hidden flex flex-col">
+                     <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35 }}
+                        className="flex-1"
+                     >
+                     <Card className="h-full border-none shadow-lg bg-white overflow-hidden flex flex-col">
                         <CardBody className="p-6 flex flex-col h-full items-center text-center">
                            <p className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Seña objetivo</p>
-                           <h2 className={`text-4xl font-black text-[var(--color-primary-600)] mb-3 transition-all duration-300 ${isAdvancing ? 'opacity-60 scale-95' : 'opacity-100 scale-100'}`}>
+                           <motion.h2
+                              key={currentSign?.name ?? 'empty'}
+                              initial={{ opacity: 0, scale: 0.92, y: 8 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              transition={{ duration: 0.28 }}
+                              className={`text-4xl font-black text-[var(--color-primary-600)] mb-3 transition-all duration-300 ${isAdvancing ? 'opacity-70 scale-95' : 'opacity-100 scale-100'}`}
+                           >
                               {currentSign?.name ?? 'Sin ejercicio'}
-                           </h2>
+                           </motion.h2>
                            <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-accent-100)] text-[var(--color-accent-700)] text-xs font-bold uppercase tracking-widest">
                               {currentSign ? getCategoryLabel(currentSign.category) : 'Práctica'}
                            </div>
@@ -359,6 +372,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                            </div>
                         </CardBody>
                      </Card>
+                     </motion.div>
             </div>
 
             {/* Centro: Cámara */}
@@ -377,6 +391,53 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                            className="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none"
                            style={{ transform: 'scaleX(-1)' }}
                         />
+
+                        <AnimatePresence mode="wait">
+                           {recState.isActive && (
+                              <motion.div
+                                 key={isAdvancing ? 'advance' : currentSign?.name ?? 'ready'}
+                                 initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                                 animate={{ opacity: 1, y: 0, scale: 1 }}
+                                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                                 transition={{ duration: 0.22 }}
+                                 className="absolute inset-x-0 top-0 z-30 p-4 pointer-events-none"
+                              >
+                                 <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-black/35 backdrop-blur-md shadow-2xl px-5 py-4 text-white">
+                                    <div className="flex items-center justify-between gap-4">
+                                       <div className="min-w-0">
+                                          <p className="text-[10px] uppercase tracking-[0.35em] text-white/70 font-black mb-1">Objetivo</p>
+                                          <div className="text-2xl md:text-3xl font-black text-white truncate">
+                                             {currentSign?.name ?? 'Sin ejercicio'}
+                                          </div>
+                                       </div>
+                                       <div className="shrink-0 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest">
+                                          <span className={`h-2.5 w-2.5 rounded-full ${isAdvancing ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400 animate-pulse'}`} />
+                                          {isAdvancing ? 'Baja las manos' : 'Listo'}
+                                       </div>
+                                    </div>
+
+                                    <div className="mt-3 h-2 rounded-full bg-white/10 overflow-hidden">
+                                       <motion.div
+                                          className={`h-full rounded-full ${isAdvancing ? 'bg-amber-400' : 'bg-emerald-400'}`}
+                                          initial={{ width: '0%' }}
+                                          animate={{ width: isAdvancing ? '100%' : '38%' }}
+                                          transition={{ duration: 0.35 }}
+                                       />
+                                    </div>
+
+                                    <motion.p
+                                       key={statusMessage}
+                                       initial={{ opacity: 0, y: 4 }}
+                                       animate={{ opacity: 1, y: 0 }}
+                                       className="mt-3 text-sm text-white/85 font-medium flex items-center gap-2"
+                                    >
+                                       <ChevronDown size={16} className={isAdvancing ? 'animate-bounce text-amber-300' : 'text-white/60'} />
+                                       {statusMessage}
+                                    </motion.p>
+                                 </div>
+                              </motion.div>
+                           )}
+                        </AnimatePresence>
 
                         {!recState.isActive && !recState.isLoading && (
                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-neutral-900/90 to-neutral-950/95 text-white p-6 text-center z-20 backdrop-blur-sm">
@@ -415,13 +476,38 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                  {recState.isActive ? 'Reconociendo...' : 'Esperando inicio'}
                               </div>
                               <p className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Estado</p>
-                              <h3 className="text-3xl font-black text-[var(--color-primary-600)] transition-all duration-300 text-center leading-tight mb-2">
-                                 {currentSign?.name ?? 'Sin seña'}
-                              </h3>
-                              <p className="text-base font-bold text-[var(--color-text-primary)] text-center leading-snug">
-                                 {displayedDetectionLabel}
-                              </p>
-                              <p className="mt-2 text-sm text-[var(--color-text-secondary)] text-center">{statusMessage}</p>
+                              <AnimatePresence mode="wait">
+                                 <motion.h3
+                                    key={currentSign?.name ?? 'empty-state'}
+                                    initial={{ opacity: 0, scale: 0.9, y: 8 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.92, y: -4 }}
+                                    transition={{ duration: 0.22 }}
+                                    className="text-3xl font-black text-[var(--color-primary-600)] text-center leading-tight mb-2"
+                                 >
+                                    {currentSign?.name ?? 'Sin seña'}
+                                 </motion.h3>
+                              </AnimatePresence>
+                              <AnimatePresence mode="wait">
+                                 <motion.p
+                                    key={displayedDetectionLabel}
+                                    initial={{ opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -4 }}
+                                    className={`text-base font-bold text-center leading-snug ${isAdvancing ? 'text-[var(--color-warning-700)]' : 'text-[var(--color-text-primary)]'}`}
+                                 >
+                                    {displayedDetectionLabel}
+                                 </motion.p>
+                              </AnimatePresence>
+                              <motion.p
+                                 key={statusMessage}
+                                 initial={{ opacity: 0, y: 6 }}
+                                 animate={{ opacity: 1, y: 0 }}
+                                 exit={{ opacity: 0, y: -4 }}
+                                 className="mt-2 text-sm text-[var(--color-text-secondary)] text-center"
+                              >
+                                 {statusMessage}
+                              </motion.p>
                            </div>
 
                            <div className="w-full mt-auto">
