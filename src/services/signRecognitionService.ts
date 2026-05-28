@@ -80,6 +80,7 @@ export class SignRecognitionService {
   private patterns: Map<string, SignPattern> = new Map();
   private session: ort.InferenceSession | null = null;
   private currentCategory: string | null = null;
+  private currentModelUrl: string | null = null;
   private inputName: string = '';
   private outputName: string = '';
   private frameBuffer: Float32Array[] = [];
@@ -112,13 +113,14 @@ export class SignRecognitionService {
   }
 
   public async loadModel(category: string): Promise<void> {
-    if (this.currentCategory === category && this.session) return;
+    const url = MODEL_URLS[category];
+    // Si ya cargamos exactamente la misma URL, no recargamos.
+    if (this.currentCategory === category && this.session && this.currentModelUrl === url) return;
 
     try {
-      const url = MODEL_URLS[category];
       if (!url) throw new Error(`Categoría ${category} sin modelo`);
 
-      console.log(`Cargando modelo Holistic para "${category}"...`);
+      console.log(`Cargando modelo Holistic para "${category}" desde ${url}...`);
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const buffer = await response.arrayBuffer();
@@ -130,6 +132,7 @@ export class SignRecognitionService {
       this.inputName = this.session.inputNames[0];
       this.outputName = this.session.outputNames[0];
       this.currentCategory = category;
+      this.currentModelUrl = url;
       this.frameBuffer = [];
       this.isPredicting = false;
 
