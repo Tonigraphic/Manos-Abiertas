@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { translateLSCtoSpanish } from '../../lib/translationEngine';
 import { LSC_VOCABULARY } from '../../lib/lscData';
 import { InstructionsModal } from '../components/lsc/InstructionsModal';
+import { resolveVideoUrl } from '../../lib/videoUtils';
 
 type VocabularyEntry = {
   label: string;
@@ -353,7 +354,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                                  className="flex-shrink-0 flex flex-col items-center gap-2 text-left"
                                >
                                  <div className="w-24 h-24 bg-white rounded-xl border border-[var(--color-accent-200)] shadow-sm flex items-center justify-center overflow-hidden relative group">
-                                  <video src={sign.url} autoPlay loop muted playsInline className="w-full h-full object-contain bg-black" />
+                                  <video src={resolveVideoUrl(sign.url)} autoPlay loop muted playsInline className="w-full h-full object-contain bg-black" />
                                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                                     <span className="opacity-0 group-hover:opacity-100 bg-white text-[var(--color-neutral-900)] rounded-full p-2 shadow-lg transition-opacity">
                                       <Play size={16} />
@@ -387,7 +388,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                                         className="flex-shrink-0 w-24 flex flex-col items-center gap-2 text-left"
                                       >
                                         <div className="w-24 h-24 bg-white rounded-xl border border-[var(--color-accent-200)] shadow-sm flex items-center justify-center overflow-hidden relative group">
-                                          <video src={sign.url} autoPlay loop muted playsInline className="w-full h-full object-contain bg-black" />
+                                          <video src={resolveVideoUrl(sign.url)} autoPlay loop muted playsInline className="w-full h-full object-contain bg-black" />
                                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                                             <span className="opacity-0 group-hover:opacity-100 bg-white text-[var(--color-neutral-900)] rounded-full p-2 shadow-lg transition-opacity">
                                               <Play size={16} />
@@ -519,7 +520,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                 <div className="w-full md:w-3/5 bg-black aspect-video flex items-center justify-center">
                   <video
                     key={selectedPreview.url}
-                    src={selectedPreview.url}
+                      src={resolveVideoUrl(selectedPreview.url)}
                     autoPlay
                     loop
                     muted

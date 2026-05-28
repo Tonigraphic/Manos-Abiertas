@@ -3,6 +3,7 @@ import { Button } from '../components/lsc/Button';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, PlayCircle, Languages, Target, MessageSquare } from 'lucide-react';
 import logoPrincipal from '../../assets/logo.png'; 
+import { resolveVideoUrl } from '../../lib/videoUtils';
 
 interface LandingViewProps {
   onNavigate: (view: string) => void;
@@ -47,7 +48,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                 muted={false}
                 onEnded={() => setIsDemoOpen(false)}
                 className="w-full aspect-video object-cover bg-black"
-                src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+                src={resolveVideoUrl('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4')}
               />
 
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 bg-gradient-to-t from-black/85 via-black/40 to-transparent text-white pointer-events-none">

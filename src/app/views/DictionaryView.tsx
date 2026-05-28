@@ -7,6 +7,7 @@ import { Search, BookOpen, Play, X, Hand } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { signRecognitionService, SignPattern } from '../../services/signRecognitionService';
 import { InstructionsModal } from '../components/lsc/InstructionsModal';
+import { resolveVideoUrl } from '../../lib/videoUtils';
 
 interface DictionaryViewProps {
   onNavigate?: (view: string) => void;
@@ -177,7 +178,7 @@ export function DictionaryView({ onNavigate }: DictionaryViewProps = {}) {
                   {selectedSign.videoUrl ? (
                     <video
                       key={selectedSign.videoUrl}
-                      src={selectedSign.videoUrl}
+                      src={resolveVideoUrl(selectedSign.videoUrl)}
                       autoPlay loop muted playsInline controls
                       className="w-full h-full object-contain"
                     />

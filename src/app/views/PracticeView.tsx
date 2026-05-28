@@ -5,6 +5,7 @@ import { Camera, CameraOff, RefreshCw, BarChart2, Target, Trophy, PlayCircle, Ch
 import { useLSCRecognition } from '../../hooks/useLSCRecognition';
 import { signRecognitionService } from '../../services/signRecognitionService';
 import { InstructionsModal } from '../components/lsc/InstructionsModal';
+import { resolveVideoUrl } from '../../lib/videoUtils';
 
 interface PracticeViewProps {
   onNavigateHome?: () => void;
@@ -251,7 +252,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                               {currentSign?.videoUrl ? (
                                  <video
                                     key={currentSign.videoUrl}
-                                    src={currentSign.videoUrl}
+                                    src={resolveVideoUrl(currentSign.videoUrl)}
                                     autoPlay
                                     loop
                                     muted
