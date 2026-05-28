@@ -22,13 +22,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     rightIcon,
     disabled,
     className = '',
+    style,
     ...props
   }, ref) => {
     const baseStyles = 'inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
     const hasLightBackground = /(?:^|\s)(?:bg-white|bg-white\/|bg-\[var\(--color-neutral-50\)\]|bg-\[var\(--color-neutral-100\)\]|bg-\[var\(--color-primary-50\)\]|bg-\[var\(--color-primary-100\)\]|bg-\[var\(--color-accent-50\)\]|bg-\[var\(--color-accent-100\)\]|bg-\[var\(--color-success-50\)\]|bg-\[var\(--color-warning-50\)\]|bg-\[var\(--color-error-50\)\])(?:\s|$)/.test(className);
-    const hasExplicitTextColor = /(?:^|\s)text-(?:white|black|\[|slate-|gray-|zinc-|neutral-|stone-|red-|orange-|amber-|yellow-|lime-|green-|emerald-|teal-|cyan-|blue-|indigo-|violet-|purple-|fuchsia-|pink-)/.test(className);
-    const accessibleTextClass = hasLightBackground && !hasExplicitTextColor ? 'text-[var(--color-text-primary)]' : '';
+    const accessibleTextColor = hasLightBackground ? 'var(--color-text-primary)' : undefined;
 
     const variantStyles = {
       primary: 'bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] focus:ring-[var(--color-primary-500)] shadow-md hover:shadow-lg',
@@ -46,7 +46,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <motion.button
         ref={ref}
         whileTap={{ scale: disabled || isLoading ? 1 : 0.98 }}
-        className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className} ${accessibleTextClass}`}
+        className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
+        style={{ ...style, color: accessibleTextColor ?? style?.color }}
         disabled={disabled || isLoading}
         {...props}
       >
