@@ -203,6 +203,14 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
    const confidence = recState.currentSign ? Math.round(recState.currentSign.confidence * 100) : 0;
    const recognitionStateLabel = recState.isActive ? 'Reconocimiento activo' : 'Reconocimiento detenido';
+   const detectedMatchesTarget = Boolean(
+      recState.currentSign && currentSign && normalizeSign(recState.currentSign.sign) === normalizeSign(currentSign.name)
+   );
+   const displayedDetectionLabel = !recState.isActive
+      ? 'Sin detección'
+      : detectedMatchesTarget
+         ? currentSign?.name ?? 'Sin detección'
+         : 'Esperando coincidencia con el objetivo';
   
   return (
     <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-[var(--color-surface)] relative">
@@ -355,9 +363,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                               <div className={`inline-block px-4 py-1.5 bg-[var(--color-accent-100)] text-[var(--color-accent-700)] rounded-full text-xs font-black uppercase tracking-widest mb-4 transition-all duration-300 ${isAdvancing ? 'opacity-70 scale-95' : 'animate-pulse'}`}>
                                  {recState.isActive ? 'Reconociendo...' : 'Esperando inicio'}
                               </div>
-                              <p className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Detectado</p>
-                                <h3 className="text-3xl font-black text-[var(--color-text-primary)] transition-all duration-300">
-                                   {recState.isActive ? (recState.currentSign?.sign ?? 'Sin detección') : 'Sin detección'}
+                              <p className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Estado</p>
+                                <h3 className="text-2xl font-black text-[var(--color-text-primary)] transition-all duration-300 text-center leading-tight">
+                                   {displayedDetectionLabel}
                                 </h3>
                                 <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{statusMessage}</p>
                            </div>

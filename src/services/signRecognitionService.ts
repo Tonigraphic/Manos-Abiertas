@@ -65,6 +65,9 @@ Object.entries(LSC_VOCABULARY).forEach(([category, signs]) => {
   CATEGORY_LABELS[category] = signs.map(s => s.label).sort();
 });
 
+const COLOR_MODEL_LABELS = ['AMARILLO', 'AZUL', 'BLANCO', 'NEGRO', 'ROJO'];
+CATEGORY_LABELS.Colores = COLOR_MODEL_LABELS;
+
 // ── Rutas a modelos ────────────────────────────────────────────────────
 const BASE_URL = import.meta.env.BASE_URL;
 const MODEL_URLS: Record<string, string> = {
