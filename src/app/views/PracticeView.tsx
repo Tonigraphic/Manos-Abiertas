@@ -24,8 +24,10 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
    const processedRecognitionRef = useRef<string>('');
    const lastNonMatchRef = useRef<string>('');
+   const awaitingResetRef = useRef(false);
    const completionTimerRef = useRef<number | null>(null);
    const advanceTimerRef = useRef<number | null>(null);
+   const handsDownTimerRef = useRef<number | null>(null);
 
    const practiceSigns = useMemo(() => {
       const allSigns = signRecognitionService.getAllSigns();
@@ -75,6 +77,11 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
          window.clearTimeout(advanceTimerRef.current);
          advanceTimerRef.current = null;
       }
+      if (handsDownTimerRef.current) {
+         window.clearTimeout(handsDownTimerRef.current);
+         handsDownTimerRef.current = null;
+      }
+      awaitingResetRef.current = false;
       stopRecognition();
       setIsPracticeStarted(false);
       setIsCompleting(true);
@@ -107,6 +114,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
       setAttempts(0);
       setStatusMessage('Iniciando cámara y modelo de reconocimiento...');
       processedRecognitionRef.current = '';
+      awaitingResetRef.current = false;
 
       try {
          await startRecognition(currentModelCategory);
@@ -127,6 +135,11 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
          window.clearTimeout(advanceTimerRef.current);
          advanceTimerRef.current = null;
       }
+      if (handsDownTimerRef.current) {
+         window.clearTimeout(handsDownTimerRef.current);
+         handsDownTimerRef.current = null;
+      }
+      awaitingResetRef.current = false;
       stopRecognition();
       setIsPracticeStarted(false);
       setStatusMessage('La práctica se ha detenido.');
@@ -146,12 +159,46 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
          if (advanceTimerRef.current) {
             window.clearTimeout(advanceTimerRef.current);
          }
+         if (handsDownTimerRef.current) {
+            window.clearTimeout(handsDownTimerRef.current);
+         }
+         awaitingResetRef.current = false;
          stopRecognition();
       };
    }, [stopRecognition]);
 
    useEffect(() => {
       if (!isPracticeStarted || isCompleting || !currentSign) return;
+
+      if (awaitingResetRef.current) {
+         if (recState.handsDetected === 0) {
+            if (!handsDownTimerRef.current) {
+               setStatusMessage(`Correcto: ${currentSign.name}. Baja las manos para cargar la siguiente seña.`);
+               handsDownTimerRef.current = window.setTimeout(() => {
+                  handsDownTimerRef.current = null;
+                  if (!awaitingResetRef.current || !isPracticeStarted || isCompleting) return;
+                  if (recState.handsDetected !== 0) return;
+
+                  awaitingResetRef.current = false;
+                  setIsAdvancing(false);
+                  if (currentIndex >= practiceSigns.length - 1) {
+                     finishPractice();
+                     return;
+                  }
+
+                  setCurrentIndex(prev => prev + 1);
+                  processedRecognitionRef.current = '';
+                  lastNonMatchRef.current = '';
+                  setStatusMessage(`Buen trabajo. Ahora intenta con ${practiceSigns[currentIndex + 1]?.name ?? 'la siguiente seña'}.`);
+               }, 900);
+            }
+         } else if (handsDownTimerRef.current) {
+            window.clearTimeout(handsDownTimerRef.current);
+            handsDownTimerRef.current = null;
+         }
+
+         return;
+      }
 
       if (recState.handsDetected === 0) {
          processedRecognitionRef.current = '';
@@ -187,18 +234,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
       setAttempts(prev => prev + 1);
 
       setCorrectAnswers(prev => prev + 1);
-      setStatusMessage(`Correcto: ${currentSign.name}`);
+      setStatusMessage(`Correcto: ${currentSign.name}. Baja las manos para cargar la siguiente seña.`);
+      awaitingResetRef.current = true;
       setIsAdvancing(true);
-      advanceTimerRef.current = window.setTimeout(() => {
-         setIsAdvancing(false);
-         if (currentIndex >= practiceSigns.length - 1) {
-            finishPractice();
-            return;
-         }
-         setCurrentIndex(prev => prev + 1);
-         processedRecognitionRef.current = '';
-         setStatusMessage(`Buen trabajo. Ahora intenta con ${practiceSigns[currentIndex + 1]?.name ?? 'la siguiente seña'}.`);
-      }, 650);
    }, [currentIndex, currentSign, isCompleting, isPracticeStarted, practiceSigns.length, recState.currentSign, recState.handsDetected]);
 
    const confidence = recState.currentSign ? Math.round(recState.currentSign.confidence * 100) : 0;
