@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
-import { Languages, Volume2, Search, CheckCircle, XCircle } from 'lucide-react';
+import { Languages, Volume2, Search, CheckCircle, XCircle, Play, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { translateLSCtoSpanish } from '../../lib/translationEngine';
 import { LSC_VOCABULARY } from '../../lib/lscData';
@@ -15,6 +15,10 @@ type VocabularyEntry = {
 type TranslationOption = {
   text: string;
   description: string;
+};
+
+type PreviewSign = VocabularyEntry & {
+  group: string;
 };
 
 const INDIVIDUAL_SIGN_ENTRIES: VocabularyEntry[] = Object.values(LSC_VOCABULARY).flat();
@@ -204,6 +208,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [translationOptions, setTranslationOptions] = useState<TranslationOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [confirmationMessage, setConfirmationMessage] = useState('');
+  const [selectedPreview, setSelectedPreview] = useState<PreviewSign | null>(null);
 
   const resetRoleState = () => {
     setTranslatedText('');
@@ -211,6 +216,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     setTranslationOptions([]);
     setSelectedOption(null);
     setConfirmationMessage('');
+    setSelectedPreview(null);
   };
 
   const handleTranslate = async () => {
@@ -246,6 +252,10 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     } else if (!accepted) {
       setConfirmationMessage('Selecciona otra sugerencia o ajusta tu entrada.');
     }
+  };
+
+  const openPreview = (group: string, sign: VocabularyEntry) => {
+    setSelectedPreview({ ...sign, group });
   };
 
   return (
@@ -336,12 +346,22 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                           </label>
                             <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar">
                               {availableSigns.length > 0 ? availableSigns.map((sign, i) => (
-                               <div key={`${sign.label}-${i}`} className="flex-shrink-0 flex flex-col items-center gap-2">
-                                 <div className="w-24 h-24 bg-white rounded-xl border border-[var(--color-accent-200)] shadow-sm flex items-center justify-center overflow-hidden">
+                               <button
+                                 type="button"
+                                 key={`${sign.label}-${i}`}
+                                 onClick={() => openPreview('Seña detectada', sign)}
+                                 className="flex-shrink-0 flex flex-col items-center gap-2 text-left"
+                               >
+                                 <div className="w-24 h-24 bg-white rounded-xl border border-[var(--color-accent-200)] shadow-sm flex items-center justify-center overflow-hidden relative group">
                                   <video src={sign.url} autoPlay loop muted playsInline className="w-full h-full object-contain bg-black" />
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                    <span className="opacity-0 group-hover:opacity-100 bg-white text-[var(--color-neutral-900)] rounded-full p-2 shadow-lg transition-opacity">
+                                      <Play size={16} />
+                                    </span>
+                                  </div>
                                  </div>
                                  <span className="text-xs font-bold text-[var(--color-accent-800)]">{sign.label}</span>
-                               </div>
+                               </button>
                               )) : (
                                <div className="text-sm text-[var(--color-text-secondary)]">No se encontraron señas exactas en el vocabulario para esta frase.</div>
                               )}
@@ -360,12 +380,22 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                                   </div>
                                   <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
                                     {signs.map((sign) => (
-                                      <div key={`${category}-${sign.label}`} className="flex-shrink-0 w-24 flex flex-col items-center gap-2">
-                                        <div className="w-24 h-24 bg-white rounded-xl border border-[var(--color-accent-200)] shadow-sm flex items-center justify-center overflow-hidden">
+                                      <button
+                                        type="button"
+                                        key={`${category}-${sign.label}`}
+                                        onClick={() => openPreview(category, sign)}
+                                        className="flex-shrink-0 w-24 flex flex-col items-center gap-2 text-left"
+                                      >
+                                        <div className="w-24 h-24 bg-white rounded-xl border border-[var(--color-accent-200)] shadow-sm flex items-center justify-center overflow-hidden relative group">
                                           <video src={sign.url} autoPlay loop muted playsInline className="w-full h-full object-contain bg-black" />
+                                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                            <span className="opacity-0 group-hover:opacity-100 bg-white text-[var(--color-neutral-900)] rounded-full p-2 shadow-lg transition-opacity">
+                                              <Play size={16} />
+                                            </span>
+                                          </div>
                                         </div>
                                         <span className="text-[11px] font-bold text-[var(--color-accent-800)] text-center leading-tight">{sign.label}</span>
-                                      </div>
+                                      </button>
                                     ))}
                                   </div>
                                 </div>
@@ -461,6 +491,66 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
 
         </div>
       </div>
+
+      <AnimatePresence>
+        {selectedPreview && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-[var(--color-neutral-900)]/80 backdrop-blur-md"
+              onClick={() => setSelectedPreview(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-y-auto max-h-[85vh] md:overflow-hidden relative z-10"
+            >
+              <button
+                onClick={() => setSelectedPreview(null)}
+                className="absolute top-4 right-4 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-transform active:scale-90"
+                aria-label="Cerrar vista ampliada"
+              >
+                <X size={20} className="text-[var(--color-neutral-900)]" />
+              </button>
+              <div className="flex flex-col md:flex-row">
+                <div className="w-full md:w-3/5 bg-black aspect-video flex items-center justify-center">
+                  <video
+                    key={selectedPreview.url}
+                    src={selectedPreview.url}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    controls
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="p-8 flex-1 bg-white">
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-2xl">🤟</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]">{selectedPreview.group}</span>
+                    </div>
+                    <h2 className="text-3xl font-black text-[var(--color-neutral-900)] uppercase mb-2">{selectedPreview.label}</h2>
+                  </div>
+                  <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed mb-8">
+                    Observa el movimiento y la configuración manual de esta seña del vocabulario individual.
+                  </p>
+                  <button
+                    onClick={() => setSelectedPreview(null)}
+                    className="w-full py-4 bg-[var(--color-primary-600)] text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-[var(--color-primary-700)] transition-all shadow-xl active:scale-95"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
