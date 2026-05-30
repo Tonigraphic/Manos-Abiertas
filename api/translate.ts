@@ -24,6 +24,8 @@ const DEFAULT_CLASSIC_HF_MODELS = [
   'google/flan-t5-small',
 ];
 
+const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
+
 function stripCodeFences(text: string): string {
   return text
     .replace(/```[\s\S]*?```/g, match => match.replace(/```/g, ''))
@@ -104,6 +106,40 @@ function buildMessages(input: string, compact = false, context?: string) {
   messages.push({ role: 'user', content: `Texto: ${input}` });
 
   return messages;
+}
+
+function getOpenAICandidateModel(): string {
+  return normalizeModelId(process.env.OPENAI_TRANSLATION_MODEL || process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL);
+}
+
+async function translateWithOpenAIModel(
+  input: string,
+  apiKey: string,
+  modelId: string,
+  compact = false,
+  context?: string,
+): Promise<string> {
+  const payload = await fetchJsonWithRetries(
+    'https://api.openai.com/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: buildMessages(input, compact, context),
+        temperature: 0.2,
+        max_tokens: getMaxTokensForText(input),
+        stream: false,
+      }),
+    },
+    20000,
+    1
+  );
+
+  return cleanTranslation(extractGeneratedText(payload?.choices?.[0]?.message?.content ?? payload));
 }
 
   function normalizeModelId(model: string): string {
@@ -510,10 +546,29 @@ export default async function handler(req: any, res: any) {
     }
 
     const localFallback = fallbackTranslation(text);
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.OPENAI_TRANSLATION_TOKEN;
+    const openaiModel = getOpenAICandidateModel();
     // Preferir el token específico de traducción si existe, sino usar el legacy HF_TOKEN
     const HF_TOKEN = process.env.HF_TRANSLATION_TOKEN || process.env.HF_TOKEN;
     const tokenSource = process.env.HF_TRANSLATION_TOKEN ? 'new' : (process.env.HF_TOKEN ? 'legacy' : 'none');
     const routerCandidateModels = getRouterCandidateModels();
+
+    if (OPENAI_API_KEY) {
+      try {
+        const translatedText = await translateWithOpenAIModel(text, OPENAI_API_KEY, openaiModel);
+
+        if (translatedText) {
+          return res.status(200).json({
+            success: true,
+            provider: 'openai',
+            model: openaiModel,
+            translatedText,
+          });
+        }
+      } catch (openaiErr: any) {
+        console.warn('OpenAI translation failed, falling back to Hugging Face.', openaiErr?.message || openaiErr);
+      }
+    }
 
     if (!HF_TOKEN) {
       return res.status(200).json({

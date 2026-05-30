@@ -83,39 +83,34 @@ pnpm vite
 
 La aplicación estará disponible en `http://localhost:5173`
 
-## 🌐 Configuración de traducción IA (producción)
+## 🌐 Configuración de traducción IA (producción y desarrollo)
 
-Para que el traductor use Hugging Face en `/api/translate`, configura estas variables en Vercel (Production y Preview):
+El traductor usa este orden de prioridad:
 
+1. OpenAI en `/api/translate`
+2. Hugging Face como respaldo si OpenAI no está disponible
+3. Fallback local para no romper la UI
+
+Variables recomendadas:
+
+- `OPENAI_API_KEY`: clave de OpenAI para traducción.
+- `OPENAI_TRANSLATION_MODEL`: modelo de OpenAI a usar. Ejemplo: `gpt-4o-mini`.
 - `HF_TRANSLATION_TOKEN`: token fine-grained con permiso **Make calls to Inference Providers**.
-- `HF_TRANSLATION_MODEL`: modelo principal para el router.
-- `HF_TRANSLATION_MODELS`: dejar vacío mientras estabilizas el despliegue.
-- `HF_TRANSLATION_CLASSIC_MODEL`: dejar vacío mientras estabilizas el despliegue.
-- `HF_TRANSLATION_CLASSIC_MODELS`: dejar vacío mientras estabilizas el despliegue.
+- `HF_TRANSLATION_MODEL`: modelo principal para el router de Hugging Face.
 - `HF_WAIT_FOR_MODEL`: `true` solo si quieres esperar cargas frías del modelo.
 
 Configuración recomendada para empezar:
 
 ```text
+OPENAI_API_KEY=<tu_openai_api_key>
+OPENAI_TRANSLATION_MODEL=gpt-4o-mini
 HF_TRANSLATION_TOKEN=<tu_token_fine_grained>
 HF_TRANSLATION_MODEL=openai/gpt-oss-20b
-HF_TRANSLATION_MODELS=
-HF_TRANSLATION_CLASSIC_MODEL=
-HF_TRANSLATION_CLASSIC_MODELS=
 HF_WAIT_FOR_MODEL=false
 ```
 
-Si quieres copiarlo rápido, usa `.env.example` como base local y replica los mismos valores en Vercel.
-
-En Vercel, no dejes `HF_TRANSLATION_TOKEN` vacío: si falta, la app siempre caerá a fallback local.
-Los valores de modelo deben ir exactos, sin punto final ni comillas extra.
-
-Orden de uso real en la app:
-
-1. `HF_TRANSLATION_MODEL` contra `router.huggingface.co`
-2. Fallback local si Hugging Face no responde
-
-Si no hay token o un modelo compatible, la app hace fallback local automáticamente sin romper la UI.
+En desarrollo local, el endpoint `/api/translate` se expone desde Vite para que el traductor también use OpenAI sin depender de Vercel.
+Si OpenAI falla o no hay clave, la app intenta Hugging Face y finalmente cae al fallback local.
 
 ## 📱 Uso
 
