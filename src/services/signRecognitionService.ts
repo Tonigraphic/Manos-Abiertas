@@ -56,6 +56,7 @@ const FEATURES_PER_FRAME =
 
 const TOTAL_INPUT_SIZE = SEQUENCE_LENGTH * FEATURES_PER_FRAME; // 49860
 const CONFIDENCE_THRESHOLD = 0.75;
+const STABLE_PREDICTIONS_REQUIRED = 6;
 
 // ── Etiquetas por categoría ────────────────────────────────────────────
 const CATEGORY_LABELS: Record<string, string[]> = {};
@@ -205,6 +206,12 @@ export class SignRecognitionService {
 
   private lastPredictions: string[] = [];
 
+  public resetTemporalState(): void {
+    this.frameBuffer = [];
+    this.lastPredictions = [];
+    this.isPredicting = false;
+  }
+
   /**
    * Agrega un frame holístico al buffer y predice al completar 30 frames.
    * Input: [1, 30, 1662] — todos los landmarks de MediaPipe Holistic.
@@ -227,7 +234,7 @@ export class SignRecognitionService {
 
     // 3. Filtro Anti-Fantasmas: Si no hay manos en pantalla, no hacemos inferencia.
     if (!hasLeft && !hasRight) {
-      this.lastPredictions = []; // Vaciamos el estabilizador
+      this.resetTemporalState();
       return null;
     }
 
@@ -265,22 +272,22 @@ export class SignRecognitionService {
 
       // 8. Threshold más estricto + label
       const labels = CATEGORY_LABELS[this.currentCategory];
-      if (!labels || maxIdx >= labels.length || confidence < 0.85) { // Aumentado a 85%
-        this.lastPredictions = []; // Si baja la confianza, reseteamos estabilizador
+      if (!labels || maxIdx >= labels.length || confidence < 0.88) {
+        this.lastPredictions = [];
         return null;
       }
 
       const predictedSign = labels[maxIdx];
 
       // 9. ESTABILIZADOR TEMPORAL (Anti-Flickering / Lag visual)
-      // Exigimos que el modelo esté seguro de la misma seña durante 5 frames consecutivos
+      // Exigimos que el modelo esté seguro de la misma seña durante varios frames consecutivos
       // antes de mostrarla en pantalla. Esto elimina la "basura" de las transiciones.
       this.lastPredictions.push(predictedSign);
-      if (this.lastPredictions.length > 5) {
+      if (this.lastPredictions.length > STABLE_PREDICTIONS_REQUIRED) {
         this.lastPredictions.shift();
       }
 
-      const isStable = this.lastPredictions.length === 5 && this.lastPredictions.every(p => p === predictedSign);
+      const isStable = this.lastPredictions.length === STABLE_PREDICTIONS_REQUIRED && this.lastPredictions.every(p => p === predictedSign);
 
       if (!isStable) {
         return null; // Aún no es estable

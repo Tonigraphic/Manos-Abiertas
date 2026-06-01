@@ -252,23 +252,31 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    useEffect(() => {
       if (!isPracticeStarted || isCompleting || !currentSign) return;
 
-      if (awaitingResetRef.current) {
-         const recognitionCleared = recState.currentSign === null;
+      if (recState.handsDetected > 0 && !awaitingResetRef.current) {
+         awaitingResetRef.current = true;
+         attemptLockedRef.current = false;
+         pendingAttemptMatchedRef.current = false;
+         pendingAttemptSignRef.current = '';
+         processedRecognitionRef.current = '';
+         lastNonMatchRef.current = '';
+         setIsAdvancing(false);
+      }
 
-         if (recognitionCleared) {
+      if (awaitingResetRef.current) {
+         const handsAreDown = recState.handsDetected === 0;
+
+         if (handsAreDown) {
             if (!noRecognitionTimerRef.current) {
                noRecognitionTimerRef.current = window.setTimeout(() => {
                   noRecognitionTimerRef.current = null;
                   if (!awaitingResetRef.current || !isPracticeStarted || isCompleting) return;
-                  if (recState.currentSign !== null) return;
+                  if (recState.handsDetected !== 0) return;
 
                   const wasMatched = pendingAttemptMatchedRef.current;
 
-                  if (attemptLockedRef.current) {
-                     setAttempts(prev => prev + 1);
-                     if (wasMatched) {
-                        setCorrectAnswers(prev => prev + 1);
-                     }
+                  setAttempts(prev => prev + 1);
+                  if (wasMatched) {
+                     setCorrectAnswers(prev => prev + 1);
                   }
 
                   awaitingResetRef.current = false;
@@ -277,6 +285,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                   if (latestCurrentIndexRef.current >= practiceSigns.length - 1) {
                      pendingAttemptMatchedRef.current = false;
                      pendingAttemptSignRef.current = '';
+                     signRecognitionService.resetTemporalState();
                      finishPractice();
                      return;
                   }
@@ -293,7 +302,8 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
                   pendingAttemptMatchedRef.current = false;
                   pendingAttemptSignRef.current = '';
-               }, 900);
+                  signRecognitionService.resetTemporalState();
+               }, 180);
             }
          } else if (noRecognitionTimerRef.current) {
             window.clearTimeout(noRecognitionTimerRef.current);
@@ -338,10 +348,8 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
       if (detected !== target) {
          lastNonMatchRef.current = attemptKey;
-         attemptLockedRef.current = true;
          pendingAttemptMatchedRef.current = false;
          pendingAttemptSignRef.current = detected;
-         awaitingResetRef.current = true;
          setIsAdvancing(false);
          setStatusMessage(`No coincide con ${currentSign.name}. Intenta nuevamente.`);
          return;
