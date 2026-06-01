@@ -32,6 +32,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    const processedRecognitionRef = useRef<string>('');
    const lastNonMatchRef = useRef<string>('');
    const awaitingResetRef = useRef(false);
+   const attemptLockedRef = useRef(false);
+   const pendingAttemptMatchedRef = useRef(false);
+   const pendingAttemptSignRef = useRef<string>('');
    const completionTimerRef = useRef<number | null>(null);
    const advanceTimerRef = useRef<number | null>(null);
    const handsDownTimerRef = useRef<number | null>(null);
@@ -178,6 +181,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
       setStatusMessage('Iniciando cámara y modelo de reconocimiento...');
       processedRecognitionRef.current = '';
       awaitingResetRef.current = false;
+      attemptLockedRef.current = false;
+      pendingAttemptMatchedRef.current = false;
+      pendingAttemptSignRef.current = '';
 
       try {
          await startRecognition(currentModelCategory);
@@ -207,6 +213,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
          noRecognitionTimerRef.current = null;
       }
       awaitingResetRef.current = false;
+      attemptLockedRef.current = false;
+      pendingAttemptMatchedRef.current = false;
+      pendingAttemptSignRef.current = '';
       stopRecognition();
       setIsPracticeStarted(false);
       setStatusMessage('La práctica se ha detenido.');
@@ -233,6 +242,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
             window.clearTimeout(noRecognitionTimerRef.current);
          }
          awaitingResetRef.current = false;
+         attemptLockedRef.current = false;
+         pendingAttemptMatchedRef.current = false;
+         pendingAttemptSignRef.current = '';
          stopRecognition();
       };
    }, [stopRecognition]);
@@ -245,24 +257,42 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
          if (recognitionCleared) {
             if (!noRecognitionTimerRef.current) {
-               setStatusMessage(`Correcto: ${currentSign.name}. Baja las manos para cargar la siguiente seña.`);
                noRecognitionTimerRef.current = window.setTimeout(() => {
                   noRecognitionTimerRef.current = null;
                   if (!awaitingResetRef.current || !isPracticeStarted || isCompleting) return;
                   if (recState.currentSign !== null) return;
 
+                  const wasMatched = pendingAttemptMatchedRef.current;
+
+                  if (attemptLockedRef.current) {
+                     setAttempts(prev => prev + 1);
+                     if (wasMatched) {
+                        setCorrectAnswers(prev => prev + 1);
+                     }
+                  }
+
                   awaitingResetRef.current = false;
+                  attemptLockedRef.current = false;
                   setIsAdvancing(false);
                   if (latestCurrentIndexRef.current >= practiceSigns.length - 1) {
+                     pendingAttemptMatchedRef.current = false;
+                     pendingAttemptSignRef.current = '';
                      finishPractice();
                      return;
                   }
 
-                  setCurrentIndex(prev => prev + 1);
-                  processedRecognitionRef.current = '';
-                  lastNonMatchRef.current = '';
-                  const nextSign = practiceSigns[latestCurrentIndexRef.current + 1]?.name ?? 'la siguiente seña';
-                  setStatusMessage(`Buen trabajo. Ahora intenta con ${nextSign}.`);
+                  if (wasMatched) {
+                     setCurrentIndex(prev => prev + 1);
+                     processedRecognitionRef.current = '';
+                     lastNonMatchRef.current = '';
+                     const nextSign = practiceSigns[latestCurrentIndexRef.current + 1]?.name ?? 'la siguiente seña';
+                     setStatusMessage(`Buen trabajo. Ahora intenta con ${nextSign}.`);
+                  } else {
+                     setStatusMessage(`Intento registrado. Vuelve a levantar las manos para probar con ${currentSign.name}.`);
+                  }
+
+                  pendingAttemptMatchedRef.current = false;
+                  pendingAttemptSignRef.current = '';
                }, 900);
             }
          } else if (noRecognitionTimerRef.current) {
@@ -297,6 +327,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
       const target = normalizeSign(currentSign.name);
       const attemptKey = `${currentIndex}:${detected}`;
 
+      if (attemptLockedRef.current) return;
       if (processedRecognitionRef.current === attemptKey) return;
       processedRecognitionRef.current = attemptKey;
 
@@ -305,10 +336,12 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
          completionTimerRef.current = null;
       }
 
-      setAttempts(prev => prev + 1);
-
       if (detected !== target) {
          lastNonMatchRef.current = attemptKey;
+         attemptLockedRef.current = true;
+         pendingAttemptMatchedRef.current = false;
+         pendingAttemptSignRef.current = detected;
+         awaitingResetRef.current = true;
          setIsAdvancing(false);
          setStatusMessage(`No coincide con ${currentSign.name}. Intenta nuevamente.`);
          return;
@@ -316,7 +349,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
       lastNonMatchRef.current = '';
 
-      setCorrectAnswers(prev => prev + 1);
+      attemptLockedRef.current = true;
+      pendingAttemptMatchedRef.current = true;
+      pendingAttemptSignRef.current = detected;
       setStatusMessage(`Correcto: ${currentSign.name}. Baja las manos para cargar la siguiente seña.`);
       awaitingResetRef.current = true;
       setIsAdvancing(true);
