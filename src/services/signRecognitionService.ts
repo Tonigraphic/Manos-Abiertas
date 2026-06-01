@@ -56,10 +56,11 @@ const FEATURES_PER_FRAME =
 
 const TOTAL_INPUT_SIZE = SEQUENCE_LENGTH * FEATURES_PER_FRAME; // 49860
 // Umbrales ajustables para balancear sensibilidad vs falsos positivos
-const CONFIDENCE_THRESHOLD = 0.80; // confianza mínima razonable
-const HIGH_CONFIDENCE_ACCEPT = 0.95; // si la confianza es muy alta, aceptar con menos frames
-const STABLE_PREDICTIONS_REQUIRED = 3; // reducir número de frames estables requeridos
-const MIN_STABLE_FOR_HIGH_CONFIDENCE = 2; // frames estables mínimos si la confianza es muy alta
+// Relajación adicional solicitada por el usuario: permitir aceptación más rápida
+const CONFIDENCE_THRESHOLD = 0.65; // bajar la confianza mínima para aceptar más señales
+const HIGH_CONFIDENCE_ACCEPT = 0.88; // si la confianza es alta, aceptar aun con una sola repetición
+const STABLE_PREDICTIONS_REQUIRED = 1; // aceptar con 1 frame estable
+const MIN_STABLE_FOR_HIGH_CONFIDENCE = 1; // 1 frame repetido si la confianza es muy alta
 
 // ── Etiquetas por categoría ────────────────────────────────────────────
 const CATEGORY_LABELS: Record<string, string[]> = {};
