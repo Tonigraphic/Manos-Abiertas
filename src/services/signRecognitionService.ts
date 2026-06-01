@@ -55,8 +55,11 @@ const FEATURES_PER_FRAME =
 // Total: 1662
 
 const TOTAL_INPUT_SIZE = SEQUENCE_LENGTH * FEATURES_PER_FRAME; // 49860
-const CONFIDENCE_THRESHOLD = 0.75;
-const STABLE_PREDICTIONS_REQUIRED = 6;
+// Umbrales ajustables para balancear sensibilidad vs falsos positivos
+const CONFIDENCE_THRESHOLD = 0.80; // confianza mínima razonable
+const HIGH_CONFIDENCE_ACCEPT = 0.95; // si la confianza es muy alta, aceptar con menos frames
+const STABLE_PREDICTIONS_REQUIRED = 3; // reducir número de frames estables requeridos
+const MIN_STABLE_FOR_HIGH_CONFIDENCE = 2; // frames estables mínimos si la confianza es muy alta
 
 // ── Etiquetas por categoría ────────────────────────────────────────────
 const CATEGORY_LABELS: Record<string, string[]> = {};
@@ -270,9 +273,9 @@ export class SignRecognitionService {
         confidence = exps[maxIdx] / sum;
       }
 
-      // 8. Threshold más estricto + label
+      // 8. Threshold configurable + label
       const labels = CATEGORY_LABELS[this.currentCategory];
-      if (!labels || maxIdx >= labels.length || confidence < 0.88) {
+      if (!labels || maxIdx >= labels.length || confidence < CONFIDENCE_THRESHOLD) {
         this.lastPredictions = [];
         return null;
       }
@@ -280,14 +283,20 @@ export class SignRecognitionService {
       const predictedSign = labels[maxIdx];
 
       // 9. ESTABILIZADOR TEMPORAL (Anti-Flickering / Lag visual)
-      // Exigimos que el modelo esté seguro de la misma seña durante varios frames consecutivos
-      // antes de mostrarla en pantalla. Esto elimina la "basura" de las transiciones.
+      // Recolectamos predicciones recientes y evaluamos estabilidad.
       this.lastPredictions.push(predictedSign);
       if (this.lastPredictions.length > STABLE_PREDICTIONS_REQUIRED) {
         this.lastPredictions.shift();
       }
 
-      const isStable = this.lastPredictions.length === STABLE_PREDICTIONS_REQUIRED && this.lastPredictions.every(p => p === predictedSign);
+      // Regla combinada:
+      // - Aceptar si la misma predicción es estable durante N frames (STABLE_PREDICTIONS_REQUIRED)
+      // - O aceptar si la confianza es muy alta y se repite al menos MIN_STABLE_FOR_HIGH_CONFIDENCE frames
+      const fullStable = this.lastPredictions.length === STABLE_PREDICTIONS_REQUIRED && this.lastPredictions.every(p => p === predictedSign);
+      const recent = this.lastPredictions.slice(-MIN_STABLE_FOR_HIGH_CONFIDENCE);
+      const recentStable = recent.length === MIN_STABLE_FOR_HIGH_CONFIDENCE && recent.every(p => p === predictedSign);
+
+      const isStable = fullStable || (confidence >= HIGH_CONFIDENCE_ACCEPT && recentStable);
 
       if (!isStable) {
         return null; // Aún no es estable
