@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
-import { Camera, CameraOff, RefreshCw, BarChart2, Target, Trophy, PlayCircle, CheckCircle2, XCircle, ChevronDown } from 'lucide-react';
+import { Badge } from '../components/lsc/Badge';
+import { Input } from '../components/lsc/Input';
+import { Camera, CameraOff, RefreshCw, BarChart2, Target, Trophy, PlayCircle, CheckCircle2, XCircle, ChevronDown, Search, BookOpen, Play, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLSCRecognition } from '../../hooks/useLSCRecognition';
-import { signRecognitionService } from '../../services/signRecognitionService';
+import { signRecognitionService, SignPattern } from '../../services/signRecognitionService';
 import { InstructionsModal } from '../components/lsc/InstructionsModal';
 import { resolveVideoUrl } from '../../lib/videoUtils';
 
@@ -22,6 +24,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    const [statusMessage, setStatusMessage] = useState('Presiona iniciar para activar la cámara y comenzar la práctica.');
    const [isCompleting, setIsCompleting] = useState(false);
    const [isAdvancing, setIsAdvancing] = useState(false);
+   const [catalogSearchTerm, setCatalogSearchTerm] = useState('');
+   const [selectedCatalogCategory, setSelectedCatalogCategory] = useState('all');
+   const [selectedCatalogSign, setSelectedCatalogSign] = useState<SignPattern | null>(null);
 
    const processedRecognitionRef = useRef<string>('');
    const lastNonMatchRef = useRef<string>('');
@@ -40,6 +45,15 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    useEffect(() => {
       latestCurrentIndexRef.current = currentIndex;
    }, [currentIndex]);
+
+   const allCatalogSigns = useMemo(() => signRecognitionService.getAllSigns(), []);
+
+   const catalogCategoryCounts = useMemo(() => {
+      return allCatalogSigns.reduce((acc, sign) => {
+         acc[sign.category] = (acc[sign.category] || 0) + 1;
+         return acc;
+      }, {} as Record<string, number>);
+   }, [allCatalogSigns]);
 
    const practiceSigns = useMemo(() => {
       const allSigns = signRecognitionService.getAllSigns();
@@ -62,6 +76,8 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
    const getCategoryLabel = (category: string) => {
       const labels: Record<string, string> = {
+         all: 'Todas',
+         alphabet: 'Abecedario',
          colors: 'Colores',
          greetings: 'Saludos',
          office: 'Oficina',
@@ -71,11 +87,41 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
       return labels[category] || category;
    };
 
+   const getCategoryEmoji = (category: string) => {
+      switch (category) {
+         case 'colors': return '🎨';
+         case 'alphabet': return '🔤';
+         case 'greetings': return '👋';
+         case 'office': return '🏢';
+         case 'design': return '✏️';
+         default: return '🤟';
+      }
+   };
+
+   const catalogCategories = [
+      { id: 'all', label: 'Todas', count: allCatalogSigns.length, emoji: '📚' },
+      { id: 'colors', label: 'Colores', count: catalogCategoryCounts['colors'] || 0, emoji: '🎨' },
+      { id: 'alphabet', label: 'Abecedario', count: catalogCategoryCounts['alphabet'] || 0, emoji: '🔤' },
+      { id: 'greetings', label: 'Saludos', count: catalogCategoryCounts['greetings'] || 0, emoji: '👋' },
+      { id: 'office', label: 'Oficina', count: catalogCategoryCounts['office'] || 0, emoji: '🏢' },
+      { id: 'design', label: 'Diseño', count: catalogCategoryCounts['design'] || 0, emoji: '✏️' },
+   ];
+
    const normalizeSign = (value: string) => value
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .toUpperCase()
       .trim();
+
+   const filteredCatalogSigns = useMemo(() => {
+      const normalizedSearch = normalizeSign(catalogSearchTerm);
+
+      return allCatalogSigns.filter(sign => {
+         const matchesSearch = !normalizedSearch || normalizeSign(sign.name).includes(normalizedSearch);
+         const matchesCategory = selectedCatalogCategory === 'all' || sign.category === selectedCatalogCategory;
+         return matchesSearch && matchesCategory;
+      });
+   }, [allCatalogSigns, catalogSearchTerm, selectedCatalogCategory]);
 
    const accuracy = attempts > 0 ? Math.round((correctAnswers / attempts) * 100) : 0;
    const progress = practiceSigns.length ? Math.round((currentIndex / practiceSigns.length) * 100) : 0;
@@ -248,20 +294,10 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
       const detected = normalizeSign(recState.currentSign.sign);
       const target = normalizeSign(currentSign.name);
-      const matchKey = `${currentIndex}:${target}`;
-      const nonMatchKey = `${currentIndex}:${detected}`;
+      const attemptKey = `${currentIndex}:${detected}`;
 
-      if (detected !== target) {
-         if (lastNonMatchRef.current !== nonMatchKey) {
-            lastNonMatchRef.current = nonMatchKey;
-            setStatusMessage(`Mantén la seña objetivo: ${currentSign.name}`);
-         }
-         return;
-      }
-
-      if (processedRecognitionRef.current === matchKey) return;
-      processedRecognitionRef.current = matchKey;
-      lastNonMatchRef.current = '';
+      if (processedRecognitionRef.current === attemptKey) return;
+      processedRecognitionRef.current = attemptKey;
 
       if (completionTimerRef.current) {
          window.clearTimeout(completionTimerRef.current);
@@ -270,6 +306,15 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
       setAttempts(prev => prev + 1);
 
+      if (detected !== target) {
+         lastNonMatchRef.current = attemptKey;
+         setIsAdvancing(false);
+         setStatusMessage(`No coincide con ${currentSign.name}. Intenta nuevamente.`);
+         return;
+      }
+
+      lastNonMatchRef.current = '';
+
       setCorrectAnswers(prev => prev + 1);
       setStatusMessage(`Correcto: ${currentSign.name}. Baja las manos para cargar la siguiente seña.`);
       awaitingResetRef.current = true;
@@ -277,6 +322,11 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    }, [currentIndex, currentSign, isCompleting, isPracticeStarted, practiceSigns.length, recState.currentSign, recState.handsDetected]);
 
    const confidence = recState.currentSign ? Math.round(recState.currentSign.confidence * 100) : 0;
+   const displayedConfidence = recState.currentSign && currentSign
+      ? normalizeSign(recState.currentSign.sign) === normalizeSign(currentSign.name)
+         ? confidence
+         : 0
+      : confidence;
    const recognitionStateLabel = recState.isActive ? 'Reconocimiento activo' : 'Reconocimiento detenido';
    const detectedMatchesTarget = Boolean(
       recState.currentSign && currentSign && normalizeSign(recState.currentSign.sign) === normalizeSign(currentSign.name)
@@ -540,10 +590,10 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                               <div className="relative w-32 h-32 mx-auto">
                                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                                     <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-neutral-100)" strokeWidth="10" />
-                                    <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-success-500)" strokeWidth="10" strokeDasharray="283" strokeDashoffset={283 - (283 * confidence) / 100} className="transition-all duration-1000" />
+                                    <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-success-500)" strokeWidth="10" strokeDasharray="283" strokeDashoffset={283 - (283 * displayedConfidence) / 100} className="transition-all duration-1000" />
                                  </svg>
                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-2xl font-black text-[var(--color-success-700)]">{confidence}%</span>
+                                    <span className="text-2xl font-black text-[var(--color-success-700)]">{displayedConfidence}%</span>
                                  </div>
                               </div>
 
@@ -569,6 +619,113 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
           </div>
         </div>
       </div>
+
+         <div className="px-4 sm:px-8 pb-8">
+            <div className="max-w-6xl mx-auto">
+               <Card className="border-none shadow-xl bg-white overflow-hidden">
+                  <CardBody className="p-6 sm:p-8">
+                     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                           <p className="text-xs font-black uppercase tracking-[0.35em] text-[var(--color-primary-500)] mb-2">Catálogo individual completo</p>
+                           <h2 className="text-2xl sm:text-3xl font-black text-[var(--color-text-primary)]">Explora y practica cada seña</h2>
+                           <p className="mt-2 text-sm text-[var(--color-text-secondary)] max-w-2xl">
+                              Busca por nombre, filtra por categoría y abre cada video para estudiar el vocabulario completo desde la misma vista de práctica.
+                           </p>
+                        </div>
+                        <Badge variant="primary" size="md" className="self-start lg:self-auto">
+                           {allCatalogSigns.length} señas disponibles
+                        </Badge>
+                     </div>
+
+                     <div className="mt-6">
+                        <Input
+                           value={catalogSearchTerm}
+                           onChange={(event) => setCatalogSearchTerm(event.target.value)}
+                           placeholder="Buscar seña por nombre..."
+                           leftIcon={<Search size={18} />}
+                        />
+                     </div>
+
+                     <div className="mt-4 flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                        {catalogCategories.map((category) => {
+                           const isActive = selectedCatalogCategory === category.id;
+
+                           return (
+                              <button
+                                 key={category.id}
+                                 type="button"
+                                 onClick={() => setSelectedCatalogCategory(category.id)}
+                                 className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold whitespace-nowrap transition-all ${
+                                    isActive
+                                       ? 'bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)] shadow-md'
+                                       : 'bg-[var(--color-neutral-50)] text-[var(--color-text-primary)] border-[var(--color-neutral-200)] hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]'
+                                 }`}
+                              >
+                                 <span>{category.emoji}</span>
+                                 <span>{category.label}</span>
+                                 <span className={`text-xs font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-[var(--color-neutral-200)] text-[var(--color-text-secondary)]'}`}>
+                                    {category.count}
+                                 </span>
+                              </button>
+                           );
+                        })}
+                     </div>
+
+                     <div className="mt-6">
+                        {filteredCatalogSigns.length > 0 ? (
+                           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                              {filteredCatalogSigns.map((sign) => (
+                                 <button
+                                    key={`${sign.category}-${sign.name}`}
+                                    type="button"
+                                    onClick={() => setSelectedCatalogSign(sign)}
+                                    className="group flex flex-col gap-3 text-left"
+                                 >
+                                    <div className="aspect-square rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] overflow-hidden relative shadow-sm transition-all group-hover:shadow-lg group-hover:-translate-y-0.5">
+                                       <video
+                                          src={resolveVideoUrl(sign.videoUrl)}
+                                          autoPlay
+                                          loop
+                                          muted
+                                          playsInline
+                                          className="w-full h-full object-contain bg-black"
+                                       />
+                                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                          <span className="opacity-0 group-hover:opacity-100 bg-white text-[var(--color-neutral-900)] rounded-full p-2 shadow-lg transition-opacity">
+                                             <Play size={16} />
+                                          </span>
+                                       </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                       <p className="text-sm font-black text-[var(--color-text-primary)] leading-tight">{sign.name}</p>
+                                       <Badge variant="neutral" size="sm">{getCategoryLabel(sign.category)}</Badge>
+                                    </div>
+                                 </button>
+                              ))}
+                           </div>
+                        ) : (
+                           <div className="rounded-3xl border-2 border-dashed border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-6 py-12 text-center">
+                              <BookOpen size={28} className="mx-auto mb-3 text-[var(--color-text-tertiary)]" />
+                              <h3 className="text-lg font-black text-[var(--color-text-primary)]">No hay resultados</h3>
+                              <p className="mt-2 text-sm text-[var(--color-text-secondary)]">Prueba con otro nombre o cambia de categoría para ver más señas.</p>
+                              <Button
+                                 type="button"
+                                 variant="ghost"
+                                 className="mt-4"
+                                 onClick={() => {
+                                    setCatalogSearchTerm('');
+                                    setSelectedCatalogCategory('all');
+                                 }}
+                              >
+                                 Limpiar filtros
+                              </Button>
+                           </div>
+                        )}
+                     </div>
+                  </CardBody>
+               </Card>
+            </div>
+         </div>
 
       {/* Modal de Finalización */}
          {showModal && (
@@ -600,6 +757,74 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                </div>
             </div>
          )}
+
+         <AnimatePresence>
+            {selectedCatalogSign && (
+               <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+                  <motion.div
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     exit={{ opacity: 0 }}
+                     className="absolute inset-0 bg-[var(--color-neutral-900)]/80 backdrop-blur-md"
+                     onClick={() => setSelectedCatalogSign(null)}
+                  />
+                  <motion.div
+                     initial={{ opacity: 0, scale: 0.94, y: 18 }}
+                     animate={{ opacity: 1, scale: 1, y: 0 }}
+                     exit={{ opacity: 0, scale: 0.94, y: 18 }}
+                     className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden relative z-10"
+                  >
+                     <button
+                        onClick={() => setSelectedCatalogSign(null)}
+                        className="absolute top-4 right-4 z-20 p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-transform active:scale-90"
+                        aria-label="Cerrar detalle de seña"
+                     >
+                        <X size={20} className="text-[var(--color-neutral-900)]" />
+                     </button>
+                     <div className="flex flex-col md:flex-row">
+                        <div className="w-full md:w-3/5 bg-black aspect-video flex items-center justify-center">
+                           <video
+                              key={selectedCatalogSign.videoUrl}
+                              src={resolveVideoUrl(selectedCatalogSign.videoUrl)}
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                              controls
+                              className="w-full h-full object-contain bg-black"
+                           />
+                        </div>
+                        <div className="w-full md:w-2/5 p-6 sm:p-8 flex flex-col gap-4">
+                           <div className="flex items-center gap-2">
+                              <Badge variant="accent">{getCategoryLabel(selectedCatalogSign.category)}</Badge>
+                              <Badge variant="neutral">Catálogo práctico</Badge>
+                           </div>
+                           <div>
+                              <p className="text-xs font-black uppercase tracking-[0.35em] text-[var(--color-text-secondary)] mb-2">Seña seleccionada</p>
+                              <h2 className="text-3xl font-black text-[var(--color-neutral-900)] uppercase mb-3">{selectedCatalogSign.name}</h2>
+                              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
+                                 Usa este catálogo para repasar la seña completa sin salir de práctica. Puedes buscar, filtrar y abrir cualquier video cuando quieras.
+                              </p>
+                           </div>
+                           <div className="rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] p-4">
+                              <div className="text-xs font-black uppercase tracking-widest text-[var(--color-text-tertiary)] mb-1">Categoría</div>
+                              <div className="text-sm font-bold text-[var(--color-text-primary)]">{getCategoryLabel(selectedCatalogSign.category)}</div>
+                           </div>
+                           <div className="mt-auto flex gap-3">
+                              <Button
+                                 variant="ghost"
+                                 className="flex-1"
+                                 onClick={() => setSelectedCatalogSign(null)}
+                              >
+                                 Cerrar
+                              </Button>
+                           </div>
+                        </div>
+                     </div>
+                  </motion.div>
+               </div>
+            )}
+         </AnimatePresence>
     </div>
   );
 }
