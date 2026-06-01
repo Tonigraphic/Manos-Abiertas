@@ -86,12 +86,12 @@ export function useLSCRecognition() {
         noHandsTimerRef.current = window.setTimeout(() => {
           noHandsTimerRef.current = null;
           if (!isActiveRef.current) return;
-          signRecognitionService.resetTemporalState();
+          // Quitamos el reset agresivo para permitir que el buffer sobreviva a micro-cortes
           setState(prev => ({
             ...prev,
             currentSign: null,
           }));
-        }, 180);
+        }, 500); // Aumentamos a 500ms para mayor tolerancia al estar cerca
       }
     } else if (noHandsTimerRef.current) {
       window.clearTimeout(noHandsTimerRef.current);

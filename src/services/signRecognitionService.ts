@@ -55,8 +55,8 @@ const FEATURES_PER_FRAME =
 // Total: 1662
 
 const TOTAL_INPUT_SIZE = SEQUENCE_LENGTH * FEATURES_PER_FRAME; // 49860
-const CONFIDENCE_THRESHOLD = 0.70; // Más permisivo para uso cercano
-const STABLE_PREDICTIONS_REQUIRED = 2; // Respuesta más rápida al acertar
+const CONFIDENCE_THRESHOLD = 0.50; // Más permisivo para compensar el ruido visual al estar cerca
+const STABLE_PREDICTIONS_REQUIRED = 2; // Solo 2 frames para una respuesta instantánea
 
 // ── Etiquetas por categoría ────────────────────────────────────────────
 const CATEGORY_LABELS: Record<string, string[]> = {};
@@ -66,6 +66,8 @@ Object.entries(LSC_VOCABULARY).forEach(([category, signs]) => {
   CATEGORY_LABELS[category] = signs.map(s => s.label).sort();
 });
 
+// NOTA: Mantenemos el override de Colores solo si el modelo v2 fue entrenado con estos 5.
+// Si el modelo tiene 20 salidas, esta lista debe comentarse para usar la de lscData.
 const COLOR_MODEL_LABELS = ['AMARILLO', 'AZUL', 'BLANCO', 'NEGRO', 'ROJO'];
 CATEGORY_LABELS.Colores = COLOR_MODEL_LABELS;
 
@@ -232,9 +234,10 @@ export class SignRecognitionService {
       this.frameBuffer.shift();
     }
 
-    // 3. Filtro Anti-Fantasmas: Si no hay manos en pantalla, no hacemos inferencia.
+    // 3. Filtro Anti-Fantasmas suavizado:
+    // Si no hay manos, simplemente no predecimos, pero mantenemos el buffer 
+    // para cuando vuelvan a aparecer (muy común al estar cerca).
     if (!hasLeft && !hasRight) {
-      this.resetTemporalState();
       return null;
     }
 
@@ -272,8 +275,11 @@ export class SignRecognitionService {
 
       // 8. Threshold más estricto + label
       const labels = CATEGORY_LABELS[this.currentCategory];
-      if (!labels || maxIdx >= labels.length || confidence < CONFIDENCE_THRESHOLD) {
-        // No limpiamos lastPredictions aquí para permitir pequeñas fluctuaciones
+      if (!labels || maxIdx >= labels.length) return null;
+
+      // Si la confianza es baja, degradamos el historial en lugar de borrarlo
+      if (confidence < CONFIDENCE_THRESHOLD) {
+        if (this.lastPredictions.length > 0) this.lastPredictions.shift();
         return null;
       }
 
@@ -294,6 +300,10 @@ export class SignRecognitionService {
       }
 
       const handedness = hasLeft && hasRight ? 'Both' : hasRight ? 'Right' : 'Left';
+
+      // IMPORTANTE: Limpiamos el historial de estabilidad tras un acierto
+      // para forzar que el sistema genere una nueva predicción "fresca" en el siguiente ciclo.
+      this.lastPredictions = [];
 
       return {
         sign: predictedSign,

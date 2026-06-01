@@ -35,8 +35,8 @@ export class HandDetectionService {
         enableSegmentation: false,
         smoothSegmentation: false,
         refineFaceLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5,
+        minDetectionConfidence: 0.4, // Mejoramos la detección de manos en planos cercanos
+        minTrackingConfidence: 0.4,
       });
 
       this.holistic.onResults((results) => {
