@@ -24,6 +24,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    const [statusMessage, setStatusMessage] = useState('Presiona iniciar para activar la cámara y comenzar la práctica.');
    const [isCompleting, setIsCompleting] = useState(false);
    const [isAdvancing, setIsAdvancing] = useState(false);
+   const [showCatalog, setShowCatalog] = useState(false);
    const [catalogSearchTerm, setCatalogSearchTerm] = useState('');
    const [selectedCatalogCategory, setSelectedCatalogCategory] = useState('all');
    const [selectedCatalogSign, setSelectedCatalogSign] = useState<SignPattern | null>(null);
@@ -629,99 +630,117 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                            <p className="text-xs font-black uppercase tracking-[0.35em] text-[var(--color-primary-500)] mb-2">Catálogo individual completo</p>
                            <h2 className="text-2xl sm:text-3xl font-black text-[var(--color-text-primary)]">Explora y practica cada seña</h2>
                            <p className="mt-2 text-sm text-[var(--color-text-secondary)] max-w-2xl">
-                              Busca por nombre, filtra por categoría y abre cada video para estudiar el vocabulario completo desde la misma vista de práctica.
+                              El catálogo completo está colapsado por defecto para que la práctica cargue más rápido. Ábrelo solo cuando quieras buscar o revisar videos.
                            </p>
                         </div>
-                        <Badge variant="primary" size="md" className="self-start lg:self-auto">
-                           {allCatalogSigns.length} señas disponibles
-                        </Badge>
+                        <div className="flex items-center gap-3 self-start lg:self-auto">
+                           <Badge variant="primary" size="md">{allCatalogSigns.length} señas disponibles</Badge>
+                           <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => setShowCatalog(prev => !prev)}
+                              className="shrink-0"
+                           >
+                              {showCatalog ? 'Ocultar catálogo' : 'Mostrar catálogo'}
+                           </Button>
+                        </div>
                      </div>
 
-                     <div className="mt-6">
-                        <Input
-                           value={catalogSearchTerm}
-                           onChange={(event) => setCatalogSearchTerm(event.target.value)}
-                           placeholder="Buscar seña por nombre..."
-                           leftIcon={<Search size={18} />}
-                        />
-                     </div>
-
-                     <div className="mt-4 flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                        {catalogCategories.map((category) => {
-                           const isActive = selectedCatalogCategory === category.id;
-
-                           return (
-                              <button
-                                 key={category.id}
-                                 type="button"
-                                 onClick={() => setSelectedCatalogCategory(category.id)}
-                                 className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold whitespace-nowrap transition-all ${
-                                    isActive
-                                       ? 'bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)] shadow-md'
-                                       : 'bg-[var(--color-neutral-50)] text-[var(--color-text-primary)] border-[var(--color-neutral-200)] hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]'
-                                 }`}
-                              >
-                                 <span>{category.emoji}</span>
-                                 <span>{category.label}</span>
-                                 <span className={`text-xs font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-[var(--color-neutral-200)] text-[var(--color-text-secondary)]'}`}>
-                                    {category.count}
-                                 </span>
-                              </button>
-                           );
-                        })}
-                     </div>
-
-                     <div className="mt-6">
-                        {filteredCatalogSigns.length > 0 ? (
-                           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                              {filteredCatalogSigns.map((sign) => (
-                                 <button
-                                    key={`${sign.category}-${sign.name}`}
-                                    type="button"
-                                    onClick={() => setSelectedCatalogSign(sign)}
-                                    className="group flex flex-col gap-3 text-left"
-                                 >
-                                    <div className="aspect-square rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] overflow-hidden relative shadow-sm transition-all group-hover:shadow-lg group-hover:-translate-y-0.5">
-                                       <video
-                                          src={resolveVideoUrl(sign.videoUrl)}
-                                          autoPlay
-                                          loop
-                                          muted
-                                          playsInline
-                                          className="w-full h-full object-contain bg-black"
-                                       />
-                                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                          <span className="opacity-0 group-hover:opacity-100 bg-white text-[var(--color-neutral-900)] rounded-full p-2 shadow-lg transition-opacity">
-                                             <Play size={16} />
-                                          </span>
-                                       </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                       <p className="text-sm font-black text-[var(--color-text-primary)] leading-tight">{sign.name}</p>
-                                       <Badge variant="neutral" size="sm">{getCategoryLabel(sign.category)}</Badge>
-                                    </div>
-                                 </button>
-                              ))}
+                     {!showCatalog ? (
+                        <div className="mt-6 rounded-3xl border border-dashed border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-6 py-8 text-center">
+                           <BookOpen size={28} className="mx-auto mb-3 text-[var(--color-text-tertiary)]" />
+                           <p className="text-sm font-semibold text-[var(--color-text-primary)]">Catálogo oculto para mejorar el rendimiento.</p>
+                           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">Actívalo cuando necesites buscar una seña o abrir un video de referencia.</p>
+                        </div>
+                     ) : (
+                        <>
+                           <div className="mt-6">
+                              <Input
+                                 value={catalogSearchTerm}
+                                 onChange={(event) => setCatalogSearchTerm(event.target.value)}
+                                 placeholder="Buscar seña por nombre..."
+                                 leftIcon={<Search size={18} />}
+                              />
                            </div>
-                        ) : (
-                           <div className="rounded-3xl border-2 border-dashed border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-6 py-12 text-center">
-                              <BookOpen size={28} className="mx-auto mb-3 text-[var(--color-text-tertiary)]" />
-                              <h3 className="text-lg font-black text-[var(--color-text-primary)]">No hay resultados</h3>
-                              <p className="mt-2 text-sm text-[var(--color-text-secondary)]">Prueba con otro nombre o cambia de categoría para ver más señas.</p>
-                              <Button
-                                 type="button"
-                                 variant="ghost"
-                                 className="mt-4"
-                                 onClick={() => {
-                                    setCatalogSearchTerm('');
-                                    setSelectedCatalogCategory('all');
-                                 }}
-                              >
-                                 Limpiar filtros
-                              </Button>
+
+                           <div className="mt-4 flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                              {catalogCategories.map((category) => {
+                                 const isActive = selectedCatalogCategory === category.id;
+
+                                 return (
+                                    <button
+                                       key={category.id}
+                                       type="button"
+                                       onClick={() => setSelectedCatalogCategory(category.id)}
+                                       className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold whitespace-nowrap transition-all ${
+                                          isActive
+                                             ? 'bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)] shadow-md'
+                                             : 'bg-[var(--color-neutral-50)] text-[var(--color-text-primary)] border-[var(--color-neutral-200)] hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]'
+                                       }`}
+                                    >
+                                       <span>{category.emoji}</span>
+                                       <span>{category.label}</span>
+                                       <span className={`text-xs font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-[var(--color-neutral-200)] text-[var(--color-text-secondary)]'}`}>
+                                          {category.count}
+                                       </span>
+                                    </button>
+                                 );
+                              })}
                            </div>
-                        )}
-                     </div>
+
+                           <div className="mt-6">
+                              {filteredCatalogSigns.length > 0 ? (
+                                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                                    {filteredCatalogSigns.map((sign) => (
+                                       <button
+                                          key={`${sign.category}-${sign.name}`}
+                                          type="button"
+                                          onClick={() => setSelectedCatalogSign(sign)}
+                                          className="group flex flex-col gap-3 text-left"
+                                       >
+                                          <div className="aspect-square rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] overflow-hidden relative shadow-sm transition-all group-hover:shadow-lg group-hover:-translate-y-0.5">
+                                             <video
+                                                src={resolveVideoUrl(sign.videoUrl)}
+                                                autoPlay
+                                                loop
+                                                muted
+                                                playsInline
+                                                className="w-full h-full object-contain bg-black"
+                                             />
+                                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                                <span className="opacity-0 group-hover:opacity-100 bg-white text-[var(--color-neutral-900)] rounded-full p-2 shadow-lg transition-opacity">
+                                                   <Play size={16} />
+                                                </span>
+                                             </div>
+                                          </div>
+                                          <div className="space-y-1">
+                                             <p className="text-sm font-black text-[var(--color-text-primary)] leading-tight">{sign.name}</p>
+                                             <Badge variant="neutral" size="sm">{getCategoryLabel(sign.category)}</Badge>
+                                          </div>
+                                       </button>
+                                    ))}
+                                 </div>
+                              ) : (
+                                 <div className="rounded-3xl border-2 border-dashed border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-6 py-12 text-center">
+                                    <BookOpen size={28} className="mx-auto mb-3 text-[var(--color-text-tertiary)]" />
+                                    <h3 className="text-lg font-black text-[var(--color-text-primary)]">No hay resultados</h3>
+                                    <p className="mt-2 text-sm text-[var(--color-text-secondary)]">Prueba con otro nombre o cambia de categoría para ver más señas.</p>
+                                    <Button
+                                       type="button"
+                                       variant="ghost"
+                                       className="mt-4"
+                                       onClick={() => {
+                                          setCatalogSearchTerm('');
+                                          setSelectedCatalogCategory('all');
+                                       }}
+                                    >
+                                       Limpiar filtros
+                                    </Button>
+                                 </div>
+                              )}
+                           </div>
+                        </>
+                     )}
                   </CardBody>
                </Card>
             </div>
