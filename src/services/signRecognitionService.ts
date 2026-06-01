@@ -56,7 +56,7 @@ const FEATURES_PER_FRAME =
 
 const TOTAL_INPUT_SIZE = SEQUENCE_LENGTH * FEATURES_PER_FRAME; // 49860
 const CONFIDENCE_THRESHOLD = 0.75;
-const STABLE_PREDICTIONS_REQUIRED = 6;
+const STABLE_PREDICTIONS_REQUIRED = 3;
 
 // ── Etiquetas por categoría ────────────────────────────────────────────
 const CATEGORY_LABELS: Record<string, string[]> = {};
@@ -272,7 +272,7 @@ export class SignRecognitionService {
 
       // 8. Threshold más estricto + label
       const labels = CATEGORY_LABELS[this.currentCategory];
-      if (!labels || maxIdx >= labels.length || confidence < 0.88) {
+      if (!labels || maxIdx >= labels.length || confidence < CONFIDENCE_THRESHOLD) {
         this.lastPredictions = [];
         return null;
       }
