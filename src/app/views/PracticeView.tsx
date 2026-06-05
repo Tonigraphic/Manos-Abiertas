@@ -896,13 +896,34 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                     </div>
                                  </motion.aside>
                               ) : (
-                                 <button
-                                    type="button"
-                                    onClick={() => setShowSidePanel(true)}
-                                    className="absolute top-1/2 right-4 z-30 -translate-y-1/2 rounded-full bg-black/65 px-4 py-3 text-white text-xs font-black uppercase tracking-widest backdrop-blur-md shadow-xl"
-                                 >
-                                    Abrir opciones
-                                 </button>
+                                 <div className="absolute right-4 top-1/2 z-30 -translate-y-1/2 flex flex-col items-center gap-3">
+                                    <button
+                                       type="button"
+                                       onClick={() => setShowSidePanel(true)}
+                                       title="Abrir opciones"
+                                       className="w-12 h-12 rounded-full bg-black/65 flex items-center justify-center text-white shadow-lg"
+                                    >
+                                       <ChevronRight size={18} />
+                                    </button>
+
+                                    <button
+                                       type="button"
+                                       onClick={() => setShowCatalog(prev => !prev)}
+                                       title="Catálogo"
+                                       className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center text-[var(--color-text-primary)] shadow-md border border-[var(--color-neutral-200)]"
+                                    >
+                                       <BookOpen size={18} />
+                                    </button>
+
+                                    <button
+                                       type="button"
+                                       onClick={() => setShowExampleVideo(prev => !prev)}
+                                       title={showExampleVideo ? 'Ocultar video' : 'Mostrar video'}
+                                       className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center text-[var(--color-text-primary)] shadow-md border border-[var(--color-neutral-200)]"
+                                    >
+                                       {showExampleVideo ? <Eye size={16} /> : <EyeOff size={16} />}
+                                    </button>
+                                 </div>
                               )}
                            </>
                         )}
