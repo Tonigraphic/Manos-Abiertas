@@ -3,11 +3,10 @@ import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
 import { Badge } from '../components/lsc/Badge';
 import { Input } from '../components/lsc/Input';
-import { Camera, CameraOff, RefreshCw, BarChart2, Target, Trophy, PlayCircle, CheckCircle2, XCircle, ChevronDown, Search, BookOpen, Play, X } from 'lucide-react';
+import { Camera, CameraOff, RefreshCw, BarChart2, Target, Trophy, PlayCircle, CheckCircle2, XCircle, ChevronDown, ChevronLeft, ChevronRight, Search, BookOpen, Play, X, Loader2, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLSCRecognition } from '../../hooks/useLSCRecognition';
 import { signRecognitionService, SignPattern } from '../../services/signRecognitionService';
-import { InstructionsModal } from '../components/lsc/InstructionsModal';
 import { resolveVideoUrl } from '../../lib/videoUtils';
 
 interface PracticeViewProps {
@@ -17,6 +16,10 @@ interface PracticeViewProps {
 export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    const { state: recState, videoRef, canvasRef, startRecognition, stopRecognition } = useLSCRecognition();
    const [showModal, setShowModal] = useState(false);
+   const [showIntroScreen, setShowIntroScreen] = useState(true);
+   const [introStep, setIntroStep] = useState(0);
+   const [isModelWarming, setIsModelWarming] = useState(false);
+   const [isModelReady, setIsModelReady] = useState(false);
    const [isPracticeStarted, setIsPracticeStarted] = useState(false);
    const [currentIndex, setCurrentIndex] = useState(0);
    const [correctAnswers, setCorrectAnswers] = useState(0);
@@ -25,6 +28,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    const [isCompleting, setIsCompleting] = useState(false);
    const [isAdvancing, setIsAdvancing] = useState(false);
    const [showCatalog, setShowCatalog] = useState(false);
+   const [showSidePanel, setShowSidePanel] = useState(true);
    const [catalogSearchTerm, setCatalogSearchTerm] = useState('');
    const [selectedCatalogCategory, setSelectedCatalogCategory] = useState('all');
    const [selectedCatalogSign, setSelectedCatalogSign] = useState<SignPattern | null>(null);
@@ -78,6 +82,29 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
    const currentModelCategory = 'Colores';
 
+   const introSteps = [
+      {
+         title: 'Desliza para aprender',
+         description: 'Revisa las indicaciones deslizando la tarjeta. Mientras lees, el modelo de práctica se descarga en segundo plano.',
+         hint: 'Desliza a la izquierda para avanzar',
+      },
+      {
+         title: 'Prepara el encuadre',
+         description: 'Colócate frente a la cámara con suficiente espacio para mover manos y brazos sin salir del cuadro.',
+         hint: 'Mantén el cuerpo centrado y las manos visibles',
+      },
+      {
+         title: 'Muestra la seña completa',
+         description: 'Haz la seña con calma. El sistema necesita ver el gesto con una postura estable antes de aceptarlo.',
+         hint: 'No te acerques demasiado a la cámara',
+      },
+      {
+         title: 'Video de ejemplo',
+         description: 'Cuando llegues aquí ya podrás entrar a práctica. Si quieres, abre el video de referencia para repetir el modelo visual.',
+         hint: 'Al terminar, entra a la práctica con el modelo listo',
+      },
+   ];
+
    const getCategoryLabel = (category: string) => {
       const labels: Record<string, string> = {
          all: 'Todas',
@@ -129,6 +156,58 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
    const accuracy = attempts > 0 ? Math.round((correctAnswers / attempts) * 100) : 0;
    const progress = practiceSigns.length ? Math.round((currentIndex / practiceSigns.length) * 100) : 0;
+
+   useEffect(() => {
+      let cancelled = false;
+
+      const warmModel = async () => {
+         setIsModelWarming(true);
+         try {
+            await signRecognitionService.loadModel(currentModelCategory);
+            if (!cancelled) {
+               setIsModelReady(true);
+            }
+         } catch (error) {
+            if (!cancelled) {
+               setIsModelReady(false);
+               setStatusMessage('No se pudo preparar el modelo de práctica.');
+            }
+            console.error(error);
+         } finally {
+            if (!cancelled) {
+               setIsModelWarming(false);
+            }
+         }
+      };
+
+      warmModel();
+
+      return () => {
+         cancelled = true;
+      };
+   }, [currentModelCategory]);
+
+   const handleIntroDragEnd = (_event: unknown, info: { offset: { x: number } }) => {
+      if (info.offset.x < -60) {
+         setIntroStep(prev => Math.min(prev + 1, introSteps.length - 1));
+      }
+      if (info.offset.x > 60) {
+         setIntroStep(prev => Math.max(prev - 1, 0));
+      }
+   };
+
+   const handleIntroNext = () => {
+      setIntroStep(prev => Math.min(prev + 1, introSteps.length - 1));
+   };
+
+   const handleIntroPrev = () => {
+      setIntroStep(prev => Math.max(prev - 1, 0));
+   };
+
+   const handleFinishIntro = () => {
+      setShowIntroScreen(false);
+      setStatusMessage(isModelReady ? 'Modelo preparado. Ya puedes iniciar la práctica.' : 'Modelo en preparación. Espera unos segundos antes de iniciar.');
+   };
 
    const finishPractice = () => {
       if (completionTimerRef.current) {
@@ -382,30 +461,153 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
       : detectedMatchesTarget
          ? currentSign?.name ?? 'Sin detección'
          : 'Esperando coincidencia con el objetivo';
+
+   if (showIntroScreen) {
+      const activeSlide = introSteps[introStep];
+
+      return (
+         <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.12),_transparent_45%),linear-gradient(180deg,var(--color-surface),#ffffff)] text-[var(--color-text-primary)] flex flex-col">
+            <div className="flex-1 px-4 py-6 sm:px-8 sm:py-8 flex items-center justify-center">
+               <div className="w-full max-w-6xl">
+                  <div className="mb-6 flex items-center justify-between gap-4">
+                     <div>
+                        <p className="text-xs font-black uppercase tracking-[0.4em] text-[var(--color-primary-500)] mb-2">Práctica guiada</p>
+                        <h1 className="text-3xl sm:text-4xl font-black text-[var(--color-text-primary)]">Antes de empezar, recorre las instrucciones</h1>
+                        <p className="mt-2 text-sm text-[var(--color-text-secondary)] max-w-2xl">Mientras lees, el modelo de práctica se descarga en segundo plano para que al entrar no tengas que esperar.</p>
+                     </div>
+                     <div className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--color-neutral-200)] bg-white/80 px-4 py-2 shadow-sm backdrop-blur-sm">
+                        {isModelWarming ? <Loader2 size={16} className="animate-spin text-[var(--color-primary-600)]" /> : <CheckCircle2 size={16} className={isModelReady ? 'text-emerald-500' : 'text-amber-500'} />}
+                        <span className="text-xs font-black uppercase tracking-widest text-[var(--color-text-secondary)]">
+                           {isModelWarming ? 'Preparando modelo' : isModelReady ? 'Modelo listo' : 'Esperando modelo'}
+                        </span>
+                     </div>
+                  </div>
+
+                  <Card className="border-none shadow-2xl bg-white/90 backdrop-blur-xl overflow-hidden rounded-[2rem]">
+                     <CardBody className="p-5 sm:p-8">
+                        <div className="flex items-center justify-between gap-4 mb-6">
+                           <div className="flex items-center gap-3">
+                              <div className="rounded-2xl bg-[var(--color-primary-50)] text-[var(--color-primary-600)] p-3 border border-[var(--color-primary-100)]">
+                                 <Target size={22} />
+                              </div>
+                              <div>
+                                 <p className="text-xs font-black uppercase tracking-[0.35em] text-[var(--color-text-tertiary)]">{activeSlide.eyebrow}</p>
+                                 <h2 className="text-xl sm:text-2xl font-black text-[var(--color-text-primary)]">{activeSlide.title}</h2>
+                              </div>
+                           </div>
+                           <Badge variant="primary" size="md">Paso {introStep + 1} de {introSteps.length}</Badge>
+                        </div>
+
+                        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] items-stretch">
+                           <motion.div
+                              drag="x"
+                              dragConstraints={{ left: 0, right: 0 }}
+                              onDragEnd={handleIntroDragEnd}
+                              whileTap={{ cursor: 'grabbing' }}
+                              className="rounded-[1.75rem] border border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] p-6 sm:p-8 shadow-sm cursor-grab active:cursor-grabbing"
+                           >
+                              <div className="flex items-center justify-between gap-4 mb-5">
+                                 <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[var(--color-text-tertiary)]">Desliza para avanzar</p>
+                                    <p className="mt-2 text-sm font-semibold text-[var(--color-text-secondary)]">{activeSlide.hint}</p>
+                                 </div>
+                                 <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-[var(--color-primary-600)] border border-[var(--color-primary-100)] shadow-sm">
+                                    <ChevronLeft size={14} />
+                                    <ChevronRight size={14} />
+                                    Desliza
+                                 </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                 <p className="text-base sm:text-lg text-[var(--color-text-primary)] leading-relaxed font-medium">{activeSlide.description}</p>
+                                 <div className="grid gap-3 sm:grid-cols-2">
+                                    {introSteps.map((step, index) => (
+                                       <button
+                                          key={step.title}
+                                          type="button"
+                                          onClick={() => setIntroStep(index)}
+                                          className={`rounded-2xl border p-4 text-left transition-all ${index === introStep ? 'border-[var(--color-primary-300)] bg-white shadow-md' : 'border-[var(--color-neutral-200)] bg-white/70 hover:border-[var(--color-primary-100)]'}`}
+                                       >
+                                          <div className="flex items-center justify-between gap-3">
+                                             <span className="text-xs font-black uppercase tracking-[0.35em] text-[var(--color-text-tertiary)]">0{index + 1}</span>
+                                             {index === introStep && <div className="h-2.5 w-2.5 rounded-full bg-[var(--color-primary-500)]" />}
+                                          </div>
+                                          <p className="mt-2 text-sm font-black text-[var(--color-text-primary)]">{step.title}</p>
+                                       </button>
+                                    ))}
+                                 </div>
+                                 <ul className="grid gap-3 sm:grid-cols-1">
+                                    {(activeSlide as { bullets?: string[] }).bullets?.map((bullet) => (
+                                       <li key={bullet} className="rounded-2xl bg-white border border-[var(--color-neutral-200)] p-4 text-sm text-[var(--color-text-secondary)] shadow-sm">
+                                          {bullet}
+                                       </li>
+                                    ))}
+                                 </ul>
+                              </div>
+
+                              <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                                 <div className="flex gap-2">
+                                    <Button variant="ghost" onClick={handleIntroPrev} disabled={introStep === 0}>
+                                       Anterior
+                                    </Button>
+                                    <Button variant="ghost" onClick={handleIntroNext} disabled={introStep === introSteps.length - 1}>
+                                       Siguiente
+                                    </Button>
+                                 </div>
+                                 <Button onClick={handleFinishIntro} disabled={!isModelReady && isModelWarming} className="font-bold">
+                                    {isModelReady ? 'Entrar a práctica' : 'Preparando modelo...'}
+                                 </Button>
+                              </div>
+                           </motion.div>
+
+                           <div className="rounded-[1.75rem] border border-[var(--color-neutral-200)] bg-black overflow-hidden shadow-xl relative min-h-[320px]">
+                              {activeSlide.videoUrl ? (
+                                 <video
+                                    src={resolveVideoUrl(activeSlide.videoUrl)}
+                                    autoPlay
+                                    loop
+                                    muted
+                                    playsInline
+                                    controls
+                                    className="absolute inset-0 w-full h-full object-contain bg-black"
+                                 />
+                              ) : (
+                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white/80 p-8 text-center bg-gradient-to-b from-black/80 to-black/95">
+                                    <PlayCircle size={56} className="mb-4 text-white/35" />
+                                    <h3 className="text-2xl font-black mb-2">Video de ejemplo</h3>
+                                    <p className="text-sm text-white/70 max-w-md">Aquí verás la referencia visual de la seña antes de entrar a la práctica.</p>
+                                 </div>
+                              )}
+
+                              <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-3">
+                                 <div className="rounded-full bg-black/55 text-white text-[11px] font-black uppercase tracking-widest px-3 py-1.5 backdrop-blur-sm">
+                                    Video de referencia
+                                 </div>
+                                 <div className="rounded-full bg-black/55 text-white text-[11px] font-black uppercase tracking-widest px-3 py-1.5 backdrop-blur-sm">
+                                    Listo para practicar
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     </CardBody>
+                  </Card>
+               </div>
+            </div>
+         </div>
+      );
+   }
   
-  return (
-    <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-[var(--color-surface)] relative">
-         <InstructionsModal
-            id="practice"
-            title="Práctica de Colores"
-            instructions={[
-               'La práctica te mostrará una seña objetivo del vocabulario de colores.',
-               'Realiza la seña frente a la cámara y espera la confirmación antes de pasar a la siguiente.',
-               'Si bajas las manos, el sistema limpiará la detección y no contará un intento falso.',
-               'Usa Omitir solo cuando quieras avanzar manualmente a otro objetivo.'
-            ]}
-         />
-      
-      {/* Header */}
-      <div className="flex-shrink-0 p-6 sm:p-8 bg-white border-b border-[var(--color-neutral-200)] shadow-sm">
+   return (
+      <div className="min-h-screen flex flex-col bg-[var(--color-surface)] relative overflow-hidden">
+         <div className="flex-shrink-0 p-4 sm:p-6 bg-white border-b border-[var(--color-neutral-200)] shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="bg-[var(--color-accent-100)] p-3 rounded-2xl text-[var(--color-accent-600)] shadow-inner">
               <Target size={28} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Práctica de Reconocimiento</h1>
-                     <p className="text-sm text-[var(--color-text-secondary)] font-medium mt-1">Reconocimiento en tiempo real con vocabulario de colores</p>
+                     <h1 className="text-2xl font-black text-[var(--color-text-primary)]">Práctica de Reconocimiento</h1>
+                               <p className="text-sm text-[var(--color-text-secondary)] font-medium mt-1">Vista limpia con cámara completa, video auxiliar y opciones laterales</p>
             </div>
           </div>
                <div className="flex items-center gap-2">
@@ -419,84 +621,16 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 sm:p-8">
-        <div className="max-w-6xl mx-auto h-full min-h-[500px]">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
-            
-            {/* Columna Izquierda: Instrucción */}
-            <div className="lg:col-span-1 h-full flex flex-col gap-4">
-                     <motion.div
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.35 }}
-                        className="flex-1"
-                     >
-                     <Card className="h-full border-none shadow-lg bg-white overflow-hidden flex flex-col">
-                        <CardBody className="p-6 flex flex-col h-full items-center text-center">
-                           <p className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Seña objetivo</p>
-                           <motion.h2
-                              key={currentSign?.name ?? 'empty'}
-                              initial={{ opacity: 0, scale: 0.92, y: 8 }}
-                              animate={{ opacity: 1, scale: 1, y: 0 }}
-                              transition={{ duration: 0.28 }}
-                              className={`text-4xl font-black text-[var(--color-primary-600)] mb-3 transition-all duration-300 ${isAdvancing ? 'opacity-70 scale-95' : 'opacity-100 scale-100'}`}
-                           >
-                              {currentSign?.name ?? 'Sin ejercicio'}
-                           </motion.h2>
-                           <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-accent-100)] text-[var(--color-accent-700)] text-xs font-bold uppercase tracking-widest">
-                              {currentSign ? getCategoryLabel(currentSign.category) : 'Práctica'}
-                           </div>
+      <div className="flex-1 overflow-hidden p-3 sm:p-6">
+        <div className="max-w-7xl mx-auto h-full min-h-[calc(100vh-11rem)]">
+          <div className="grid grid-cols-1 h-full">
 
-                           <div className="w-full aspect-square bg-[var(--color-neutral-100)] rounded-2xl border-2 border-dashed border-[var(--color-neutral-300)] flex items-center justify-center mb-6 overflow-hidden">
-                              {currentSign?.videoUrl ? (
-                                 <video
-                                    key={currentSign.videoUrl}
-                                    src={resolveVideoUrl(currentSign.videoUrl)}
-                                    autoPlay
-                                    loop
-                                    muted
-                                    playsInline
-                                    controls
-                                    className="w-full h-full object-contain bg-black"
-                                 />
-                              ) : (
-                                 <span className="text-[var(--color-neutral-400)] text-sm font-medium">Imagen ilustrativa</span>
-                              )}
-                           </div>
-
-                           <div className="w-full mt-auto text-left">
-                              <div className="flex justify-between text-sm font-bold text-[var(--color-text-secondary)] mb-2">
-                                 <span>Progreso</span>
-                                 <span>{currentIndex + 1}/{practiceSigns.length || 10}</span>
-                              </div>
-                              <div className="w-full h-3 bg-[var(--color-neutral-200)] rounded-full overflow-hidden">
-                                 <div className="h-full bg-[var(--color-primary-500)] rounded-full transition-all" style={{ width: `${progress}%` }} />
-                              </div>
-                              <div className="mt-4 grid grid-cols-2 gap-2">
-                                 <div className="rounded-xl bg-[var(--color-neutral-50)] p-3 border border-[var(--color-neutral-200)]">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-tertiary)]">Aciertos</p>
-                                    <p className="text-2xl font-black text-[var(--color-primary-600)]">{correctAnswers}</p>
-                                 </div>
-                                 <div className="rounded-xl bg-[var(--color-neutral-50)] p-3 border border-[var(--color-neutral-200)]">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-tertiary)]">Intentos</p>
-                                    <p className="text-2xl font-black text-[var(--color-text-primary)]">{attempts}</p>
-                                 </div>
-                              </div>
-
-                              <div className="mt-4 flex gap-2">
-                                 <Button variant="ghost" className="flex-1" onClick={handleSkipTarget} disabled={!isPracticeStarted || !currentSign}>
-                                    Omitir
-                                 </Button>
-                              </div>
-                           </div>
-                        </CardBody>
-                     </Card>
-                     </motion.div>
+            <div className="hidden">
+               {/* Panel lateral de referencia oculto en la nueva estructura. */}
             </div>
 
-            {/* Centro: Cámara */}
-            <div className="lg:col-span-2 h-full flex flex-col">
-                     <Card className="flex-1 border-4 border-[var(--color-primary-100)] shadow-2xl bg-black overflow-hidden relative rounded-3xl">
+            <div className="h-full flex flex-col">
+                     <Card className="flex-1 border-4 border-[var(--color-primary-100)] shadow-2xl bg-black overflow-hidden relative rounded-[2rem] min-h-[calc(100vh-11rem)]">
                         <video
                            ref={videoRef}
                            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${recState.isActive ? 'opacity-100' : 'opacity-0'}`}
@@ -583,211 +717,201 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                               {recognitionStateLabel}
                            </div>
                         )}
-                     </Card>
-            </div>
 
-            {/* Columna Derecha: Resultados */}
-            <div className="lg:col-span-1 h-full flex flex-col gap-4">
-                     <Card className="flex-1 border-none shadow-lg bg-white overflow-hidden flex flex-col">
-                        <CardBody className="p-6 flex flex-col h-full justify-center">
-                           <div className="text-center mb-8">
-                              <div className={`inline-block px-4 py-1.5 bg-[var(--color-accent-100)] text-[var(--color-accent-700)] rounded-full text-xs font-black uppercase tracking-widest mb-4 transition-all duration-300 ${isAdvancing ? 'opacity-70 scale-95' : 'animate-pulse'}`}>
-                                 {recState.isActive ? 'Reconociendo...' : 'Esperando inicio'}
-                              </div>
-                              <p className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Estado</p>
-                              <AnimatePresence mode="wait">
-                                 <motion.h3
-                                    key={currentSign?.name ?? 'empty-state'}
-                                    initial={{ opacity: 0, scale: 0.9, y: 8 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.92, y: -4 }}
-                                    transition={{ duration: 0.22 }}
-                                    className="text-3xl font-black text-[var(--color-primary-600)] text-center leading-tight mb-2"
+                        {recState.isActive && (
+                           <>
+                              {showExampleVideo ? (
+                                 <motion.div
+                                    initial={{ opacity: 0, x: -10, y: 8 }}
+                                    animate={{ opacity: 1, x: 0, y: 0 }}
+                                    className="absolute bottom-4 left-4 z-30 w-[280px] max-w-[42vw] rounded-3xl overflow-hidden border border-white/10 bg-black/55 backdrop-blur-xl shadow-2xl"
                                  >
-                                    {currentSign?.name ?? 'Sin seña'}
-                                 </motion.h3>
-                              </AnimatePresence>
-                              <AnimatePresence mode="wait">
-                                 <motion.p
-                                    key={displayedDetectionLabel}
-                                    initial={{ opacity: 0, y: 6 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -4 }}
-                                    className={`text-base font-bold text-center leading-snug ${isAdvancing ? 'text-[var(--color-warning-700)]' : 'text-[var(--color-text-primary)]'}`}
+                                    <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 text-white/80">
+                                       <div className="text-[10px] font-black uppercase tracking-[0.35em]">Video de ejemplo</div>
+                                       <button type="button" onClick={() => setShowExampleVideo(false)} className="rounded-full p-1 hover:bg-white/10">
+                                          <EyeOff size={14} />
+                                       </button>
+                                    </div>
+                                    <div className="aspect-video bg-black">
+                                       <video
+                                          key={currentSign?.videoUrl ?? 'practice-example'}
+                                          src={resolveVideoUrl(currentSign?.videoUrl ?? practiceSigns[0]?.videoUrl)}
+                                          autoPlay
+                                          loop
+                                          muted
+                                          playsInline
+                                          controls
+                                          className="w-full h-full object-contain bg-black"
+                                       />
+                                    </div>
+                                 </motion.div>
+                              ) : (
+                                 <button
+                                    type="button"
+                                    onClick={() => setShowExampleVideo(true)}
+                                    className="absolute bottom-4 left-4 z-30 inline-flex items-center gap-2 rounded-full bg-black/65 px-4 py-2 text-white text-xs font-black uppercase tracking-widest backdrop-blur-md shadow-xl"
                                  >
-                                    {displayedDetectionLabel}
-                                 </motion.p>
-                              </AnimatePresence>
-                              <motion.p
-                                 key={statusMessage}
-                                 initial={{ opacity: 0, y: 6 }}
-                                 animate={{ opacity: 1, y: 0 }}
-                                 exit={{ opacity: 0, y: -4 }}
-                                 className="mt-2 text-sm text-[var(--color-text-secondary)] text-center"
-                              >
-                                 {statusMessage}
-                              </motion.p>
-                           </div>
+                                    <Eye size={14} />
+                                    Mostrar video
+                                 </button>
+                              )}
 
-                           <div className="w-full mt-auto">
-                              <p className="text-center text-sm font-bold text-[var(--color-text-secondary)] mb-3">Confianza</p>
-                              <div className="relative w-32 h-32 mx-auto">
-                                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-neutral-100)" strokeWidth="10" />
-                                    <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-success-500)" strokeWidth="10" strokeDasharray="283" strokeDashoffset={283 - (283 * displayedConfidence) / 100} className="transition-all duration-1000" />
-                                 </svg>
-                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-2xl font-black text-[var(--color-success-700)]">{displayedConfidence}%</span>
-                                 </div>
-                              </div>
+                              {showSidePanel ? (
+                                 <motion.aside
+                                    initial={{ opacity: 0, x: 16 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className="absolute top-4 right-4 bottom-4 z-30 w-[330px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-[1.75rem] bg-white/92 backdrop-blur-xl border border-white/60 shadow-2xl"
+                                 >
+                                    <div className="p-4 sm:p-5 space-y-4">
+                                       <div className="flex items-start justify-between gap-3">
+                                          <div>
+                                             <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[var(--color-text-tertiary)]">Opciones</p>
+                                             <h3 className="text-xl font-black text-[var(--color-text-primary)]">Panel lateral</h3>
+                                          </div>
+                                          <button type="button" onClick={() => setShowSidePanel(false)} className="rounded-full p-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-neutral-100)]">
+                                             <X size={18} />
+                                          </button>
+                                       </div>
 
-                              <div className="mt-4 grid grid-cols-2 gap-3 text-center">
-                                 <div className="rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] p-3">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-tertiary)] mb-1">Aciertos</p>
-                                    <p className="text-2xl font-black text-[var(--color-primary-600)]">{correctAnswers}</p>
-                                 </div>
-                                 <div className="rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] p-3">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-tertiary)] mb-1">Precisión</p>
-                                    <p className="text-2xl font-black text-[var(--color-text-primary)]">{accuracy}%</p>
-                                 </div>
-                              </div>
+                                       <div className="rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] p-4">
+                                          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-tertiary)] mb-2">Seña objetivo</p>
+                                          <div className="text-2xl font-black text-[var(--color-primary-600)] leading-tight">{currentSign?.name ?? 'Sin ejercicio'}</div>
+                                          <p className="mt-2 text-sm font-semibold text-[var(--color-text-secondary)]">{statusMessage}</p>
+                                       </div>
 
-                              <div className="mt-4 text-center text-xs font-bold uppercase tracking-widest text-[var(--color-text-tertiary)]">
-                                 {currentSign ? `Objetivo activo: ${currentSign.name}` : 'Selecciona una seña'}
-                              </div>
-                           </div>
-                        </CardBody>
+                                       <div className="grid grid-cols-2 gap-3 text-center">
+                                          <div className="rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] p-3">
+                                             <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-tertiary)] mb-1">Aciertos</p>
+                                             <p className="text-2xl font-black text-[var(--color-primary-600)]">{correctAnswers}</p>
+                                          </div>
+                                          <div className="rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] p-3">
+                                             <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-tertiary)] mb-1">Intentos</p>
+                                             <p className="text-2xl font-black text-[var(--color-text-primary)]">{attempts}</p>
+                                          </div>
+                                       </div>
+
+                                       <div className="rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] p-4">
+                                          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-tertiary)] mb-3">Confianza</p>
+                                          <div className="relative w-28 h-28 mx-auto">
+                                             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                                <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-neutral-200)" strokeWidth="10" />
+                                                <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-success-500)" strokeWidth="10" strokeDasharray="283" strokeDashoffset={283 - (283 * displayedConfidence) / 100} className="transition-all duration-1000" />
+                                             </svg>
+                                             <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-2xl font-black text-[var(--color-success-700)]">{displayedConfidence}%</span>
+                                             </div>
+                                          </div>
+                                       </div>
+
+                                       <div className="flex gap-2">
+                                          <Button variant="ghost" className="flex-1" onClick={handleStopPractice} disabled={!isPracticeStarted}>
+                                             Detener
+                                          </Button>
+                                          <Button className="flex-1" onClick={handleStartPractice} disabled={isPracticeStarted || isModelWarming}>
+                                             Iniciar
+                                          </Button>
+                                       </div>
+
+                                       <div className="rounded-2xl border border-[var(--color-neutral-200)] bg-white p-4 space-y-3">
+                                          <div className="flex items-center justify-between gap-3">
+                                             <div>
+                                                <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[var(--color-text-tertiary)]">Catálogo</p>
+                                                <h4 className="text-lg font-black text-[var(--color-text-primary)]">Buscar señas</h4>
+                                             </div>
+                                             <Button variant="ghost" size="sm" onClick={() => setShowCatalog(prev => !prev)}>
+                                                {showCatalog ? 'Ocultar' : 'Abrir'}
+                                             </Button>
+                                          </div>
+
+                                          {showCatalog ? (
+                                             <>
+                                                <Input
+                                                   value={catalogSearchTerm}
+                                                   onChange={(event) => setCatalogSearchTerm(event.target.value)}
+                                                   placeholder="Buscar seña por nombre..."
+                                                   leftIcon={<Search size={18} />}
+                                                />
+                                                <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                                                   {catalogCategories.map((category) => {
+                                                      const isActive = selectedCatalogCategory === category.id;
+
+                                                      return (
+                                                         <button
+                                                            key={category.id}
+                                                            type="button"
+                                                            onClick={() => setSelectedCatalogCategory(category.id)}
+                                                            className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold whitespace-nowrap transition-all ${
+                                                               isActive
+                                                                  ? 'bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)]'
+                                                                  : 'bg-[var(--color-neutral-50)] text-[var(--color-text-primary)] border-[var(--color-neutral-200)]'
+                                                            }`}
+                                                         >
+                                                            <span>{category.emoji}</span>
+                                                            <span>{category.label}</span>
+                                                         </button>
+                                                      );
+                                                   })}
+                                                </div>
+                                                <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
+                                                   {filteredCatalogSigns.length > 0 ? (
+                                                      filteredCatalogSigns.map((sign) => (
+                                                         <button
+                                                            key={`${sign.category}-${sign.name}`}
+                                                            type="button"
+                                                            onClick={() => setSelectedCatalogSign(sign)}
+                                                            className="group flex items-center gap-3 rounded-2xl border border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] p-3 text-left transition-all hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]"
+                                                         >
+                                                            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-black">
+                                                               <video
+                                                                  src={resolveVideoUrl(sign.videoUrl)}
+                                                                  autoPlay
+                                                                  loop
+                                                                  muted
+                                                                  playsInline
+                                                                  className="h-full w-full object-contain bg-black"
+                                                               />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                               <p className="text-sm font-black text-[var(--color-text-primary)] truncate">{sign.name}</p>
+                                                               <Badge variant="neutral" size="sm">{getCategoryLabel(sign.category)}</Badge>
+                                                            </div>
+                                                         </button>
+                                                      ))
+                                                   ) : (
+                                                      <div className="rounded-2xl border border-dashed border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-4 py-8 text-center">
+                                                         <BookOpen size={24} className="mx-auto mb-2 text-[var(--color-text-tertiary)]" />
+                                                         <p className="text-sm font-semibold text-[var(--color-text-primary)]">Sin resultados</p>
+                                                      </div>
+                                                   )}
+                                                </div>
+                                             </>
+                                          ) : (
+                                             <div className="rounded-2xl border border-dashed border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-4 py-6 text-center">
+                                                <BookOpen size={24} className="mx-auto mb-2 text-[var(--color-text-tertiary)]" />
+                                                <p className="text-sm font-semibold text-[var(--color-text-primary)]">Catálogo oculto</p>
+                                                <p className="mt-1 text-xs text-[var(--color-text-secondary)]">Ábrelo cuando necesites revisar otra seña.</p>
+                                             </div>
+                                          )}
+                                       </div>
+                                    </div>
+                                 </motion.aside>
+                              ) : (
+                                 <button
+                                    type="button"
+                                    onClick={() => setShowSidePanel(true)}
+                                    className="absolute top-1/2 right-4 z-30 -translate-y-1/2 rounded-full bg-black/65 px-4 py-3 text-white text-xs font-black uppercase tracking-widest backdrop-blur-md shadow-xl"
+                                 >
+                                    Abrir opciones
+                                 </button>
+                              )}
+                           </>
+                        )}
                      </Card>
             </div>
 
           </div>
         </div>
       </div>
-
-         <div className="px-4 sm:px-8 pb-8">
-            <div className="max-w-6xl mx-auto">
-               <Card className="border-none shadow-xl bg-white overflow-hidden">
-                  <CardBody className="p-6 sm:p-8">
-                     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                        <div>
-                           <p className="text-xs font-black uppercase tracking-[0.35em] text-[var(--color-primary-500)] mb-2">Catálogo individual completo</p>
-                           <h2 className="text-2xl sm:text-3xl font-black text-[var(--color-text-primary)]">Explora y practica cada seña</h2>
-                           <p className="mt-2 text-sm text-[var(--color-text-secondary)] max-w-2xl">
-                              El catálogo completo está colapsado por defecto para que la práctica cargue más rápido. Ábrelo solo cuando quieras buscar o revisar videos.
-                           </p>
-                        </div>
-                        <div className="flex items-center gap-3 self-start lg:self-auto">
-                           <Badge variant="primary" size="md">{allCatalogSigns.length} señas disponibles</Badge>
-                           <Button
-                              type="button"
-                              variant="ghost"
-                              onClick={() => setShowCatalog(prev => !prev)}
-                              className="shrink-0"
-                           >
-                              {showCatalog ? 'Ocultar catálogo' : 'Mostrar catálogo'}
-                           </Button>
-                        </div>
-                     </div>
-
-                     {!showCatalog ? (
-                        <div className="mt-6 rounded-3xl border border-dashed border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-6 py-8 text-center">
-                           <BookOpen size={28} className="mx-auto mb-3 text-[var(--color-text-tertiary)]" />
-                           <p className="text-sm font-semibold text-[var(--color-text-primary)]">Catálogo oculto para mejorar el rendimiento.</p>
-                           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">Actívalo cuando necesites buscar una seña o abrir un video de referencia.</p>
-                        </div>
-                     ) : (
-                        <>
-                           <div className="mt-6">
-                              <Input
-                                 value={catalogSearchTerm}
-                                 onChange={(event) => setCatalogSearchTerm(event.target.value)}
-                                 placeholder="Buscar seña por nombre..."
-                                 leftIcon={<Search size={18} />}
-                              />
-                           </div>
-
-                           <div className="mt-4 flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                              {catalogCategories.map((category) => {
-                                 const isActive = selectedCatalogCategory === category.id;
-
-                                 return (
-                                    <button
-                                       key={category.id}
-                                       type="button"
-                                       onClick={() => setSelectedCatalogCategory(category.id)}
-                                       className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold whitespace-nowrap transition-all ${
-                                          isActive
-                                             ? 'bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)] shadow-md'
-                                             : 'bg-[var(--color-neutral-50)] text-[var(--color-text-primary)] border-[var(--color-neutral-200)] hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]'
-                                       }`}
-                                    >
-                                       <span>{category.emoji}</span>
-                                       <span>{category.label}</span>
-                                       <span className={`text-xs font-black px-2 py-0.5 rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-[var(--color-neutral-200)] text-[var(--color-text-secondary)]'}`}>
-                                          {category.count}
-                                       </span>
-                                    </button>
-                                 );
-                              })}
-                           </div>
-
-                           <div className="mt-6">
-                              {filteredCatalogSigns.length > 0 ? (
-                                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                                    {filteredCatalogSigns.map((sign) => (
-                                       <button
-                                          key={`${sign.category}-${sign.name}`}
-                                          type="button"
-                                          onClick={() => setSelectedCatalogSign(sign)}
-                                          className="group flex flex-col gap-3 text-left"
-                                       >
-                                          <div className="aspect-square rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] overflow-hidden relative shadow-sm transition-all group-hover:shadow-lg group-hover:-translate-y-0.5">
-                                             <video
-                                                src={resolveVideoUrl(sign.videoUrl)}
-                                                autoPlay
-                                                loop
-                                                muted
-                                                playsInline
-                                                className="w-full h-full object-contain bg-black"
-                                             />
-                                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                                <span className="opacity-0 group-hover:opacity-100 bg-white text-[var(--color-neutral-900)] rounded-full p-2 shadow-lg transition-opacity">
-                                                   <Play size={16} />
-                                                </span>
-                                             </div>
-                                          </div>
-                                          <div className="space-y-1">
-                                             <p className="text-sm font-black text-[var(--color-text-primary)] leading-tight">{sign.name}</p>
-                                             <Badge variant="neutral" size="sm">{getCategoryLabel(sign.category)}</Badge>
-                                          </div>
-                                       </button>
-                                    ))}
-                                 </div>
-                              ) : (
-                                 <div className="rounded-3xl border-2 border-dashed border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-6 py-12 text-center">
-                                    <BookOpen size={28} className="mx-auto mb-3 text-[var(--color-text-tertiary)]" />
-                                    <h3 className="text-lg font-black text-[var(--color-text-primary)]">No hay resultados</h3>
-                                    <p className="mt-2 text-sm text-[var(--color-text-secondary)]">Prueba con otro nombre o cambia de categoría para ver más señas.</p>
-                                    <Button
-                                       type="button"
-                                       variant="ghost"
-                                       className="mt-4"
-                                       onClick={() => {
-                                          setCatalogSearchTerm('');
-                                          setSelectedCatalogCategory('all');
-                                       }}
-                                    >
-                                       Limpiar filtros
-                                    </Button>
-                                 </div>
-                              )}
-                           </div>
-                        </>
-                     )}
-                  </CardBody>
-               </Card>
-            </div>
-         </div>
 
       {/* Modal de Finalización */}
          {showModal && (
