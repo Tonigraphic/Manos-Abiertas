@@ -17,7 +17,7 @@ import * as ort from 'onnxruntime-web';
 // ── ONNX Runtime config ────────────────────────────────────────────────
 ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/';
 ort.env.wasm.numThreads = 1;
-ort.env.wasm.proxy = false;
+ort.env.wasm.proxy = true;
 
 import { HolisticLandmarks } from './handDetectionService';
 import { LSC_VOCABULARY } from '../lib/lscData';
@@ -56,7 +56,7 @@ const FEATURES_PER_FRAME =
 
 const TOTAL_INPUT_SIZE = SEQUENCE_LENGTH * FEATURES_PER_FRAME; // 49860
 const CONFIDENCE_THRESHOLD = 0.50; // Más permisivo para compensar el ruido visual al estar cerca
-const STABLE_PREDICTIONS_REQUIRED = 2; // Solo 2 frames para una respuesta instantánea
+const STABLE_PREDICTIONS_REQUIRED = 6; // Mayor estabilidad para evitar falsos positivos y requerir movimiento
 
 // ── Etiquetas por categoría ────────────────────────────────────────────
 const CATEGORY_LABELS: Record<string, string[]> = {};
@@ -91,6 +91,7 @@ export class SignRecognitionService {
   private outputName: string = '';
   private frameBuffer: Float32Array[] = [];
   private isPredicting = false;
+  private loadingPromise: Promise<void> | null = null;
 
   constructor() {
     this.initializePatterns();
@@ -119,35 +120,45 @@ export class SignRecognitionService {
   }
 
   public async loadModel(category: string): Promise<void> {
+    // Si ya hay una carga en curso, esperamos a que termine
+    if (this.loadingPromise) return this.loadingPromise;
+
     const url = MODEL_URLS[category];
     // Si ya cargamos exactamente la misma URL, no recargamos.
     if (this.currentCategory === category && this.session && this.currentModelUrl === url) return;
 
-    try {
-      if (!url) throw new Error(`Categoría ${category} sin modelo`);
+    this.loadingPromise = (async () => {
+      try {
+        if (!url) throw new Error(`Categoría ${category} sin modelo`);
 
-      console.log(`Cargando modelo Holistic para "${category}" desde ${url}...`);
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const buffer = await response.arrayBuffer();
+        console.log(`Cargando modelo Holistic para "${category}" desde ${url}...`);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const buffer = await response.arrayBuffer();
 
-      this.session = await ort.InferenceSession.create(buffer, {
-        executionProviders: ['wasm'],
-      });
+        this.session = await ort.InferenceSession.create(buffer, {
+          executionProviders: ['wasm'],
+        });
 
-      this.inputName = this.session.inputNames[0];
-      this.outputName = this.session.outputNames[0];
-      this.currentCategory = category;
-      this.currentModelUrl = url;
-      this.frameBuffer = [];
-      this.isPredicting = false;
+        this.inputName = this.session.inputNames[0];
+        this.outputName = this.session.outputNames[0];
+        this.currentCategory = category;
+        this.currentModelUrl = url;
+        this.frameBuffer = [];
+        this.isPredicting = false;
 
-      console.log(`✓ Modelo cargado: "${this.inputName}" [1,${SEQUENCE_LENGTH},${FEATURES_PER_FRAME}] → "${this.outputName}"`);
-    } catch (error) {
-      console.error("Error al cargar modelo:", error);
-      this.session = null;
-      this.currentCategory = null;
-    }
+        console.log(`✓ Modelo cargado: "${this.inputName}" [1,${SEQUENCE_LENGTH},${FEATURES_PER_FRAME}] → "${this.outputName}"`);
+      } catch (error) {
+        console.error("Error al cargar modelo:", error);
+        this.session = null;
+        this.currentCategory = null;
+        throw error;
+      } finally {
+        this.loadingPromise = null;
+      }
+    })();
+
+    return this.loadingPromise;
   }
 
   public getAllSigns(): SignPattern[] {
@@ -267,10 +278,11 @@ export class SignRecognitionService {
       // 7. Softmax si son logits
       let confidence = maxVal;
       if (maxVal > 1 || maxVal < 0) {
-        const maxL = Math.max(...Array.from(probs));
-        const exps = Array.from(probs).map(v => Math.exp(v - maxL));
-        const sum = exps.reduce((a, b) => a + b, 0);
-        confidence = exps[maxIdx] / sum;
+        let sum = 0;
+        for (let i = 0; i < probs.length; i++) {
+          sum += Math.exp(probs[i] - maxVal);
+        }
+        confidence = 1.0 / sum;
       }
 
       // 8. Threshold más estricto + label
@@ -279,7 +291,8 @@ export class SignRecognitionService {
 
       // Si la confianza es baja, degradamos el historial en lugar de borrarlo
       if (confidence < CONFIDENCE_THRESHOLD) {
-        if (this.lastPredictions.length > 0) this.lastPredictions.shift();
+        // Eliminamos el shift() agresivo para evitar que la confianza "caiga a cero"
+        // ante un pequeño parpadeo, manteniendo la estabilidad acumulada.
         return null;
       }
 

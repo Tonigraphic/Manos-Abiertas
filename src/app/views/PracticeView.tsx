@@ -1,13 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
 import { Badge } from '../components/lsc/Badge';
 import { Input } from '../components/lsc/Input';
-import { Camera, CameraOff, RefreshCw, BarChart2, Target, Trophy, PlayCircle, CheckCircle2, XCircle, ChevronDown, ChevronLeft, ChevronRight, Search, BookOpen, Play, X, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Camera, CameraOff, RefreshCw, BarChart2, Target, Trophy, PlayCircle, CheckCircle2, XCircle, ChevronDown, ChevronLeft, ChevronRight, Search, BookOpen, Play, X, Loader2, Eye, EyeOff, Star, Info, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLSCRecognition } from '../../hooks/useLSCRecognition';
 import { signRecognitionService, SignPattern } from '../../services/signRecognitionService';
 import { resolveVideoUrl } from '../../lib/videoUtils';
+import { InstructionOverlay } from '../../../InstructionOverlay';
+
+// Función de utilidad fuera del componente para evitar recreaciones y advertencias de linting
+const normalizeSign = (value: string) => (value || '')
+   .normalize('NFD')
+   .replace(/[\u0300-\u036f]/g, '')
+   .toUpperCase()
+   .trim();
+
+// Umbral de confianza para considerar una seña como correcta (95% para evitar falsos positivos)
+const MIN_SUCCESS_CONFIDENCE = 95;
 
 interface PracticeViewProps {
   onNavigateHome?: () => void;
@@ -16,8 +27,7 @@ interface PracticeViewProps {
 export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    const { state: recState, videoRef, canvasRef, startRecognition, stopRecognition } = useLSCRecognition();
    const [showModal, setShowModal] = useState(false);
-   const [showIntroScreen, setShowIntroScreen] = useState(true);
-   const [introStep, setIntroStep] = useState(0);
+   const [showInstructions, setShowInstructions] = useState(true);
    const [isModelWarming, setIsModelWarming] = useState(false);
    const [isModelReady, setIsModelReady] = useState(false);
    const [isPracticeStarted, setIsPracticeStarted] = useState(false);
@@ -28,10 +38,11 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    const [isCompleting, setIsCompleting] = useState(false);
    const [isAdvancing, setIsAdvancing] = useState(false);
    const [showCatalog, setShowCatalog] = useState(false);
-   const [showSidePanel, setShowSidePanel] = useState(true);
+   const [showExampleVideo, setShowExampleVideo] = useState(true);
    const [catalogSearchTerm, setCatalogSearchTerm] = useState('');
    const [selectedCatalogCategory, setSelectedCatalogCategory] = useState('all');
    const [selectedCatalogSign, setSelectedCatalogSign] = useState<SignPattern | null>(null);
+   const [feedback, setFeedback] = useState<'success' | 'error' | null>(null);
 
    const processedRecognitionRef = useRef<string>('');
    const lastNonMatchRef = useRef<string>('');
@@ -45,6 +56,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    const noRecognitionTimerRef = useRef<number | null>(null);
    const latestHandsDetectedRef = useRef(0);
    const latestCurrentIndexRef = useRef(0);
+   const lastIndexChangeTimeRef = useRef(Date.now());
 
    useEffect(() => {
       latestHandsDetectedRef.current = recState.handsDetected;
@@ -52,6 +64,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
    useEffect(() => {
       latestCurrentIndexRef.current = currentIndex;
+      lastIndexChangeTimeRef.current = Date.now();
    }, [currentIndex]);
 
    const allCatalogSigns = useMemo(() => signRecognitionService.getAllSigns(), []);
@@ -81,29 +94,6 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    const currentSign = practiceSigns[currentIndex] ?? null;
 
    const currentModelCategory = 'Colores';
-
-   const introSteps = [
-      {
-         title: 'Desliza para aprender',
-         description: 'Revisa las indicaciones deslizando la tarjeta. Mientras lees, el modelo de práctica se descarga en segundo plano.',
-         hint: 'Desliza a la izquierda para avanzar',
-      },
-      {
-         title: 'Prepara el encuadre',
-         description: 'Colócate frente a la cámara con suficiente espacio para mover manos y brazos sin salir del cuadro.',
-         hint: 'Mantén el cuerpo centrado y las manos visibles',
-      },
-      {
-         title: 'Muestra la seña completa',
-         description: 'Haz la seña con calma. El sistema necesita ver el gesto con una postura estable antes de aceptarlo.',
-         hint: 'No te acerques demasiado a la cámara',
-      },
-      {
-         title: 'Video de ejemplo',
-         description: 'Cuando llegues aquí ya podrás entrar a práctica. Si quieres, abre el video de referencia para repetir el modelo visual.',
-         hint: 'Al terminar, entra a la práctica con el modelo listo',
-      },
-   ];
 
    const getCategoryLabel = (category: string) => {
       const labels: Record<string, string> = {
@@ -137,12 +127,6 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
       { id: 'office', label: 'Oficina', count: catalogCategoryCounts['office'] || 0, emoji: '🏢' },
       { id: 'design', label: 'Diseño', count: catalogCategoryCounts['design'] || 0, emoji: '✏️' },
    ];
-
-   const normalizeSign = (value: string) => value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toUpperCase()
-      .trim();
 
    const filteredCatalogSigns = useMemo(() => {
       const normalizedSearch = normalizeSign(catalogSearchTerm);
@@ -187,29 +171,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
       };
    }, [currentModelCategory]);
 
-   const handleIntroDragEnd = (_event: unknown, info: { offset: { x: number } }) => {
-      if (info.offset.x < -60) {
-         setIntroStep(prev => Math.min(prev + 1, introSteps.length - 1));
-      }
-      if (info.offset.x > 60) {
-         setIntroStep(prev => Math.max(prev - 1, 0));
-      }
-   };
-
-   const handleIntroNext = () => {
-      setIntroStep(prev => Math.min(prev + 1, introSteps.length - 1));
-   };
-
-   const handleIntroPrev = () => {
-      setIntroStep(prev => Math.max(prev - 1, 0));
-   };
-
-   const handleFinishIntro = () => {
-      setShowIntroScreen(false);
-      setStatusMessage(isModelReady ? 'Modelo preparado. Ya puedes iniciar la práctica.' : 'Modelo en preparación. Espera unos segundos antes de iniciar.');
-   };
-
-   const finishPractice = () => {
+   const finishPractice = useCallback(() => {
       if (completionTimerRef.current) {
          window.clearTimeout(completionTimerRef.current);
          completionTimerRef.current = null;
@@ -232,9 +194,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
       setIsCompleting(true);
       setIsAdvancing(false);
       setShowModal(true);
-   };
+   }, [stopRecognition]);
 
-   const advanceTarget = () => {
+   const advanceTarget = useCallback(() => {
       if (currentIndex >= practiceSigns.length - 1) {
          finishPractice();
          return;
@@ -242,8 +204,9 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
       setCurrentIndex(prev => prev + 1);
       processedRecognitionRef.current = '';
+      pendingAttemptMatchedRef.current = false;
       setStatusMessage('Siguiente seña cargada.');
-   };
+   }, [currentIndex, practiceSigns.length, finishPractice]);
 
    const handleStartPractice = async () => {
       if (!practiceSigns.length) {
@@ -251,25 +214,45 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
          return;
       }
 
+      if (!isModelReady) {
+         setStatusMessage('El modelo de IA aún se está preparando. Por favor, espera un momento.');
+         return;
+      }
+
+      // 1. Limpiar estados visuales primero para dar feedback inmediato al usuario
       setShowModal(false);
       setIsCompleting(false);
       setIsAdvancing(false);
       setCurrentIndex(0);
       setCorrectAnswers(0);
       setAttempts(0);
-      setStatusMessage('Iniciando cámara y modelo de reconocimiento...');
+      setStatusMessage('Preparando cámara y sistema de reconocimiento...');
+      
       processedRecognitionRef.current = '';
       awaitingResetRef.current = false;
       attemptLockedRef.current = false;
       pendingAttemptMatchedRef.current = false;
       pendingAttemptSignRef.current = '';
 
+      // 2. IMPORTANTE: Dejar que el navegador renderice el mensaje de carga 
+      // antes de bloquear el hilo principal con la inicialización de MediaPipe (vital en móviles)
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       try {
          await startRecognition(currentModelCategory);
+         // No dependemos de recState aquí porque es una clausura vieja del render anterior
          setIsPracticeStarted(true);
          setStatusMessage(`Práctica activa. Realiza la seña ${practiceSigns[0].name}.`);
       } catch (error) {
-         setStatusMessage('No fue posible iniciar la cámara o el modelo.');
+         let msg = 'No fue posible iniciar la cámara o el modelo.';
+         if (error instanceof Error) {
+            if (error.name === 'NotAllowedError') msg = 'Permiso de cámara denegado.';
+            else if (error.name === 'NotFoundError') msg = 'No se encontró una cámara en este dispositivo.';
+            else msg = error.message;
+         }
+         
+         setIsPracticeStarted(false);
+         setStatusMessage(msg);
          console.error(error);
       }
    };
@@ -331,118 +314,104 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
    useEffect(() => {
       if (!isPracticeStarted || isCompleting || !currentSign) return;
 
-      if (recState.handsDetected > 0 && !awaitingResetRef.current) {
-         awaitingResetRef.current = true;
-         attemptLockedRef.current = false;
-         pendingAttemptMatchedRef.current = false;
-         pendingAttemptSignRef.current = '';
-         processedRecognitionRef.current = '';
-         lastNonMatchRef.current = '';
-         setIsAdvancing(false);
-      }
+      if (recState.handsDetected === 0) {
+         const hadActivity = processedRecognitionRef.current !== '' || pendingAttemptSignRef.current !== '' || awaitingResetRef.current;
 
-      if (awaitingResetRef.current) {
-         const handsAreDown = recState.handsDetected === 0;
-
-         if (handsAreDown) {
+         if (hadActivity) {
             if (!noRecognitionTimerRef.current) {
                noRecognitionTimerRef.current = window.setTimeout(() => {
                   noRecognitionTimerRef.current = null;
-                  if (!awaitingResetRef.current || !isPracticeStarted || isCompleting) return;
-                  if (recState.handsDetected !== 0) return;
+                  if (!isPracticeStarted || isCompleting || recState.handsDetected !== 0) return;
 
-                  const wasMatched = pendingAttemptMatchedRef.current;
-
-                  setAttempts(prev => prev + 1);
-                  if (wasMatched) {
-                     setCorrectAnswers(prev => prev + 1);
+                  // Contamos el intento al bajar las manos si no se había registrado un acierto previo
+                  // Y solo si hubo al menos una seña detectada durante la sesión para evitar falsos positivos
+                  if (!pendingAttemptMatchedRef.current && pendingAttemptSignRef.current !== '') {
+                     setAttempts(prev => prev + 1);
                   }
 
                   awaitingResetRef.current = false;
                   attemptLockedRef.current = false;
                   setIsAdvancing(false);
+                  processedRecognitionRef.current = '';
+                  pendingAttemptSignRef.current = '';
+                  lastNonMatchRef.current = '';
+                  signRecognitionService.resetTemporalState();
+
                   if (latestCurrentIndexRef.current >= practiceSigns.length - 1) {
                      pendingAttemptMatchedRef.current = false;
                      pendingAttemptSignRef.current = '';
-                     signRecognitionService.resetTemporalState();
                      finishPractice();
                      return;
                   }
 
-                  if (wasMatched) {
-                     setCurrentIndex(prev => prev + 1);
-                     processedRecognitionRef.current = '';
-                     lastNonMatchRef.current = '';
-                     const nextSign = practiceSigns[latestCurrentIndexRef.current + 1]?.name ?? 'la siguiente seña';
-                     setStatusMessage(`Buen trabajo. Ahora intenta con ${nextSign}.`);
-                  } else {
-                     setStatusMessage(`Intento registrado. Vuelve a levantar las manos para probar con ${currentSign.name}.`);
-                  }
-
-                  pendingAttemptMatchedRef.current = false;
-                  pendingAttemptSignRef.current = '';
-                  signRecognitionService.resetTemporalState();
-               }, 180);
+                  setStatusMessage(`Intento registrado. Vuelve a levantar las manos para probar con ${currentSign.name}.`);
+               }, 800);
             }
          } else if (noRecognitionTimerRef.current) {
             window.clearTimeout(noRecognitionTimerRef.current);
             noRecognitionTimerRef.current = null;
          }
-
-         if (recState.handsDetected === 0) {
-            if (!handsDownTimerRef.current) {
-               handsDownTimerRef.current = window.setTimeout(() => {
-                  handsDownTimerRef.current = null;
-               }, 250);
-            }
-         } else if (handsDownTimerRef.current) {
-            window.clearTimeout(handsDownTimerRef.current);
-            handsDownTimerRef.current = null;
-         }
-
-         return;
       }
 
-      if (recState.handsDetected === 0) {
-         processedRecognitionRef.current = '';
-         lastNonMatchRef.current = '';
-         setIsAdvancing(false);
-         return;
+      // Si las manos suben, cancelamos cualquier timer de reset pendiente para continuar reconociendo
+      if (recState.handsDetected > 0 && noRecognitionTimerRef.current) {
+         window.clearTimeout(noRecognitionTimerRef.current);
+         noRecognitionTimerRef.current = null;
       }
 
-      if (!recState.currentSign) return;
+      // Si el intento ya detectó el acierto (está bloqueado), no procesamos más hasta que bajen las manos
+      if (attemptLockedRef.current) return;
+
+      if (!recState.currentSign || recState.currentSign.timestamp < lastIndexChangeTimeRef.current) return;
 
       const detected = normalizeSign(recState.currentSign.sign);
       const target = normalizeSign(currentSign.name);
+      const confidence = recState.currentSign.confidence;
       const attemptKey = `${currentIndex}:${detected}`;
 
-      if (attemptLockedRef.current) return;
-      if (processedRecognitionRef.current === attemptKey) return;
-      processedRecognitionRef.current = attemptKey;
+      if (processedRecognitionRef.current === attemptKey && Math.round(confidence * 100) < MIN_SUCCESS_CONFIDENCE) return;
 
       if (completionTimerRef.current) {
          window.clearTimeout(completionTimerRef.current);
          completionTimerRef.current = null;
       }
 
-      if (detected !== target) {
+      processedRecognitionRef.current = attemptKey;
+
+      if (detected !== target || Math.round(confidence * 100) < MIN_SUCCESS_CONFIDENCE) {
          lastNonMatchRef.current = attemptKey;
          pendingAttemptMatchedRef.current = false;
          pendingAttemptSignRef.current = detected;
-         setIsAdvancing(false);
-         setStatusMessage(`No coincide con ${currentSign.name}. Intenta nuevamente.`);
+         
+         if (detected === target) {
+            setStatusMessage(`Casi lo tienes. Mantén la seña con claridad (Confianza: ${Math.round(confidence * 100)}%). Objetivo: ${MIN_SUCCESS_CONFIDENCE}%+`);
+         } else {
+            setStatusMessage(`Realiza la seña ${currentSign.name}.`);
+         }
          return;
       }
 
       lastNonMatchRef.current = '';
-
       attemptLockedRef.current = true;
       pendingAttemptMatchedRef.current = true;
       pendingAttemptSignRef.current = detected;
-      setStatusMessage(`Correcto: ${currentSign.name}. Baja las manos para cargar la siguiente seña.`);
-      awaitingResetRef.current = true;
-      setIsAdvancing(true);
-   }, [currentIndex, currentSign, isCompleting, isPracticeStarted, practiceSigns.length, recState.currentSign, recState.handsDetected]);
+      setAttempts(prev => prev + 1);
+      setCorrectAnswers(prev => prev + 1);
+      setFeedback('success');
+      setStatusMessage(`¡Excelente! Correcto: ${currentSign.name}.`);
+
+      setTimeout(() => {
+         setFeedback(null);
+         advanceTarget();
+         attemptLockedRef.current = false;
+         awaitingResetRef.current = false;
+         setIsAdvancing(false);
+         processedRecognitionRef.current = '';
+         pendingAttemptSignRef.current = '';
+         signRecognitionService.resetTemporalState();
+      }, 1600);
+
+   }, [currentIndex, currentSign, isCompleting, isPracticeStarted, practiceSigns.length, recState.currentSign, recState.handsDetected, finishPractice, advanceTarget]);
 
    const confidence = recState.currentSign ? Math.round(recState.currentSign.confidence * 100) : 0;
    const displayedConfidence = recState.currentSign && currentSign
@@ -452,7 +421,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
       : confidence;
    const recognitionStateLabel = recState.isActive ? 'Reconocimiento activo' : 'Reconocimiento detenido';
    const detectedMatchesTarget = Boolean(
-      recState.currentSign && currentSign && normalizeSign(recState.currentSign.sign) === normalizeSign(currentSign.name)
+      recState.currentSign && currentSign && normalizeSign(recState.currentSign.sign) === normalizeSign(currentSign.name) && Math.round(recState.currentSign.confidence * 100) >= MIN_SUCCESS_CONFIDENCE
    );
    const displayedDetectionLabel = !recState.isActive
       ? 'Sin detección'
@@ -462,175 +431,14 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
          ? currentSign?.name ?? 'Sin detección'
          : 'Esperando coincidencia con el objetivo';
 
-   if (showIntroScreen) {
-      const activeSlide = introSteps[introStep];
-
-      return (
-         <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.12),_transparent_45%),linear-gradient(180deg,var(--color-surface),#ffffff)] text-[var(--color-text-primary)] flex flex-col">
-            <div className="flex-1 px-4 py-6 sm:px-8 sm:py-8 flex items-center justify-center">
-               <div className="w-full max-w-6xl">
-                  <div className="mb-6 flex items-center justify-between gap-4">
-                     <div>
-                        <p className="text-xs font-black uppercase tracking-[0.4em] text-[var(--color-primary-500)] mb-2">Práctica guiada</p>
-                        <h1 className="text-3xl sm:text-4xl font-black text-[var(--color-text-primary)]">Antes de empezar, recorre las instrucciones</h1>
-                        <p className="mt-2 text-sm text-[var(--color-text-secondary)] max-w-2xl">Mientras lees, el modelo de práctica se descarga en segundo plano para que al entrar no tengas que esperar.</p>
-                     </div>
-                     <div className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--color-neutral-200)] bg-white/80 px-4 py-2 shadow-sm backdrop-blur-sm">
-                        {isModelWarming ? <Loader2 size={16} className="animate-spin text-[var(--color-primary-600)]" /> : <CheckCircle2 size={16} className={isModelReady ? 'text-emerald-500' : 'text-amber-500'} />}
-                        <span className="text-xs font-black uppercase tracking-widest text-[var(--color-text-secondary)]">
-                           {isModelWarming ? 'Preparando modelo' : isModelReady ? 'Modelo listo' : 'Esperando modelo'}
-                        </span>
-                     </div>
-                  </div>
-
-                  <Card className="border-none shadow-2xl bg-white/90 backdrop-blur-xl overflow-hidden rounded-[2rem]">
-                     <CardBody className="p-5 sm:p-8">
-                        <div className="flex items-center justify-between gap-4 mb-6">
-                           <div className="flex items-center gap-3">
-                              <div className="rounded-2xl bg-[var(--color-primary-50)] text-[var(--color-primary-600)] p-3 border border-[var(--color-primary-100)]">
-                                 <Target size={22} />
-                              </div>
-                              <div>
-                                 <p className="text-xs font-black uppercase tracking-[0.35em] text-[var(--color-text-tertiary)]">{activeSlide.eyebrow}</p>
-                                 <h2 className="text-xl sm:text-2xl font-black text-[var(--color-text-primary)]">{activeSlide.title}</h2>
-                              </div>
-                           </div>
-                           <Badge variant="primary" size="md">Paso {introStep + 1} de {introSteps.length}</Badge>
-                        </div>
-
-                        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] items-stretch">
-                           <motion.div
-                              drag="x"
-                              dragConstraints={{ left: 0, right: 0 }}
-                              onDragEnd={handleIntroDragEnd}
-                              whileTap={{ cursor: 'grabbing' }}
-                              className="rounded-[1.75rem] border border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] p-6 sm:p-8 shadow-sm cursor-grab active:cursor-grabbing"
-                           >
-                              <div className="flex items-center justify-between gap-4 mb-5">
-                                 <div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[var(--color-text-tertiary)]">Desliza para avanzar</p>
-                                    <p className="mt-2 text-sm font-semibold text-[var(--color-text-secondary)]">{activeSlide.hint}</p>
-                                 </div>
-                                 <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-[var(--color-primary-600)] border border-[var(--color-primary-100)] shadow-sm">
-                                    <ChevronLeft size={14} />
-                                    <ChevronRight size={14} />
-                                    Desliza
-                                 </div>
-                              </div>
-
-                              <div className="space-y-4">
-                                 <p className="text-base sm:text-lg text-[var(--color-text-primary)] leading-relaxed font-medium">{activeSlide.description}</p>
-                                 <div className="grid gap-3 sm:grid-cols-2">
-                                    {introSteps.map((step, index) => (
-                                       <button
-                                          key={step.title}
-                                          type="button"
-                                          onClick={() => setIntroStep(index)}
-                                          className={`rounded-2xl border p-4 text-left transition-all ${index === introStep ? 'border-[var(--color-primary-300)] bg-white shadow-md' : 'border-[var(--color-neutral-200)] bg-white/70 hover:border-[var(--color-primary-100)]'}`}
-                                       >
-                                          <div className="flex items-center justify-between gap-3">
-                                             <span className="text-xs font-black uppercase tracking-[0.35em] text-[var(--color-text-tertiary)]">0{index + 1}</span>
-                                             {index === introStep && <div className="h-2.5 w-2.5 rounded-full bg-[var(--color-primary-500)]" />}
-                                          </div>
-                                          <p className="mt-2 text-sm font-black text-[var(--color-text-primary)]">{step.title}</p>
-                                       </button>
-                                    ))}
-                                 </div>
-                                 <ul className="grid gap-3 sm:grid-cols-1">
-                                    {(activeSlide as { bullets?: string[] }).bullets?.map((bullet) => (
-                                       <li key={bullet} className="rounded-2xl bg-white border border-[var(--color-neutral-200)] p-4 text-sm text-[var(--color-text-secondary)] shadow-sm">
-                                          {bullet}
-                                       </li>
-                                    ))}
-                                 </ul>
-                              </div>
-
-                              <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                                 <div className="flex gap-2">
-                                    <Button variant="ghost" onClick={handleIntroPrev} disabled={introStep === 0}>
-                                       Anterior
-                                    </Button>
-                                    <Button variant="ghost" onClick={handleIntroNext} disabled={introStep === introSteps.length - 1}>
-                                       Siguiente
-                                    </Button>
-                                 </div>
-                                 <Button onClick={handleFinishIntro} disabled={!isModelReady && isModelWarming} className="font-bold">
-                                    {isModelReady ? 'Entrar a práctica' : 'Preparando modelo...'}
-                                 </Button>
-                              </div>
-                           </motion.div>
-
-                           <div className="rounded-[1.75rem] border border-[var(--color-neutral-200)] bg-black overflow-hidden shadow-xl relative min-h-[320px]">
-                              {activeSlide.videoUrl ? (
-                                 <video
-                                    src={resolveVideoUrl(activeSlide.videoUrl)}
-                                    autoPlay
-                                    loop
-                                    muted
-                                    playsInline
-                                    controls
-                                    className="absolute inset-0 w-full h-full object-contain bg-black"
-                                 />
-                              ) : (
-                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white/80 p-8 text-center bg-gradient-to-b from-black/80 to-black/95">
-                                    <PlayCircle size={56} className="mb-4 text-white/35" />
-                                    <h3 className="text-2xl font-black mb-2">Video de ejemplo</h3>
-                                    <p className="text-sm text-white/70 max-w-md">Aquí verás la referencia visual de la seña antes de entrar a la práctica.</p>
-                                 </div>
-                              )}
-
-                              <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-3">
-                                 <div className="rounded-full bg-black/55 text-white text-[11px] font-black uppercase tracking-widest px-3 py-1.5 backdrop-blur-sm">
-                                    Video de referencia
-                                 </div>
-                                 <div className="rounded-full bg-black/55 text-white text-[11px] font-black uppercase tracking-widest px-3 py-1.5 backdrop-blur-sm">
-                                    Listo para practicar
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
-                     </CardBody>
-                  </Card>
-               </div>
-            </div>
-         </div>
-      );
-   }
-  
    return (
-      <div className="min-h-screen flex flex-col bg-[var(--color-surface)] relative overflow-hidden">
-         <div className="flex-shrink-0 p-4 sm:p-6 bg-white border-b border-[var(--color-neutral-200)] shadow-sm">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-[var(--color-accent-100)] p-3 rounded-2xl text-[var(--color-accent-600)] shadow-inner">
-              <Target size={28} />
-            </div>
-            <div>
-                     <h1 className="text-2xl font-black text-[var(--color-text-primary)]">Práctica de Reconocimiento</h1>
-                               <p className="text-sm text-[var(--color-text-secondary)] font-medium mt-1">Vista limpia con cámara completa, video auxiliar y opciones laterales</p>
-            </div>
-          </div>
-               <div className="flex items-center gap-2">
-                  <Button variant="ghost" onClick={handleStopPractice} disabled={!isPracticeStarted}>
-                     <CameraOff size={18} className="mr-2" /> Detener
-                  </Button>
-                  <Button onClick={handleStartPractice} disabled={isPracticeStarted}>
-                     <Camera size={18} className="mr-2" /> Iniciar práctica
-                  </Button>
-               </div>
-        </div>
-      </div>
+      <div className="fixed inset-0 h-dvh w-screen bg-black z-[60] overflow-hidden touch-none select-none">
+         <InstructionOverlay
+            show={showInstructions}
+            onClose={() => setShowInstructions(false)}
+            onToggle={() => setShowInstructions(prev => !prev)}
+         />
 
-      <div className="flex-1 overflow-hidden p-3 sm:p-6">
-        <div className="max-w-7xl mx-auto h-full min-h-[calc(100vh-11rem)]">
-          <div className="grid grid-cols-1 h-full">
-
-            <div className="hidden">
-               {/* Panel lateral de referencia oculto en la nueva estructura. */}
-            </div>
-
-            <div className="h-full flex flex-col">
-                     <Card className="flex-1 border-4 border-[var(--color-primary-100)] shadow-2xl bg-black overflow-hidden relative rounded-[2rem] min-h-[calc(100vh-11rem)]">
                         <video
                            ref={videoRef}
                            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${recState.isActive ? 'opacity-100' : 'opacity-0'}`}
@@ -645,46 +453,109 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                            style={{ transform: 'scaleX(-1)' }}
                         />
 
+                        {/* Animaciones de Feedback */}
+                        <AnimatePresence>
+                           {feedback === 'success' && (
+                              <motion.div 
+                                 className="absolute inset-0 z-[60] flex items-center justify-center pointer-events-none"
+                                 initial={{ opacity: 0 }}
+                                 animate={{ opacity: 1 }}
+                                 exit={{ opacity: 0 }}
+                              >
+                                 {[...Array(8)].map((_, i) => (
+                                    <motion.div
+                                       key={i}
+                                       className="absolute"
+                                       initial={{ scale: 0, opacity: 0, x: 0, y: 0 }}
+                                       animate={{ 
+                                          scale: [0, 1.5, 0], 
+                                          opacity: [0, 1, 0],
+                                          x: (Math.random() - 0.5) * 500,
+                                          y: (Math.random() - 0.5) * 500,
+                                          rotate: Math.random() * 360
+                                       }}
+                                       transition={{ duration: 1.2, delay: i * 0.05, ease: "easeOut" }}
+                                    >
+                                       <Star className="text-yellow-400 fill-yellow-400" size={32 + Math.random() * 32} />
+                                    </motion.div>
+                                 ))}
+                                 <motion.div
+                                    initial={{ scale: 0, rotate: -20 }}
+                                    animate={{ scale: [0, 1.2, 1], rotate: 0 }}
+                                    className="bg-white/10 backdrop-blur-lg rounded-full p-10 border border-white/20 shadow-2xl"
+                                 >
+                                    <CheckCircle2 size={120} className="text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]" />
+                                 </motion.div>
+                              </motion.div>
+                           )}
+                        </AnimatePresence>
+
                         <AnimatePresence mode="wait">
                            {recState.isActive && (
                               <motion.div
                                  key={isAdvancing ? 'advance' : currentSign?.name ?? 'ready'}
-                                 initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                                 initial={{ opacity: 0, y: -20 }}
                                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                                 transition={{ duration: 0.22 }}
-                                 className="absolute inset-x-0 top-0 z-30 p-4 pointer-events-none"
+                                 exit={{ opacity: 0, y: -20 }}
+                                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                                 className="absolute inset-x-0 top-2 md:top-6 z-30 p-2 md:p-4 pointer-events-none"
                               >
-                                 <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-black/35 backdrop-blur-md shadow-2xl px-5 py-4 text-white">
-                                    <div className="flex items-center justify-between gap-4">
+                                 <div className="mx-auto max-w-[95vw] md:max-w-xl rounded-[2rem] border border-white/20 bg-black/40 backdrop-blur-xl shadow-2xl px-5 py-4 md:px-7 md:py-6 text-white">
+                                    <div className="flex items-start justify-between gap-6 mb-4">
                                        <div className="min-w-0">
-                                          <p className="text-[10px] uppercase tracking-[0.35em] text-white/70 font-black mb-1">Objetivo</p>
-                                          <div className="text-2xl md:text-3xl font-black text-white truncate">
+                                          <p className="text-[9px] uppercase tracking-[0.4em] text-white/40 font-black mb-1">Seña Objetivo</p>
+                                          <div className="text-2xl md:text-5xl font-black text-white tracking-tighter truncate uppercase italic">
                                              {currentSign?.name ?? 'Sin ejercicio'}
                                           </div>
                                        </div>
-                                       <div className="shrink-0 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest">
-                                          <span className={`h-2.5 w-2.5 rounded-full ${isAdvancing ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400 animate-pulse'}`} />
-                                          {isAdvancing ? 'Baja las manos' : 'Listo'}
+                                       
+                                       {/* Integración de Confianza IA */}
+                                       <div className="flex flex-col items-center gap-1 shrink-0">
+                                          <div className="relative w-12 h-12 md:w-14 md:h-14">
+                                             <svg className="w-full h-full transform -rotate-90 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]" viewBox="0 0 100 100">
+                                                <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="12" />
+                                                <circle cx="50" cy="50" r="42" fill="none" stroke="var(--color-success-500)" strokeWidth="12" strokeDasharray="264" strokeDashoffset={264 - (264 * displayedConfidence) / 100} strokeLinecap="round" className="transition-all duration-300" />
+                                             </svg>
+                                             <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-[10px] md:text-xs font-black">{displayedConfidence}%</span>
+                                             </div>
+                                          </div>
+                                          <span className="text-[7px] font-black uppercase text-white/30 tracking-widest">Precisión</span>
                                        </div>
                                     </div>
 
-                                    <div className="mt-3 h-2 rounded-full bg-white/10 overflow-hidden">
+                                    {/* Mini Marcadores Integrados */}
+                                    <div className="flex gap-3 mb-5">
+                                       <div className="bg-white/5 rounded-xl px-3 py-1.5 border border-white/5 flex items-center gap-2">
+                                          <span className="text-[8px] font-black uppercase text-white/30">Aciertos</span>
+                                          <span className="text-xs font-black text-[var(--color-primary-400)]">{correctAnswers}</span>
+                                       </div>
+                                       <div className="bg-white/5 rounded-xl px-3 py-1.5 border border-white/5 flex items-center gap-2">
+                                          <span className="text-[8px] font-black uppercase text-white/30">Intentos</span>
+                                          <span className="text-xs font-black text-white">{attempts}</span>
+                                       </div>
+                                       <div className={`ml-auto shrink-0 inline-flex items-center gap-2 rounded-lg bg-white/5 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest border border-white/5 ${isAdvancing ? 'text-amber-400' : 'text-emerald-500'}`}>
+                                          <span className={`h-1.5 w-1.5 rounded-full ${isAdvancing ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500 animate-pulse'}`} />
+                                          {isAdvancing ? 'Cambio' : 'Detectando'}
+                                       </div>
+                                    </div>
+
+                                    <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-4">
                                        <motion.div
-                                          className={`h-full rounded-full ${isAdvancing ? 'bg-amber-400' : 'bg-emerald-400'}`}
+                                          className={`h-full rounded-full ${isAdvancing ? 'bg-amber-400' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'}`}
                                           initial={{ width: '0%' }}
-                                          animate={{ width: isAdvancing ? '100%' : '38%' }}
-                                          transition={{ duration: 0.35 }}
+                                          animate={{ width: `${progress}%` }}
+                                          transition={{ duration: 0.8, ease: "circOut" }}
                                        />
                                     </div>
 
                                     <motion.p
                                        key={statusMessage}
-                                       initial={{ opacity: 0, y: 4 }}
+                                       initial={{ opacity: 0 }}
                                        animate={{ opacity: 1, y: 0 }}
-                                       className="mt-3 text-sm text-white/85 font-medium flex items-center gap-2"
+                                       className="text-[11px] md:text-sm text-white/70 font-semibold flex items-center gap-2 italic leading-none"
                                     >
-                                       <ChevronDown size={16} className={isAdvancing ? 'animate-bounce text-amber-300' : 'text-white/60'} />
+                                       <ChevronDown size={14} className={isAdvancing ? 'animate-bounce text-amber-300' : 'text-white/30'} />
                                        {statusMessage}
                                     </motion.p>
                                  </div>
@@ -693,41 +564,115 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                         </AnimatePresence>
 
                         {!recState.isActive && !recState.isLoading && (
-                           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-neutral-900/90 to-neutral-950/95 text-white p-6 text-center z-20 backdrop-blur-sm">
+                           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white p-6 text-center z-20 backdrop-blur-md">
+                              <div className="p-10 rounded-[3rem] bg-white/5 border border-white/10 backdrop-blur-xl">
                               <PlayCircle size={56} className="mb-4 text-white/40" />
-                              <h3 className="text-2xl font-black mb-2">Listo para practicar</h3>
-                              <p className="text-sm text-white/70 max-w-md mb-6">Activa la cámara para comparar la seña que haces con la seña objetivo del vocabulario disponible.</p>
-                              <Button onClick={handleStartPractice} className="bg-white text-black hover:bg-white/90 font-bold">
-                                 <Camera size={18} className="mr-2" /> Iniciar práctica
+                                 <h3 className="text-3xl font-black mb-3 tracking-tight">Listo para comenzar</h3>
+                                 <p className="text-base text-white/60 max-w-sm mb-8 leading-relaxed">Presiona el botón para iniciar la cámara y comenzar con los ejercicios de colores.</p>
+                                 <Button 
+                                    onClick={() => { signRecognitionService.resetTemporalState(); handleStartPractice(); }}
+                                    disabled={recState.isLoading || isModelWarming || !isModelReady}
+                                    className="bg-white text-black hover:bg-white/90 font-black px-10 py-6 text-lg rounded-2xl shadow-2xl disabled:opacity-50"
+                                 >
+                                    {recState.isLoading || isModelWarming ? (
+                                       <><Loader2 className="animate-spin mr-2" size={20} /> Preparando...</>
+                                    ) : (
+                                       <><Camera size={20} className="mr-2" /> Iniciar práctica</>
+                                    )}
                               </Button>
+                              </div>
                            </div>
                         )}
 
                         {recState.isLoading && (
-                           <div className="absolute inset-0 bg-neutral-900/80 backdrop-blur-md flex items-center justify-center z-30">
+                           <div className="absolute inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center z-30">
                               <div className="text-center text-white">
-                                 <div className="animate-spin w-12 h-12 border-4 border-white/30 border-t-white rounded-full mx-auto mb-4" />
-                                 <p className="font-bold">Iniciando reconocimiento...</p>
+                                 <Loader2 className="animate-spin w-16 h-16 text-[var(--color-primary-400)] mx-auto mb-6" />
+                                 <p className="text-xl font-black tracking-widest uppercase">Iniciando...</p>
                               </div>
                            </div>
                         )}
 
                         {recState.isActive && (
-                           <div className="absolute top-4 left-4 z-30 px-3 py-1.5 rounded-full bg-black/50 text-white text-xs font-bold uppercase tracking-widest backdrop-blur-sm">
-                              {recognitionStateLabel}
-                           </div>
-                        )}
-
-                        {recState.isActive && (
                            <>
+                              {/* DICCIONARIO / CATÁLOGO: Ahora es una ventana flotante independiente */}
+                              <AnimatePresence>
+                                 {showCatalog && (
+                                    <motion.div
+                                       initial={{ opacity: 0, scale: 0.95, x: 20 }}
+                                       animate={{ opacity: 1, scale: 1, x: 0 }}
+                                       exit={{ opacity: 0, scale: 0.95, x: 20 }}
+                                       className="absolute top-20 right-4 bottom-32 z-50 w-[300px] md:w-[360px] max-w-[calc(100vw-2rem)] bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden text-white"
+                                    >
+                                       <div className="p-5 flex items-center justify-between border-b border-white/10">
+                                          <div>
+                                             <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Referencia</p>
+                                             <h3 className="text-xl font-black">Diccionario LSC</h3>
+                                          </div>
+                                          <button onClick={() => setShowCatalog(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                             <X size={20} />
+                                          </button>
+                                       </div>
+                                       
+                                       <div className="p-5 flex-1 overflow-y-auto custom-scrollbar space-y-4">
+                                          <Input
+                                             value={catalogSearchTerm}
+                                             onChange={(event) => setCatalogSearchTerm(event.target.value)}
+                                             placeholder="Buscar seña..."
+                                             className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-2xl"
+                                             leftIcon={<Search size={18} />}
+                                          />
+                                          
+                                          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                             {catalogCategories.map((cat) => (
+                                                <button
+                                                   key={cat.id}
+                                                   onClick={() => setSelectedCatalogCategory(cat.id)}
+                                                   className={`px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all border ${selectedCatalogCategory === cat.id ? 'bg-white text-black border-white' : 'bg-white/5 text-white/60 border-white/10'}`}
+                                                >
+                                                   {cat.emoji} {cat.label}
+                                                </button>
+                                             ))}
+                                          </div>
+
+                                          <div className="grid gap-3">
+                                             {filteredCatalogSigns.length > 0 ? (
+                                                filteredCatalogSigns.map((sign) => (
+                                                   <button
+                                                      key={`${sign.category}-${sign.name}`}
+                                                      onClick={() => setSelectedCatalogSign(sign)}
+                                                      className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 transition-all text-left group"
+                                                   >
+                                                      <div className="h-14 w-14 rounded-lg bg-black overflow-hidden flex-shrink-0">
+                                                         <video src={resolveVideoUrl(sign.videoUrl)} muted playsInline className="w-full h-full object-contain" />
+                                                      </div>
+                                                      <div className="min-w-0">
+                                                         <p className="text-sm font-black truncate">{sign.name}</p>
+                                                         <p className="text-[10px] text-white/40 uppercase font-bold">{getCategoryLabel(sign.category)}</p>
+                                                      </div>
+                                                   </button>
+                                                ))
+                                             ) : (
+                                                <div className="py-10 text-center opacity-30">
+                                                   <BookOpen size={32} className="mx-auto mb-2" />
+                                                   <p className="text-xs font-bold uppercase">Sin resultados</p>
+                                                </div>
+                                             )}
+                                          </div>
+                                       </div>
+                                    </motion.div>
+                                 )}
+                              </AnimatePresence>
+
                               {showExampleVideo ? (
                                  <motion.div
                                     initial={{ opacity: 0, x: -10, y: 8 }}
                                     animate={{ opacity: 1, x: 0, y: 0 }}
-                                    className="absolute bottom-4 left-4 z-30 w-[280px] max-w-[42vw] rounded-3xl overflow-hidden border border-white/10 bg-black/55 backdrop-blur-xl shadow-2xl"
+                                    // Ahora en la esquina inferior izquierda, aprovechando el espacio del dashboard eliminado
+                                    className="absolute bottom-6 left-6 z-30 w-[160px] md:w-[280px] max-w-[45vw] rounded-[1.2rem] md:rounded-[2rem] overflow-hidden border border-white/20 bg-black/40 backdrop-blur-2xl shadow-2xl"
                                  >
                                     <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 text-white/80">
-                                       <div className="text-[10px] font-black uppercase tracking-[0.35em]">Video de ejemplo</div>
+                                       <div className="text-[7px] md:text-[9px] font-black uppercase tracking-[0.4em] ml-2 truncate">Seña Objetivo</div>
                                        <button type="button" onClick={() => setShowExampleVideo(false)} className="rounded-full p-1 hover:bg-white/10">
                                           <EyeOff size={14} />
                                        </button>
@@ -741,198 +686,63 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                           muted
                                           playsInline
                                           controls
+                                          controlsList="nodownload nomute"
+                                          onContextMenu={(e) => e.preventDefault()}
                                           className="w-full h-full object-contain bg-black"
                                        />
                                     </div>
                                  </motion.div>
                               ) : (
-                                 <button
-                                    type="button"
-                                    onClick={() => setShowExampleVideo(true)}
-                                    className="absolute bottom-4 left-4 z-30 inline-flex items-center gap-2 rounded-full bg-black/65 px-4 py-2 text-white text-xs font-black uppercase tracking-widest backdrop-blur-md shadow-xl"
-                                 >
-                                    <Eye size={14} />
-                                    Mostrar video
-                                 </button>
+                                 null
                               )}
 
-                              {showSidePanel ? (
-                                 <motion.aside
-                                    initial={{ opacity: 0, x: 16 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    className="absolute top-4 right-4 bottom-4 z-30 w-[330px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-[1.75rem] bg-white/92 backdrop-blur-xl border border-white/60 shadow-2xl"
-                                 >
-                                    <div className="p-4 sm:p-5 space-y-4">
-                                       <div className="flex items-start justify-between gap-3">
-                                          <div>
-                                             <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[var(--color-text-tertiary)]">Opciones</p>
-                                             <h3 className="text-xl font-black text-[var(--color-text-primary)]">Panel lateral</h3>
-                                          </div>
-                                          <button type="button" onClick={() => setShowSidePanel(false)} className="rounded-full p-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-neutral-100)]">
-                                             <X size={18} />
-                                          </button>
-                                       </div>
-
-                                       <div className="rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] p-4">
-                                          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-tertiary)] mb-2">Seña objetivo</p>
-                                          <div className="text-2xl font-black text-[var(--color-primary-600)] leading-tight">{currentSign?.name ?? 'Sin ejercicio'}</div>
-                                          <p className="mt-2 text-sm font-semibold text-[var(--color-text-secondary)]">{statusMessage}</p>
-                                       </div>
-
-                                       <div className="grid grid-cols-2 gap-3 text-center">
-                                          <div className="rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] p-3">
-                                             <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-tertiary)] mb-1">Aciertos</p>
-                                             <p className="text-2xl font-black text-[var(--color-primary-600)]">{correctAnswers}</p>
-                                          </div>
-                                          <div className="rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] p-3">
-                                             <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-tertiary)] mb-1">Intentos</p>
-                                             <p className="text-2xl font-black text-[var(--color-text-primary)]">{attempts}</p>
-                                          </div>
-                                       </div>
-
-                                       <div className="rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] p-4">
-                                          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-tertiary)] mb-3">Confianza</p>
-                                          <div className="relative w-28 h-28 mx-auto">
-                                             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                                                <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-neutral-200)" strokeWidth="10" />
-                                                <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-success-500)" strokeWidth="10" strokeDasharray="283" strokeDashoffset={283 - (283 * displayedConfidence) / 100} className="transition-all duration-1000" />
-                                             </svg>
-                                             <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-2xl font-black text-[var(--color-success-700)]">{displayedConfidence}%</span>
-                                             </div>
-                                          </div>
-                                       </div>
-
-                                       <div className="flex gap-2">
-                                          <Button variant="ghost" className="flex-1" onClick={handleStopPractice} disabled={!isPracticeStarted}>
-                                             Detener
-                                          </Button>
-                                          <Button className="flex-1" onClick={handleStartPractice} disabled={isPracticeStarted || isModelWarming}>
-                                             Iniciar
-                                          </Button>
-                                       </div>
-
-                                       <div className="rounded-2xl border border-[var(--color-neutral-200)] bg-white p-4 space-y-3">
-                                          <div className="flex items-center justify-between gap-3">
-                                             <div>
-                                                <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[var(--color-text-tertiary)]">Catálogo</p>
-                                                <h4 className="text-lg font-black text-[var(--color-text-primary)]">Buscar señas</h4>
-                                             </div>
-                                             <Button variant="ghost" size="sm" onClick={() => setShowCatalog(prev => !prev)}>
-                                                {showCatalog ? 'Ocultar' : 'Abrir'}
-                                             </Button>
-                                          </div>
-
-                                          {showCatalog ? (
-                                             <>
-                                                <Input
-                                                   value={catalogSearchTerm}
-                                                   onChange={(event) => setCatalogSearchTerm(event.target.value)}
-                                                   placeholder="Buscar seña por nombre..."
-                                                   leftIcon={<Search size={18} />}
-                                                />
-                                                <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
-                                                   {catalogCategories.map((category) => {
-                                                      const isActive = selectedCatalogCategory === category.id;
-
-                                                      return (
-                                                         <button
-                                                            key={category.id}
-                                                            type="button"
-                                                            onClick={() => setSelectedCatalogCategory(category.id)}
-                                                            className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold whitespace-nowrap transition-all ${
-                                                               isActive
-                                                                  ? 'bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)]'
-                                                                  : 'bg-[var(--color-neutral-50)] text-[var(--color-text-primary)] border-[var(--color-neutral-200)]'
-                                                            }`}
-                                                         >
-                                                            <span>{category.emoji}</span>
-                                                            <span>{category.label}</span>
-                                                         </button>
-                                                      );
-                                                   })}
-                                                </div>
-                                                <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
-                                                   {filteredCatalogSigns.length > 0 ? (
-                                                      filteredCatalogSigns.map((sign) => (
-                                                         <button
-                                                            key={`${sign.category}-${sign.name}`}
-                                                            type="button"
-                                                            onClick={() => setSelectedCatalogSign(sign)}
-                                                            className="group flex items-center gap-3 rounded-2xl border border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] p-3 text-left transition-all hover:border-[var(--color-primary-200)] hover:bg-[var(--color-primary-50)]"
-                                                         >
-                                                            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-black">
-                                                               <video
-                                                                  src={resolveVideoUrl(sign.videoUrl)}
-                                                                  autoPlay
-                                                                  loop
-                                                                  muted
-                                                                  playsInline
-                                                                  className="h-full w-full object-contain bg-black"
-                                                               />
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                               <p className="text-sm font-black text-[var(--color-text-primary)] truncate">{sign.name}</p>
-                                                               <Badge variant="neutral" size="sm">{getCategoryLabel(sign.category)}</Badge>
-                                                            </div>
-                                                         </button>
-                                                      ))
-                                                   ) : (
-                                                      <div className="rounded-2xl border border-dashed border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-4 py-8 text-center">
-                                                         <BookOpen size={24} className="mx-auto mb-2 text-[var(--color-text-tertiary)]" />
-                                                         <p className="text-sm font-semibold text-[var(--color-text-primary)]">Sin resultados</p>
-                                                      </div>
-                                                   )}
-                                                </div>
-                                             </>
-                                          ) : (
-                                             <div className="rounded-2xl border border-dashed border-[var(--color-neutral-200)] bg-[var(--color-neutral-50)] px-4 py-6 text-center">
-                                                <BookOpen size={24} className="mx-auto mb-2 text-[var(--color-text-tertiary)]" />
-                                                <p className="text-sm font-semibold text-[var(--color-text-primary)]">Catálogo oculto</p>
-                                                <p className="mt-1 text-xs text-[var(--color-text-secondary)]">Ábrelo cuando necesites revisar otra seña.</p>
-                                             </div>
-                                          )}
-                                       </div>
-                                    </div>
-                                 </motion.aside>
-                              ) : (
-                                 <div className="absolute right-4 top-1/2 z-30 -translate-y-1/2 flex flex-col items-center gap-3">
-                                    <button
-                                       type="button"
-                                       onClick={() => setShowSidePanel(true)}
-                                       title="Abrir opciones"
-                                       className="w-12 h-12 rounded-full bg-black/65 flex items-center justify-center text-white shadow-lg"
-                                    >
-                                       <ChevronRight size={18} />
-                                    </button>
-
+                              {/* ZONA DEL PULGAR (L Inversa): Botones de control ergonómicos */}
+                              <div className="absolute bottom-6 right-6 z-40 w-36 h-36">
+                                    {/* Botón de Diccionario: Ahora es el botón principal en la esquina */}
                                     <button
                                        type="button"
                                        onClick={() => setShowCatalog(prev => !prev)}
                                        title="Catálogo"
-                                       className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center text-[var(--color-text-primary)] shadow-md border border-[var(--color-neutral-200)]"
+                                       className={`absolute bottom-0 right-0 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 z-[70] ${showCatalog ? 'bg-white text-black' : 'bg-[var(--color-primary-600)] text-white'}`}
                                     >
                                        <BookOpen size={18} />
                                     </button>
 
+                                    {/* Botón Video (Arriba del principal) */}
                                     <button
                                        type="button"
                                        onClick={() => setShowExampleVideo(prev => !prev)}
-                                       title={showExampleVideo ? 'Ocultar video' : 'Mostrar video'}
-                                       className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center text-[var(--color-text-primary)] shadow-md border border-[var(--color-neutral-200)]"
+                                       title={showExampleVideo ? 'Ocultar guía' : 'Mostrar guía'}
+                                       className={`absolute bottom-[80px] right-0 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 ${showExampleVideo ? 'bg-white text-black' : 'bg-black/40 text-white border border-white/10'}`}
                                     >
                                        {showExampleVideo ? <Eye size={16} /> : <EyeOff size={16} />}
                                     </button>
-                                 </div>
-                              )}
+
+                                    {/* Botón Instrucciones: Alineado a la parte inferior al lado del catálogo */}
+                                    <button
+                                       type="button"
+                                       onClick={() => setShowInstructions(true)}
+                                       title="Ver instrucciones"
+                                       className="absolute bottom-0 right-[80px] w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90"
+                                    >
+                                       <Info size={18} />
+                                    </button>
+
+                                    {/* Botón Detener: Ahora integrado en la zona del pulgar (Top-Left de la cuadrícula) */}
+                                    {isPracticeStarted && !showInstructions && (
+                                       <button
+                                          type="button"
+                                          onClick={handleStopPractice}
+                                          title="Detener práctica"
+                                          className="absolute bottom-[80px] right-[80px] w-14 h-14 rounded-2xl bg-red-500/90 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90"
+                                       >
+                                          <CameraOff size={18} />
+                                       </button>
+                                    )}
+                              </div>
                            </>
                         )}
-                     </Card>
-            </div>
-
-          </div>
-        </div>
-      </div>
+      
 
       {/* Modal de Finalización */}
          {showModal && (
@@ -953,7 +763,18 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                      </div>
 
                      <div className="flex flex-col gap-3">
-                        <Button className="w-full py-4 text-base font-bold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] rounded-xl flex justify-center items-center gap-2" onClick={() => { setShowModal(false); setIsCompleting(false); handleStartPractice(); }}>
+                        <Button 
+                           className="w-full py-4 text-base font-bold bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] rounded-xl flex justify-center items-center gap-2" 
+                           onClick={() => { 
+                              setShowModal(false); 
+                              setIsCompleting(false); 
+                              // Limpieza total antes de reiniciar
+                              processedRecognitionRef.current = '';
+                              pendingAttemptSignRef.current = '';
+                              signRecognitionService.resetTemporalState();
+                              handleStartPractice(); 
+                           }}
+                        >
                            <RefreshCw size={18} /> Intentar de nuevo
                         </Button>
                         <Button variant="ghost" className="w-full py-4 text-base font-bold text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] rounded-xl flex justify-center items-center gap-2 border-2 border-[var(--color-neutral-200)]" onClick={() => setShowModal(false)}>
@@ -998,6 +819,8 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                               muted
                               playsInline
                               controls
+                              controlsList="nodownload nomute"
+                              onContextMenu={(e) => e.preventDefault()}
                               className="w-full h-full object-contain bg-black"
                            />
                         </div>

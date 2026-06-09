@@ -128,11 +128,23 @@ export function useLSCRecognition() {
   const startRecognition = async (category: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
+      // Validación de contexto seguro mejorada
+      const isSecure = window.isSecureContext || window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+      
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !isSecure) {
+        throw new Error("Acceso a cámara denegado. Asegúrate de estar en una conexión segura (HTTPS) y otorgar los permisos necesarios.");
+      }
+
       // 1. Cargar modelo y cámara en paralelo
       const modelPromise = signRecognitionService.loadModel(category);
 
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
+        // En móvil, resoluciones muy altas con Holistic causan lag. 480p es el sweet spot.
+        video: { 
+          width: { ideal: 640, max: 1280 }, 
+          height: { ideal: 480, max: 720 }, 
+          facingMode: 'user' 
+        }
       });
 
       streamRef.current = stream;
