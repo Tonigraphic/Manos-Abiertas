@@ -498,13 +498,13 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                  animate={{ opacity: 1, y: 0, scale: 1 }}
                                  exit={{ opacity: 0, y: -20 }}
                                  transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                                 className="absolute inset-x-0 top-2 md:top-6 z-30 p-2 md:p-4 pointer-events-none"
+                                 className="absolute inset-x-0 top-2 md:top-auto md:bottom-10 z-30 p-2 md:p-4 pointer-events-none"
                               >
                                  <div className="mx-auto max-w-[95vw] md:max-w-xl rounded-[2rem] border border-white/20 bg-black/40 backdrop-blur-xl shadow-2xl px-5 py-4 md:px-7 md:py-6 text-white">
                                     <div className="flex items-start justify-between gap-6 mb-4">
-                                       <div className="min-w-0">
+                                       <div className="flex-1">
                                           <p className="text-[9px] uppercase tracking-[0.4em] text-white/40 font-black mb-1">Seña Objetivo</p>
-                                          <div className="text-2xl md:text-5xl font-black text-white tracking-tighter truncate uppercase italic">
+                                          <div className="text-2xl md:text-5xl font-black text-white tracking-tighter uppercase italic whitespace-nowrap pr-2">
                                              {currentSign?.name ?? 'Sin ejercicio'}
                                           </div>
                                        </div>
@@ -565,14 +565,14 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
                         {!recState.isActive && !recState.isLoading && (
                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white p-6 text-center z-20 backdrop-blur-md">
-                              <div className="p-10 rounded-[3rem] bg-white/5 border border-white/10 backdrop-blur-xl">
-                              <PlayCircle size={56} className="mb-4 text-white/40" />
-                                 <h3 className="text-3xl font-black mb-3 tracking-tight">Listo para comenzar</h3>
-                                 <p className="text-base text-white/60 max-w-sm mb-8 leading-relaxed">Presiona el botón para iniciar la cámara y comenzar con los ejercicios de colores.</p>
+                              <div className="p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] bg-white/5 border border-white/10 backdrop-blur-xl">
+                              <PlayCircle size={48} className="mb-3 text-white/40 mx-auto" />
+                                 <h3 className="text-2xl font-black mb-2 tracking-tight">Listo para comenzar</h3>
+                                 <p className="text-sm text-white/60 max-w-xs mb-6 leading-relaxed">Presiona el botón para iniciar la cámara y comenzar con los ejercicios de colores.</p>
                                  <Button 
                                     onClick={() => { signRecognitionService.resetTemporalState(); handleStartPractice(); }}
                                     disabled={recState.isLoading || isModelWarming || !isModelReady}
-                                    className="bg-white text-black hover:bg-white/90 font-black px-10 py-6 text-lg rounded-2xl shadow-2xl disabled:opacity-50"
+                                    className="bg-white text-black hover:bg-white/90 font-black px-8 py-4 text-base rounded-2xl shadow-2xl disabled:opacity-50"
                                  >
                                     {recState.isLoading || isModelWarming ? (
                                        <><Loader2 className="animate-spin mr-2" size={20} /> Preparando...</>
@@ -696,49 +696,57 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                  null
                               )}
 
-                              {/* ZONA DEL PULGAR (L Inversa): Botones de control ergonómicos */}
-                              <div className="absolute bottom-6 right-6 z-40 w-36 h-36">
-                                    {/* Botón de Diccionario: Ahora es el botón principal en la esquina */}
+                              {/* ZONA DEL PULGAR (Distribución en L Inversa): 4 en vertical, 2 en horizontal */}
+                              <div className="absolute bottom-6 right-6 z-40 w-[140px] h-[200px] pointer-events-none">
+                                    {/* ANCLA (Esquina): Diccionario */}
                                     <button
                                        type="button"
                                        onClick={() => setShowCatalog(prev => !prev)}
                                        title="Catálogo"
-                                       className={`absolute bottom-0 right-0 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 z-[70] ${showCatalog ? 'bg-white text-black' : 'bg-[var(--color-primary-600)] text-white'}`}
+                                       className={`absolute bottom-0 right-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 z-[70] pointer-events-auto ${showCatalog ? 'bg-white text-black' : 'bg-[var(--color-primary-600)] text-white'}`}
                                     >
-                                       <BookOpen size={18} />
+                                       <BookOpen size={14} />
                                     </button>
 
-                                    {/* Botón Video (Arriba del principal) */}
+                                    {/* EJE VERTICAL (Lateral Derecho) */}
                                     <button
                                        type="button"
                                        onClick={() => setShowExampleVideo(prev => !prev)}
                                        title={showExampleVideo ? 'Ocultar guía' : 'Mostrar guía'}
-                                       className={`absolute bottom-[80px] right-0 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 ${showExampleVideo ? 'bg-white text-black' : 'bg-black/40 text-white border border-white/10'}`}
+                                       className={`absolute bottom-[48px] right-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 pointer-events-auto ${showExampleVideo ? 'bg-white text-black' : 'bg-black/40 text-white border border-white/10 backdrop-blur-md'}`}
                                     >
-                                       {showExampleVideo ? <Eye size={16} /> : <EyeOff size={16} />}
+                                       {showExampleVideo ? <Eye size={14} /> : <EyeOff size={14} />}
                                     </button>
 
-                                    {/* Botón Instrucciones: Alineado a la parte inferior al lado del catálogo */}
-                                    <button
-                                       type="button"
-                                       onClick={() => setShowInstructions(true)}
-                                       title="Ver instrucciones"
-                                       className="absolute bottom-0 right-[80px] w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90"
-                                    >
-                                       <Info size={18} />
-                                    </button>
-
-                                    {/* Botón Detener: Ahora integrado en la zona del pulgar (Top-Left de la cuadrícula) */}
                                     {isPracticeStarted && !showInstructions && (
                                        <button
                                           type="button"
                                           onClick={handleStopPractice}
                                           title="Detener práctica"
-                                          className="absolute bottom-[80px] right-[80px] w-14 h-14 rounded-2xl bg-red-500/90 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90"
+                                          className="absolute bottom-[96px] right-0 w-10 h-10 rounded-xl bg-red-500/80 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
                                        >
-                                          <CameraOff size={18} />
+                                          <CameraOff size={14} />
                                        </button>
                                     )}
+
+                                    <button
+                                       type="button"
+                                       onClick={onNavigateHome}
+                                       title="Volver al inicio"
+                                       className="absolute bottom-[144px] right-0 w-10 h-10 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
+                                    >
+                                       <Home size={14} />
+                                    </button>
+
+                                    {/* EJE HORIZONTAL (Parte Inferior) */}
+                                    <button
+                                       type="button"
+                                       onClick={() => setShowInstructions(true)}
+                                       title="Ver instrucciones"
+                                       className="absolute bottom-0 right-[48px] w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
+                                    >
+                                       <Info size={14} />
+                                    </button>
                               </div>
                            </>
                         )}

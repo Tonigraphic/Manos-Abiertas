@@ -88,7 +88,7 @@ export default defineConfig({
     port: 5173,      // Define el puerto fijo
     strictPort: true, // Si el puerto está ocupado, no cambia a otro automáticamente
     open: true,       // Abre el navegador automáticamente al iniciar
-    host: true,       // Permite el acceso desde la red local
+    host: true,       // NECESARIO: Permite que tu móvil entre vía IP local
     https: false,     // Cámbialo a false si usas el método de chrome://flags
   },
 
