@@ -498,7 +498,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                  animate={{ opacity: 1, y: 0, scale: 1 }}
                                  exit={{ opacity: 0, y: -20 }}
                                  transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                                 className="absolute inset-x-0 top-2 md:top-auto md:bottom-10 z-30 p-2 md:p-4 pointer-events-none"
+                                 className="absolute inset-x-0 top-2 md:top-auto md:bottom-2 z-30 p-2 md:p-4 pointer-events-none"
                               >
                                  <div className="mx-auto max-w-[95vw] md:max-w-xl rounded-[2rem] border border-white/20 bg-black/40 backdrop-blur-xl shadow-2xl px-5 py-4 md:px-7 md:py-6 text-white">
                                     <div className="flex items-start justify-between gap-6 mb-4">
@@ -579,7 +579,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                     ) : (
                                        <><Camera size={20} className="mr-2" /> Iniciar práctica</>
                                     )}
-                              </Button>
+                                 </Button>
                               </div>
                            </div>
                         )}
@@ -602,7 +602,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                        initial={{ opacity: 0, scale: 0.95, x: 20 }}
                                        animate={{ opacity: 1, scale: 1, x: 0 }}
                                        exit={{ opacity: 0, scale: 0.95, x: 20 }}
-                                       className="absolute top-20 right-4 bottom-32 z-50 w-[300px] md:w-[360px] max-w-[calc(100vw-2rem)] bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden text-white"
+                                       className="absolute top-16 md:top-20 right-2 md:right-4 bottom-32 md:bottom-32 z-50 w-[calc(100vw-1rem)] md:w-[360px] max-w-[calc(100vw-1rem)] bg-black/70 backdrop-blur-3xl border border-white/20 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden text-white"
                                     >
                                        <div className="p-5 flex items-center justify-between border-b border-white/10">
                                           <div>
@@ -620,7 +620,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                              onChange={(event) => setCatalogSearchTerm(event.target.value)}
                                              placeholder="Buscar seña..."
                                              className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-2xl"
-                                             leftIcon={<Search size={18} />}
+                                             leftIcon={<Search className="size-4 md:size-5" />}
                                           />
                                           
                                           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
