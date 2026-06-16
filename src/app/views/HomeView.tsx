@@ -11,28 +11,20 @@ interface HomeViewProps {
 export function HomeView({ onNavigate }: HomeViewProps) {
   const features = [
     {
-      id: 'assistant',
-      title: 'Asistente de Reconocimiento',
-      description: 'Reconocimiento en tiempo real para apoyo en clase',
-      icon: Bot,
+      id: 'translator',
+      title: 'Traductor LSC',
+      description: 'Comunicación bidireccional con IA para sordo y oyente',
+      icon: Languages,
       color: 'from-blue-500 to-blue-600',
       badge: 'Principal',
     },
     {
       id: 'practice',
-      title: 'Práctica con Puntos',
-      description: 'Mejora tus habilidades y mantén tu racha diaria',
+      title: 'Práctica y Señas',
+      description: 'Mejora tus habilidades y consulta el catálogo visual',
       icon: Target,
       color: 'from-orange-500 to-orange-600',
       badge: 'Popular',
-    },
-    {
-      id: 'dictionary',
-      title: 'Diccionario Visual',
-      description: 'Catálogo visual de señas (módulo complementario)',
-      icon: BookOpen,
-      color: 'from-green-500 to-green-600',
-      badge: 'Plus',
     },
   ];
 

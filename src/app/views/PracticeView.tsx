@@ -512,7 +512,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                  <div className="mx-auto max-w-[95vw] md:max-w-xl rounded-[2rem] border border-white/20 bg-black/40 backdrop-blur-xl shadow-2xl px-5 py-4 md:px-7 md:py-6 text-white">
                                     <div className="flex items-start justify-between gap-6 mb-4">
                                        <div className="flex-1">
-                                          <p className="text-[9px] uppercase tracking-[0.4em] text-white/40 font-black mb-1">Seña Objetivo</p>
+                                          <p className="text-[9px] uppercase tracking-[0.4em] text-white/70 font-black mb-1">Seña Objetivo</p>
                                           <div className="text-2xl md:text-5xl font-black text-white tracking-tighter uppercase italic whitespace-nowrap pr-2">
                                              {currentSign?.name ?? 'Sin ejercicio'}
                                           </div>
@@ -536,11 +536,11 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                     {/* Mini Marcadores Integrados */}
                                     <div className="flex gap-3 mb-5">
                                        <div className="bg-white/5 rounded-xl px-3 py-1.5 border border-white/5 flex items-center gap-2">
-                                          <span className="text-[8px] font-black uppercase text-white/30">Aciertos</span>
+                                          <span className="text-[8px] font-black uppercase text-white/60">Aciertos</span>
                                           <span className="text-xs font-black text-[var(--color-primary-400)]">{correctAnswers}</span>
                                        </div>
                                        <div className="bg-white/5 rounded-xl px-3 py-1.5 border border-white/5 flex items-center gap-2">
-                                          <span className="text-[8px] font-black uppercase text-white/30">Intentos</span>
+                                          <span className="text-[8px] font-black uppercase text-white/60">Intentos</span>
                                           <span className="text-xs font-black text-white">{attempts}</span>
                                        </div>
                                        <div className={`ml-auto shrink-0 inline-flex items-center gap-2 rounded-lg bg-white/5 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest border border-white/5 ${isAdvancing ? 'text-amber-400' : 'text-emerald-500'}`}>

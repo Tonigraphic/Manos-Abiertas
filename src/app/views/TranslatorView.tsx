@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
 import { Badge } from '../components/lsc/Badge';
-import { Send, Languages, Mic, Volume2, MicOff, User, Accessibility, Play, VolumeX, CheckCircle2, Video } from 'lucide-react';
+import { Send, Languages, Mic, Volume2, MicOff, User, Hand, Play, VolumeX, CheckCircle2, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { InstructionOverlay } from '../components/InstructionOverlay';
 import { translateLSCtoSpanish } from '../../lib/translationEngine';
@@ -29,39 +29,58 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   
   const allSigns = useMemo(() => signRecognitionService.getAllSigns(), []);
 
-  // Lógica para modo Oyente: Español -> LSC + Videos
-  const processHearingTranslation = (text: string) => {
-    // Simulación de conversión a glosas LSC (español simplificado)
-    const simplified = text.toLowerCase()
-      .replace(/\b(el|la|los|las|un|una|unos|unas|de|del|a|al)\b/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    
-    setResultLSC(simplified);
+  const processHearingTranslation = async (text: string) => {
+    setIsTranslating(true);
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, mode: 'hearing' }),
+      });
+      const data = await response.json();
+      const result = data.translatedText || text;
+      setResultLSC(result);
 
-    // Buscar coincidencias de video
-    const words = simplified.split(/\s+/);
-    const matches = allSigns.filter(s => 
-      words.some(w => w === s.name.toLowerCase() || s.name.toLowerCase().includes(w))
-    );
-    setMatchedSigns(matches.slice(0, 4)); // Limitar a 4 videos para ergonomía
+      // Buscar coincidencias de video basadas en el resultado de la IA
+      const words = result.toLowerCase().split(/\s+/);
+      const matches = allSigns.filter(s => 
+        words.some(w => w === s.name.toLowerCase() || s.name.toLowerCase().includes(w))
+      );
+      setMatchedSigns(matches.slice(0, 4));
+    } catch (error) {
+      console.error(error);
+      setResultLSC(text);
+    } finally {
+      setIsTranslating(false);
+    }
   };
 
-  // Lógica para modo Sordo: LSC -> Sugerencias IA
   const processDeafTranslation = async (text: string) => {
     setIsTranslating(true);
-    // Aquí llamamos a la API de OpenAI (simulado para este ejemplo con varias opciones)
-    // En producción, el backend devolvería un array de strings
-    setTimeout(() => {
-      const base = translateLSCtoSpanish(text);
-      setSuggestions([
-        base,
-        `Quiero decir que ${base.toLowerCase()}`,
-        `Por favor, ${base.toLowerCase()}`,
-        `${base} ahora mismo.`
-      ]);
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, mode: 'deaf' }),
+      });
+      const data = await response.json();
+      const rawText = data.translatedText || "";
+      
+      // Separamos las opciones devueltas por la IA (asumiendo separador | del backend)
+      const options = rawText.split('|').map((s: string) => s.trim()).filter(Boolean);
+      
+      if (options.length > 0) {
+        setSuggestions(options);
+        setSelectedSuggestion(options[0]);
+      } else {
+        setSuggestions([translateLSCtoSpanish(text)]);
+      }
+    } catch (error) {
+      console.error(error);
+      setSuggestions([translateLSCtoSpanish(text)]);
+    } finally {
       setIsTranslating(false);
-    }, 800);
+    }
   };
 
   const normalizeWord = (word: string) =>
@@ -217,7 +236,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                 onClick={() => setUserRole('hearing')}
                 className="bg-white p-8 rounded-[2.5rem] shadow-xl cursor-pointer border-2 border-transparent hover:border-[var(--color-primary-400)] text-center group"
               >
-                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <div className="w-16 h-16 bg-blue-50 text-blue-700 rounded-3xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                   <User size={32} />
                 </div>
                 <h3 className="text-xl font-black mb-2">Soy Persona Oyente</h3>
@@ -228,8 +247,8 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                 onClick={() => setUserRole('deaf')}
                 className="bg-white p-8 rounded-[2.5rem] shadow-xl cursor-pointer border-2 border-transparent hover:border-[var(--color-accent-400)] text-center group"
               >
-                <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                  <Accessibility size={32} />
+                <div className="w-16 h-16 bg-orange-50 text-orange-700 rounded-3xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <Hand size={32} />
                 </div>
                 <h3 className="text-xl font-black mb-2">Soy Persona Sorda</h3>
                 <p className="text-xs text-neutral-500">Escribe tus señas para obtener sugerencias IA.</p>
@@ -237,7 +256,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
             </div>
           ) : (
             <>
-            <Button variant="ghost" size="sm" onClick={() => { setUserRole(null); setTranslatorInput(''); setResultLSC(''); setSuggestions([]); }} className="mb-2">
+            <Button variant="ghost" size="sm" onClick={() => { setUserRole(null); setTranslatorInput(''); setResultLSC(''); setSuggestions([]); }} className="mb-2 text-neutral-700">
               ← Cambiar de perfil
             </Button>
 
@@ -287,8 +306,8 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
           <AnimatePresence>
             {userRole === 'hearing' && resultLSC && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                <div className="bg-blue-600 p-6 rounded-[2rem] text-white shadow-xl">
-                  <p className="text-[10px] font-black uppercase opacity-60 mb-2">Estructura LSC (Glosas)</p>
+                <div className="bg-blue-700 p-6 rounded-[2rem] text-white shadow-xl">
+                  <p className="text-[10px] font-black uppercase text-blue-100 mb-2">Estructura LSC (Glosas)</p>
                   <p className="text-2xl font-black uppercase italic tracking-tighter">{resultLSC}</p>
                 </div>
 
@@ -316,7 +335,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                 <div className="flex items-center justify-between px-2">
                   <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Escoge la mejor opción</label>
-                  <Badge variant="accent">IA Generativa</Badge>
+                  <Badge variant="accent" className="text-neutral-900">IA Generativa</Badge>
                 </div>
                 
                 <div className="space-y-3">
@@ -338,7 +357,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                     <Card className="bg-neutral-900 text-white border-none shadow-2xl overflow-hidden rounded-[2rem]">
                       <CardBody className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
                         <div className="flex-1">
-                          <p className="text-[10px] font-black text-white/40 uppercase mb-2">Mensaje seleccionado</p>
+                          <p className="text-[10px] font-black text-white/70 uppercase mb-2">Mensaje seleccionado</p>
                           <p className="text-xl font-bold leading-tight">{selectedSuggestion}</p>
                         </div>
                         <button 
