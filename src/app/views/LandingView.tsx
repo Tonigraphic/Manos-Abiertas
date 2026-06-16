@@ -4,7 +4,7 @@ import { Badge } from '../components/lsc/Badge';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, PlayCircle, Languages, Target, MessageSquare, Video } from 'lucide-react';
 import logoPrincipal from '../../assets/logo.png'; 
-import { resolveVideoUrl } from '../../lib/videoUtils';
+import { resolveVideoUrl } from '@/lib/videoUtils';
 
 interface LandingViewProps {
   onNavigate: (view: string) => void;
