@@ -161,8 +161,8 @@ Proyecto desarrollado como demostración funcional en la **Universidad de Nariñ
 
 El proyecto utiliza una estrategia de ramas para visualizar diferentes etapas:
 
-- **Rama `main`**: **Link Principal Público**. Contiene el prototipo con ergonomía optimizada, HUD alineado y diseño responsivo crítico (Etapa 2).
-- **Rama `v1-antiguo`**: **Link Secundario (Archivo)**. Contiene el primer prototipo funcional sin las mejoras de diseño actuales (Etapa 1).
+- **Rama `main`**: **Link Principal Público**. Versión final con ergonomía optimizada, HUD alineado y diseño responsivo crítico (Etapa 2).
+- **Rama `v1-antiguo`**: **Archivo Histórico**. Versión inicial del prototipo (Etapa 1).
 *Cada rama genera un link independiente en el dashboard de Vercel.*
 
 ## � Documentación Adicional
