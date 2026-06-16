@@ -761,13 +761,13 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                      <div className="w-24 h-24 bg-white rounded-full mx-auto shadow-lg flex items-center justify-center mb-6">
                         <Trophy size={42} className="text-[var(--color-primary-600)]" />
                      </div>
-                     <h2 className="text-2xl font-black text-[var(--color-text-primary)] mb-2">¡Práctica completada!</h2>
-                     <p className="text-[var(--color-text-secondary)] font-medium mb-8">Terminaste el recorrido de las 5 señas del modelo de colores.</p>
+                     <h2 className="text-2xl font-black text-[var(--color-primary-600)] mb-2">¡Práctica completada!</h2>
+                     <p className="text-[var(--color-primary-800)]/70 font-medium mb-8">Terminaste el recorrido de las 5 señas del modelo de colores.</p>
 
                      <div className="mb-8">
                         <div className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Aciertos</div>
                         <div className="text-5xl font-black text-[var(--color-primary-600)]">{accuracy}%</div>
-                        <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{correctAnswers} correctas de {attempts} intentos</p>
+                        <p className="mt-2 text-sm text-[var(--color-primary-800)]/70">{correctAnswers} correctas de {attempts} intentos</p>
                      </div>
 
                      <div className="flex flex-col gap-3">
@@ -785,7 +785,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                         >
                            <RefreshCw size={18} /> Intentar de nuevo
                         </Button>
-                        <Button variant="ghost" className="w-full py-4 text-base font-bold text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] rounded-xl flex justify-center items-center gap-2 border-2 border-[var(--color-neutral-200)]" onClick={() => setShowModal(false)}>
+                        <Button variant="ghost" className="w-full py-4 text-base font-bold text-[var(--color-primary-600)] hover:bg-[var(--color-neutral-100)] rounded-xl flex justify-center items-center gap-2 border-2 border-[var(--color-neutral-200)]" onClick={() => setShowModal(false)}>
                            <BarChart2 size={18} /> Cerrar
                         </Button>
                      </div>
@@ -838,15 +838,15 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                               <Badge variant="neutral">Catálogo práctico</Badge>
                            </div>
                            <div>
-                              <p className="text-xs font-black uppercase tracking-[0.35em] text-[var(--color-text-secondary)] mb-2">Seña seleccionada</p>
-                              <h2 className="text-3xl font-black text-[var(--color-neutral-900)] uppercase mb-3">{selectedCatalogSign.name}</h2>
-                              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
+                              <p className="text-xs font-black uppercase tracking-[0.35em] text-[var(--color-primary-800)]/60 mb-2">Seña seleccionada</p>
+                              <h2 className="text-3xl font-black text-[var(--color-primary-600)] uppercase mb-3">{selectedCatalogSign.name}</h2>
+                              <p className="text-sm text-[var(--color-primary-800)]/80 leading-relaxed">
                                  Usa este catálogo para repasar la seña completa sin salir de práctica. Puedes buscar, filtrar y abrir cualquier video cuando quieras.
                               </p>
                            </div>
                            <div className="rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] p-4">
                               <div className="text-xs font-black uppercase tracking-widest text-[var(--color-text-tertiary)] mb-1">Categoría</div>
-                              <div className="text-sm font-bold text-[var(--color-text-primary)]">{getCategoryLabel(selectedCatalogSign.category)}</div>
+                              <div className="text-sm font-bold text-[var(--color-primary-600)]">{getCategoryLabel(selectedCatalogSign.category)}</div>
                            </div>
                            <div className="mt-auto flex gap-3">
                               <Button

@@ -12,6 +12,8 @@ const dst = path.join(__dirname, '..', 'public');
 const files = [
   'ort-wasm-simd-threaded.mjs',
   'ort-wasm-simd-threaded.jsep.mjs',
+  'ort-wasm-simd-threaded.wasm',
+  'ort-wasm-simd-threaded.jsep.wasm'
 ];
 
 if (!fs.existsSync(dst)) fs.mkdirSync(dst, { recursive: true });
