@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../components/lsc/Button';
 import { Badge } from '../components/lsc/Badge';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, PlayCircle, Languages, Target, MessageSquare, Video } from 'lucide-react';
 import logoPrincipal from '../../assets/logo.png'; 
 import { resolveVideoUrl } from '@/lib/videoUtils';
+import { signRecognitionService } from '../../services/signRecognitionService';
 
 interface LandingViewProps {
   onNavigate: (view: string) => void;
@@ -12,6 +13,11 @@ interface LandingViewProps {
 
 export function LandingView({ onNavigate }: LandingViewProps) {
   const [isDemoActive, setIsDemoActive] = useState(true);
+
+  useEffect(() => {
+    // Preload the practice model silently in the background
+    signRecognitionService.loadModel('Colores').catch(console.error);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[var(--color-surface)] relative overflow-hidden flex flex-col items-center justify-center">

@@ -34,7 +34,7 @@ export const LSC_VOCABULARY = {
     // TEMPORAL PARA PRUEBAS: Solo los 5 colores entrenados
     { label: "AMARILLO", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AMARILLO.mp4" },
     { label: "AZUL", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AZUL.mp4" },
-    { label: "BLANCO", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/AZUL_VIOLETA.mp4" }, // (Url por defecto, no afecta el texto)
+    { label: "BLANCO", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/BLANCO.mp4" },
     { label: "NEGRO", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/NEGRO.mp4" },
     { label: "ROJO", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/ROJO.mp4" },
     
@@ -53,7 +53,7 @@ export const LSC_VOCABULARY = {
     { label: "PERSPECTIVA", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/PERSPECTIVA.mp4" },
     { label: "PINCEL", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/PINCEL.mp4" },
     { label: "SEPARAR", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/SEPARAR.mp4" },
-    { label: "TEXTURA", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/SEPARAR.mp4" },
+    { label: "TEXTURA", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/TEXTURA.mp4" },
     { label: "VOLUMEN", url: "https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main/VOLUMEN.mp4" },
   ],
   Oficina: [
