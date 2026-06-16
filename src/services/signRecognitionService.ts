@@ -18,7 +18,7 @@ import * as ort from 'onnxruntime-web';
 // Usamos la raíz '/' porque el script postinstall copia los .wasm a la carpeta public
 ort.env.wasm.wasmPaths = '/';
 ort.env.wasm.numThreads = 1;
-ort.env.wasm.proxy = true;
+ort.env.wasm.proxy = false; // Disabled to prevent "document is not defined" in Vite web workers
 ort.env.wasm.allowMultiThread = false;
 
 import { HolisticLandmarks } from './handDetectionService';
@@ -296,6 +296,11 @@ export class SignRecognitionService {
     } finally {
       this.isPredicting = false;
     }
+  }
+
+  public resetTemporalState(): void {
+    this.lastPredictions = [];
+    this.frameBuffer = [];
   }
 
   public get bufferProgress(): number {
