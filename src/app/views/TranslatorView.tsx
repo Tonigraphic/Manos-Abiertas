@@ -3,7 +3,7 @@ import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
 import { Send, Languages, Mic, Volume2, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { InstructionsModal } from '../components/lsc/InstructionsModal';
+import { InstructionOverlay } from '../components/InstructionOverlay';
 import { translateLSCtoSpanish } from '../../lib/translationEngine';
 import { LOCAL_TRANSLATION_MODEL, markLocalModelTimeout, shouldAttemptBrowserModel, translateWithLocalModel } from '../../services/localTranslationService';
 
@@ -30,6 +30,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [translationReason, setTranslationReason] = useState('');
   const [translationTokenSource, setTranslationTokenSource] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   
@@ -61,11 +62,13 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     const reason = String(result.reason || '').trim();
     if (!reason) return 'Traducción resuelta por el backend';
 
-    if (result.provider === 'openai') {
-      return 'Corrección IA aplicada por OpenAI';
+    if (result.provider === 'huggingface') {
+      return result.mode === 'classic-inference'
+        ? 'Corrección IA aplicada mediante endpoint clásico de Hugging Face'
+        : 'Corrección IA aplicada por Hugging Face';
     }
 
-    if (/no se obtuvo respuesta/i.test(reason)) {
+    if (/no se obtuvo respuesta válida de hugging face/i.test(reason)) {
       return 'Servicio IA temporalmente no disponible; se aplicó corrección local.';
     }
 
@@ -142,7 +145,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       try {
         const result = await requestServerTranslation(inputText, timeoutMs);
 
-        if (result.provider === 'openai' || !isTransientBackendFailure(result) || attempt === maxAttempts) {
+        if (result.provider === 'huggingface' || !isTransientBackendFailure(result) || attempt === maxAttempts) {
           return result;
         }
 
@@ -235,7 +238,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
 
         if (serverText) {
           setTranslatedText(serverText);
-          setTranslationProvider(serverResult.provider || 'openai');
+          setTranslationProvider(serverResult.provider || 'huggingface');
           setTranslationModel(serverResult.model || '');
           setTranslationReason(formatBackendReason(serverResult));
           setTranslationTokenSource(serverResult.tokenSource || '');
@@ -298,53 +301,48 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   };
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-[var(--color-neutral-50)] relative">
-      <InstructionsModal 
-        id="translator"
-        title="Traductor LSC a Español"
-        instructions={[
-          "Escribe las señas escritas en español simplificado (sin conectores) o usa el micrófono para dictar.",
-          "Haz clic en 'Traducir y Corregir' para ver la estructura gramatical del español correcto.",
-          "Puedes reproducir el audio del texto corregido para comunicarte oralmente si lo necesitas.",
-          "Esta herramienta ayuda a corregir la estructura del español, facilitando la redacción autónoma de personas sordas."
-        ]}
+    <div className="h-full flex flex-col bg-[var(--color-neutral-50)] relative overflow-hidden">
+      <InstructionOverlay 
+        show={showInstructions}
+        onClose={() => setShowInstructions(false)}
+        onToggle={() => setShowInstructions(prev => !prev)}
       />
 
-      <div className="flex-shrink-0 p-6 sm:p-8 bg-white border-b border-neutral-200">
+      <div className="flex-shrink-0 p-4 md:p-6 bg-white border-b border-neutral-200 shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-[var(--color-primary-100)] p-3 rounded-2xl text-[var(--color-primary-600)]">
-              <Languages size={28} />
+            <div className="bg-[var(--color-primary-100)] p-2.5 rounded-xl text-[var(--color-primary-600)]">
+              <Languages size={24} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-neutral-800">Traductor LSC a Español</h1>
-              <p className="text-sm text-neutral-500 font-medium mt-1">Convierte español sordo (sin conectores) a español correcto</p>
+              <h1 className="text-xl font-bold text-neutral-800">Traductor LSC a Español</h1>
+              <p className="text-xs text-neutral-500 font-medium">Corrección gramatical con IA</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 sm:p-8">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-6">
-          <Card className="border-none shadow-xl bg-white overflow-hidden">
-            <CardBody className="p-4 sm:p-6 md:p-8">
+      <div className="flex-1 overflow-auto p-4 md:p-8">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-4 md:space-y-6">
+          <Card className="border-none shadow-lg bg-white overflow-hidden">
+            <CardBody className="p-5 md:p-8">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 gap-4 sm:gap-0">
-                <label className="text-sm font-bold text-neutral-400 uppercase tracking-widest">
+                <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">
                   Lengua de Señas Escrita (sin conectores)
                 </label>
                 <div className="flex gap-2 w-full sm:w-auto">
                   <button 
                     onClick={playAudio}
-                    className={`p-3 sm:p-2 rounded-xl transition-all flex items-center justify-center ${isPlaying ? 'bg-blue-100 text-blue-600' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
+                    className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${isPlaying ? 'bg-blue-100 text-blue-600' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
                     title="Reproducir texto"
                   >
-                    <Volume2 size={20} className={isPlaying ? 'animate-pulse' : ''} />
+                    <Volume2 size={18} className={isPlaying ? 'animate-pulse' : ''} />
                   </button>
                   <button 
                     onClick={toggleRecording}
-                    className={`p-3 sm:p-2 rounded-xl transition-all flex items-center justify-center gap-2 px-4 flex-1 sm:flex-none ${isRecording ? 'bg-red-500 text-white shadow-md shadow-red-200 animate-pulse' : 'bg-[var(--color-primary-50)] text-[var(--color-primary-600)] hover:bg-[var(--color-primary-100)]'}`}
+                    className={`p-2.5 rounded-xl transition-all flex items-center justify-center gap-2 px-4 flex-1 sm:flex-none ${isRecording ? 'bg-red-500 text-white shadow-md shadow-red-200 animate-pulse' : 'bg-[var(--color-primary-50)] text-[var(--color-primary-600)] hover:bg-[var(--color-primary-100)]'}`}
                   >
-                    {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
+                    {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
                     <span className="font-bold text-sm">{isRecording ? 'Detener' : 'Dictar'}</span>
                   </button>
                 </div>
@@ -355,14 +353,14 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                   value={translatorInput}
                   onChange={(e) => setTranslatorInput(e.target.value)}
                   placeholder="Escribe palabras clave, ej: 'yo ir universidad mañana' o 'profesor no venir ayer'..."
-                  className="w-full h-40 p-5 bg-neutral-50 border-2 rounded-2xl focus:bg-white focus:border-[var(--color-primary-400)] outline-none resize-none text-xl transition-colors border-neutral-100 text-neutral-800 leading-relaxed placeholder:text-neutral-300"
+                  className="w-full h-32 md:h-40 p-5 bg-neutral-50 border-2 rounded-2xl focus:bg-white focus:border-[var(--color-primary-400)] outline-none resize-none text-lg md:text-xl transition-colors border-neutral-100 text-neutral-800 leading-relaxed placeholder:text-neutral-300"
                 />
               </div>
 
-              <div className="mt-6">
+              <div className="mt-4 md:mt-6">
                 <Button 
                   onClick={handleTranslate} 
-                  className="w-full py-5 text-lg font-bold shadow-lg" 
+                  className="w-full py-4 md:py-5 text-base md:text-lg font-bold shadow-lg" 
                   disabled={(!translatorInput && !isRecording) || isTranslating}
                 >
                   <Send size={20} className="mr-2" /> {isTranslating ? 'Traduciendo...' : 'Traducir y Corregir'}
@@ -384,9 +382,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                       {translatedText}
                     </p>
                     <p className="mt-4 text-xs font-semibold text-white/75">
-                      {translationProvider === 'openai'
-                        ? `Fuente: OpenAI${translationModel ? ` · Modelo: ${translationModel}` : ''}`
-                        : translationProvider === 'huggingface'
+                      {translationProvider === 'huggingface'
                         ? `Fuente: Hugging Face${translationModel ? ` · Modelo: ${translationModel}` : ''}`
                         : translationProvider === 'local-onnx'
                           ? `Fuente: modelo local${translationModel ? ` · ${translationModel}` : ''}`

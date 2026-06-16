@@ -79,11 +79,11 @@ export function LandingView({ onNavigate }: LandingViewProps) {
       >
         <div className="w-full max-w-4xl mx-auto space-y-4 md:space-y-8">
           {/* LOGO */}
-          <div className="flex justify-center">
+          <div className="flex justify-center items-center w-full">
             <img 
               src={logoPrincipal} 
               alt="Logo Manos Abiertas" 
-              className="h-24 sm:h-32 lg:h-44 w-auto object-contain drop-shadow-2xl" 
+              className="h-20 sm:h-32 lg:h-44 w-auto max-w-[80%] md:max-w-full object-contain drop-shadow-2xl" 
             />
           </div>
 
