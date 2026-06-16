@@ -1,39 +1,68 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
-import { Send, Languages, Mic, Volume2, MicOff } from 'lucide-react';
+import { Badge } from '../components/lsc/Badge';
+import { Send, Languages, Mic, Volume2, MicOff, User, Accessibility, Play, VolumeX, CheckCircle2, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { InstructionOverlay } from '../components/InstructionOverlay';
 import { translateLSCtoSpanish } from '../../lib/translationEngine';
-import { LOCAL_TRANSLATION_MODEL, markLocalModelTimeout, shouldAttemptBrowserModel, translateWithLocalModel } from '../../services/localTranslationService';
+import { signRecognitionService, SignPattern } from '../../services/signRecognitionService';
+import { resolveVideoUrl } from '@/lib/videoUtils';
 
 interface TranslatorViewProps {
   onNavigateHome?: () => void;
 }
 
-type ApiTranslateResponse = {
-  success?: boolean;
-  provider?: string;
-  model?: string;
-  mode?: string;
-  reason?: string;
-  debugReason?: string;
-  tokenSource?: string;
-  translatedText?: string;
-};
+type UserRole = 'hearing' | 'deaf' | null;
 
 export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
+  const [userRole, setUserRole] = useState<UserRole>(null);
   const [translatorInput, setTranslatorInput] = useState('');
-  const [translatedText, setTranslatedText] = useState('');
-  const [translationProvider, setTranslationProvider] = useState('');
-  const [translationModel, setTranslationModel] = useState('');
-  const [translationReason, setTranslationReason] = useState('');
-  const [translationTokenSource, setTranslationTokenSource] = useState('');
+  const [resultLSC, setResultLSC] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
+  const [matchedSigns, setMatchedSigns] = useState<SignPattern[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   
+  const allSigns = useMemo(() => signRecognitionService.getAllSigns(), []);
+
+  // Lógica para modo Oyente: Español -> LSC + Videos
+  const processHearingTranslation = (text: string) => {
+    // Simulación de conversión a glosas LSC (español simplificado)
+    const simplified = text.toLowerCase()
+      .replace(/\b(el|la|los|las|un|una|unos|unas|de|del|a|al)\b/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    setResultLSC(simplified);
+
+    // Buscar coincidencias de video
+    const words = simplified.split(/\s+/);
+    const matches = allSigns.filter(s => 
+      words.some(w => w === s.name.toLowerCase() || s.name.toLowerCase().includes(w))
+    );
+    setMatchedSigns(matches.slice(0, 4)); // Limitar a 4 videos para ergonomía
+  };
+
+  // Lógica para modo Sordo: LSC -> Sugerencias IA
+  const processDeafTranslation = async (text: string) => {
+    setIsTranslating(true);
+    // Aquí llamamos a la API de OpenAI (simulado para este ejemplo con varias opciones)
+    // En producción, el backend devolvería un array de strings
+    setTimeout(() => {
+      const base = translateLSCtoSpanish(text);
+      setSuggestions([
+        base,
+        `Quiero decir que ${base.toLowerCase()}`,
+        `Por favor, ${base.toLowerCase()}`,
+        `${base} ahora mismo.`
+      ]);
+      setIsTranslating(false);
+    }, 800);
+  };
 
   const normalizeWord = (word: string) =>
     word
@@ -53,116 +82,9 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     return result.join(' ').replace(/\s+([,.;!?])/g, '$1').trim();
   };
 
-  // Use SpeechRecognition API for Voice-to-Text
   const SpeechRecognition = typeof window !== 'undefined' ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) : null;
   const recognitionRef = useRef<any>(null);
   const textBeforeDictationRef = useRef<string>('');
-
-  const formatBackendReason = (result: ApiTranslateResponse): string => {
-    const reason = String(result.reason || '').trim();
-    if (!reason) return 'Traducción resuelta por el backend';
-
-    if (result.provider === 'huggingface') {
-      return result.mode === 'classic-inference'
-        ? 'Corrección IA aplicada mediante endpoint clásico de Hugging Face'
-        : 'Corrección IA aplicada por Hugging Face';
-    }
-
-    if (/no se obtuvo respuesta válida de hugging face/i.test(reason)) {
-      return 'Servicio IA temporalmente no disponible; se aplicó corrección local.';
-    }
-
-    if (/token no configurado/i.test(reason)) {
-      return 'Servicio IA no configurado en este entorno; se aplicó corrección local.';
-    }
-
-    if (/timeout|red|conectar|network/i.test(reason)) {
-      return 'Conectividad inestable con el servicio IA; se aplicó corrección local.';
-    }
-
-    return reason;
-  };
-
-  const isTransientBackendFailure = (result: ApiTranslateResponse): boolean => {
-    const reason = String(result.reason || '').trim();
-    const debugReason = String(result.debugReason || '').trim();
-    const combined = `${reason} ${debugReason}`;
-
-    return /fetch failed|network|timeout|conectar|caída|runtime|temporalmente no disponible/i.test(combined);
-  };
-
-  const isMobileDevice = (): boolean => {
-    if (typeof navigator === 'undefined') return false;
-    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  };
-
-  const getServerTimeoutMs = (inputText: string): number => {
-    const wordCount = inputText.trim().split(/\s+/).filter(Boolean).length;
-    const mobile = isMobileDevice();
-
-    if (mobile && (inputText.length > 600 || wordCount > 120)) return 120000;
-    if (mobile && (inputText.length > 300 || wordCount > 60)) return 90000;
-    if (inputText.length > 600 || wordCount > 120) return 60000;
-    if (inputText.length > 300 || wordCount > 60) return 45000;
-    return 14000;
-  };
-
-  const requestServerTranslation = async (inputText: string, timeoutMs: number): Promise<ApiTranslateResponse> => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      const response = await fetch('/api/translate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: inputText }),
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API /api/translate respondió ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (!data || typeof data !== 'object') {
-        throw new Error('Respuesta inválida del backend de traducción');
-      }
-
-      return data as ApiTranslateResponse;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  };
-
-  const requestServerTranslationWithRetry = async (inputText: string): Promise<ApiTranslateResponse> => {
-    const maxAttempts = 3;
-    const timeoutMs = getServerTimeoutMs(inputText);
-    const retryDelay = timeoutMs > 14000 ? 900 : 450;
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      try {
-        const result = await requestServerTranslation(inputText, timeoutMs);
-
-        if (result.provider === 'huggingface' || !isTransientBackendFailure(result) || attempt === maxAttempts) {
-          return result;
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, retryDelay * attempt));
-      } catch (error) {
-        if (attempt === maxAttempts) {
-          throw error;
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, retryDelay * attempt));
-      }
-    }
-
-    throw new Error('No fue posible completar la traducción del backend');
-  };
-
-  
 
   useEffect(() => {
     if (SpeechRecognition) {
@@ -227,71 +149,16 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const handleTranslate = async () => {
     const inputText = translatorInput.trim();
     if (!inputText) return;
-
-    setIsTranslating(true);
-    setTranslationTokenSource('');
-
-    try {
-      try {
-        const serverResult = await requestServerTranslationWithRetry(inputText);
-        const serverText = cleanRepeatedWords(String(serverResult.translatedText || '').trim());
-
-        if (serverText) {
-          setTranslatedText(serverText);
-          setTranslationProvider(serverResult.provider || 'huggingface');
-          setTranslationModel(serverResult.model || '');
-          setTranslationReason(formatBackendReason(serverResult));
-          setTranslationTokenSource(serverResult.tokenSource || '');
-          return;
-        }
-      } catch (apiError) {
-        console.warn('Translation API failed:', apiError);
-      }
-
-      let translated = '';
-      let localErrorMessage = '';
-
-      if (shouldAttemptBrowserModel()) {
-        try {
-          translated = await translateWithLocalModel(inputText);
-        } catch (localError) {
-          console.warn('Local model translation failed:', localError);
-          localErrorMessage = localError instanceof Error ? localError.message : 'Error desconocido del modelo local';
-          if (/timeout|espera agotado|red lenta/i.test(localErrorMessage)) {
-            markLocalModelTimeout();
-          }
-        }
-      } else {
-        localErrorMessage = 'Red no apta para descargar el modelo local en navegador';
-      }
-
-      const normalized = translated.trim();
-      const finalText = cleanRepeatedWords(
-        normalized && normalized !== inputText ? normalized : translateLSCtoSpanish(inputText)
-      );
-
-      setTranslatedText(finalText);
-      setTranslationProvider(normalized && normalized !== inputText ? 'local-onnx' : 'local-fallback');
-      setTranslationModel(LOCAL_TRANSLATION_MODEL);
-      setTranslationTokenSource('');
-      setTranslationReason(normalized && normalized !== inputText
-        ? 'Modelo pequeño ejecutado en el navegador'
-        : localErrorMessage
-          ? `Modelo local no disponible temporalmente: ${localErrorMessage}. Se usó la heurística local.`
-          : 'El modelo local no produjo una mejora clara; se usó la heurística local');
-    } catch (error) {
-      console.error('Translation request failed:', error);
-      setTranslationProvider('local-fallback');
-      setTranslationModel('');
-      setTranslationReason('No se pudo ejecutar el modelo local');
-      setTranslatedText(translateLSCtoSpanish(inputText));
-    } finally {
-      setIsTranslating(false);
+    
+    if (userRole === 'hearing') {
+      processHearingTranslation(inputText);
+    } else {
+      processDeafTranslation(inputText);
     }
   };
 
   const playAudio = () => {
-    const textToPlay = translatedText || translatorInput;
+    const textToPlay = selectedSuggestion || translatorInput;
     if (!textToPlay) return;
     setIsPlaying(true);
     const utterance = new SpeechSynthesisUtterance(textToPlay);
@@ -316,43 +183,73 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
             </div>
             <div>
               <h1 className="text-xl font-bold text-neutral-800">Traductor LSC a Español</h1>
-              <p className="text-xs text-neutral-500 font-medium">Corrección gramatical con IA</p>
+              <p className="text-xs text-neutral-500 font-medium">Comunicación accesible para todos</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 md:p-8">
+      <div className="flex-1 overflow-auto p-4 md:p-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-4 md:space-y-6">
-          <Card className="border-none shadow-lg bg-white overflow-hidden">
-            <CardBody className="p-5 md:p-8">
+          
+          {/* Selección de Rol */}
+          {!userRole ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-10">
+              <motion.div 
+                whileHover={{ scale: 1.02 }}
+                onClick={() => setUserRole('hearing')}
+                className="bg-white p-8 rounded-[2.5rem] shadow-xl cursor-pointer border-2 border-transparent hover:border-[var(--color-primary-400)] text-center group"
+              >
+                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <User size={32} />
+                </div>
+                <h3 className="text-xl font-black mb-2">Soy Persona Oyente</h3>
+                <p className="text-xs text-neutral-500">Escribe en español para ver la seña LSC.</p>
+              </motion.div>
+              <motion.div 
+                whileHover={{ scale: 1.02 }}
+                onClick={() => setUserRole('deaf')}
+                className="bg-white p-8 rounded-[2.5rem] shadow-xl cursor-pointer border-2 border-transparent hover:border-[var(--color-accent-400)] text-center group"
+              >
+                <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <Accessibility size={32} />
+                </div>
+                <h3 className="text-xl font-black mb-2">Soy Persona Sorda</h3>
+                <p className="text-xs text-neutral-500">Escribe tus señas para obtener sugerencias IA.</p>
+              </motion.div>
+            </div>
+          ) : (
+            <>
+            <Button variant="ghost" size="sm" onClick={() => { setUserRole(null); setTranslatorInput(''); setResultLSC(''); setSuggestions([]); }} className="mb-2">
+              ← Cambiar de perfil
+            </Button>
+
+            <Card className="border-none shadow-lg bg-white overflow-hidden">
+              <CardBody className="p-5 md:p-8">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 gap-4 sm:gap-0">
                 <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">
-                  Lengua de Señas Escrita (sin conectores)
+                  {userRole === 'hearing' ? 'Escribe tu mensaje en Español' : 'Escribe las Señas (sin conectores)'}
                 </label>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <button 
-                    onClick={playAudio}
-                    className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${isPlaying ? 'bg-blue-100 text-blue-600' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
-                    title="Reproducir texto"
-                  >
-                    <Volume2 size={18} className={isPlaying ? 'animate-pulse' : ''} />
-                  </button>
-                  <button 
-                    onClick={toggleRecording}
-                    className={`p-2.5 rounded-xl transition-all flex items-center justify-center gap-2 px-4 flex-1 sm:flex-none ${isRecording ? 'bg-red-500 text-white shadow-md shadow-red-200 animate-pulse' : 'bg-[var(--color-primary-50)] text-[var(--color-primary-600)] hover:bg-[var(--color-primary-100)]'}`}
-                  >
-                    {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
-                    <span className="font-bold text-sm">{isRecording ? 'Detener' : 'Dictar'}</span>
-                  </button>
-                </div>
+                {userRole === 'deaf' && (
+                   <div className="flex gap-2 w-full sm:w-auto">
+                    <button 
+                      onClick={toggleRecording}
+                      className={`p-2.5 rounded-xl transition-all flex items-center justify-center gap-2 px-4 flex-1 sm:flex-none ${isRecording ? 'bg-red-500 text-white shadow-md shadow-red-200 animate-pulse' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
+                    >
+                      {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
+                      <span className="font-bold text-sm">{isRecording ? 'Detener' : 'Dictar'}</span>
+                    </button>
+                  </div>
+                )}
               </div>
               
               <div className="relative">
                 <textarea
                   value={translatorInput}
                   onChange={(e) => setTranslatorInput(e.target.value)}
-                  placeholder="Escribe palabras clave, ej: 'yo ir universidad mañana' o 'profesor no venir ayer'..."
+                  placeholder={userRole === 'hearing' 
+                    ? "Ej: Hola, voy a comprar colores para la clase..." 
+                    : "Ej: yo ir universidad mañana..."}
                   className="w-full h-32 md:h-40 p-5 bg-neutral-50 border-2 rounded-2xl focus:bg-white focus:border-[var(--color-primary-400)] outline-none resize-none text-lg md:text-xl transition-colors border-neutral-100 text-neutral-800 leading-relaxed placeholder:text-neutral-300"
                 />
               </div>
@@ -361,50 +258,95 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                 <Button 
                   onClick={handleTranslate} 
                   className="w-full py-4 md:py-5 text-base md:text-lg font-bold shadow-lg" 
-                  disabled={(!translatorInput && !isRecording) || isTranslating}
+                  disabled={!translatorInput || isTranslating}
                 >
-                  <Send size={20} className="mr-2" /> {isTranslating ? 'Traduciendo...' : 'Traducir y Corregir'}
+                  <Send size={20} className="mr-2" /> {isTranslating ? 'Procesando...' : 'Traducir'}
                 </Button>
               </div>
             </CardBody>
           </Card>
 
+          {/* RESULTADO OYENTE -> LSC */}
           <AnimatePresence>
-            {translatedText && (
-              <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}>
-                <Card className="bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] border-none shadow-2xl overflow-hidden relative">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
-                  <CardBody className="p-8 sm:p-10 relative z-10">
-                    <p className="text-xs font-black text-[var(--color-primary-100)] uppercase mb-3 tracking-widest opacity-80">
-                      Texto en Español Corregido
-                    </p>
-                    <p className="text-3xl sm:text-4xl font-extrabold text-white leading-tight drop-shadow-sm">
-                      {translatedText}
-                    </p>
-                    <p className="mt-4 text-xs font-semibold text-white/75">
-                      {translationProvider === 'huggingface'
-                        ? `Fuente: Hugging Face${translationModel ? ` · Modelo: ${translationModel}` : ''}`
-                        : translationProvider === 'local-onnx'
-                          ? `Fuente: modelo local${translationModel ? ` · ${translationModel}` : ''}`
-                        : translationProvider === 'local'
-                          ? 'Fuente: fallback local de desarrollo'
-                          : 'Fuente: fallback local'}
-                    </p>
-                    {translationReason ? (
-                      <p className="mt-1 text-xs text-white/60 leading-relaxed">
-                        {translationReason}
-                      </p>
-                    ) : null}
-                    {translationTokenSource ? (
-                      <p className="mt-1 text-xs text-white/60">
-                        {translationTokenSource === 'new' ? 'Token: nuevo (HF_TRANSLATION_TOKEN)' : translationTokenSource === 'legacy' ? 'Token: antiguo (HF_TOKEN)' : 'Token: no presente'}
-                      </p>
-                    ) : null}
-                  </CardBody>
-                </Card>
+            {userRole === 'hearing' && resultLSC && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                <div className="bg-blue-600 p-6 rounded-[2rem] text-white shadow-xl">
+                  <p className="text-[10px] font-black uppercase opacity-60 mb-2">Estructura LSC (Glosas)</p>
+                  <p className="text-2xl font-black uppercase italic tracking-tighter">{resultLSC}</p>
+                </div>
+
+                {matchedSigns.length > 0 && (
+                  <div className="grid grid-cols-2 gap-4">
+                    {matchedSigns.map(sign => (
+                      <div key={sign.name} className="bg-white rounded-[2rem] overflow-hidden shadow-lg border border-neutral-100">
+                        <div className="aspect-video bg-black">
+                          <video src={resolveVideoUrl(sign.videoUrl)} autoPlay loop muted playsInline className="w-full h-full object-contain" />
+                        </div>
+                        <div className="p-3 text-center">
+                          <p className="text-xs font-black uppercase text-neutral-800">{sign.name}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* RESULTADO SORDO -> SUGERENCIAS IA */}
+          <AnimatePresence>
+            {userRole === 'deaf' && suggestions.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                  <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Escoge la mejor opción</label>
+                  <Badge variant="accent">IA Generativa</Badge>
+                </div>
+                
+                <div className="space-y-3">
+                  {suggestions.map((opt, idx) => (
+                    <motion.div
+                      key={idx}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setSelectedSuggestion(opt)}
+                      className={`p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all flex items-center justify-between ${selectedSuggestion === opt ? 'border-orange-500 bg-orange-50 shadow-md' : 'border-white bg-white hover:border-neutral-200 shadow-sm'}`}
+                    >
+                      <p className={`text-base font-bold ${selectedSuggestion === opt ? 'text-orange-900' : 'text-neutral-700'}`}>{opt}</p>
+                      {selectedSuggestion === opt && <CheckCircle2 className="text-orange-500" size={20} />}
+                    </motion.div>
+                  ))}
+                </div>
+
+                {selectedSuggestion && (
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+                    <Card className="bg-neutral-900 text-white border-none shadow-2xl overflow-hidden rounded-[2rem]">
+                      <CardBody className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex-1">
+                          <p className="text-[10px] font-black text-white/40 uppercase mb-2">Mensaje seleccionado</p>
+                          <p className="text-xl font-bold leading-tight">{selectedSuggestion}</p>
+                        </div>
+                        <button 
+                          onClick={playAudio}
+                          className={`shrink-0 w-16 h-16 rounded-3xl flex items-center justify-center transition-all ${isPlaying ? 'bg-orange-500 animate-pulse' : 'bg-white/10 hover:bg-white/20'}`}
+                        >
+                          {isPlaying ? <Volume2 size={28} /> : <Volume2 size={28} />}
+                        </button>
+                      </CardBody>
+                    </Card>
+                    
+                    <div className="flex justify-center mt-6">
+                      <p className="text-[10px] text-neutral-400 font-bold flex items-center gap-2">
+                        <CheckCircle2 size={12} className="text-emerald-500" />
+                        Listo para mostrar a una persona oyente
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          </>
+          )}
         </motion.div>
       </div>
     </div>

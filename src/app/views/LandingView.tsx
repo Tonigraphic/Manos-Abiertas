@@ -98,7 +98,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-primary-100)] text-[var(--color-primary-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                    <Languages size={24} />
                 </div>
-               <h3 className="text-base font-black text-[var(--color-primary-700)] mb-1">Traductor</h3>
+               <h3 className="text-base font-black text-[var(--color-primary-700)] mb-1">Traductor LSC</h3>
                 <p className="text-[10px] text-neutral-600 mb-3 leading-tight">Comunícate bidireccionalmente con IA.</p>
                 <Badge variant="primary" className="text-[8px] py-1 px-3 font-black uppercase tracking-widest">En Vivo</Badge>
              </motion.div>
@@ -108,7 +108,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-accent-100)] text-[var(--color-accent-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                    <Target size={24} />
                 </div>
-               <h3 className="text-base font-black text-[var(--color-accent-700)] mb-1">Práctica</h3>
+               <h3 className="text-base font-black text-[var(--color-accent-700)] mb-1">Práctica y Señas</h3>
                 <p className="text-[10px] text-neutral-600 mb-3 leading-tight">Mejora tus habilidades con ejercicios.</p>
                 <Badge variant="accent" className="text-[8px] py-1 px-3 font-black uppercase tracking-widest">Popular</Badge>
              </motion.div>
