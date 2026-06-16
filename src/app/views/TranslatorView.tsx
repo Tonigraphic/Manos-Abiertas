@@ -61,13 +61,11 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     const reason = String(result.reason || '').trim();
     if (!reason) return 'Traducción resuelta por el backend';
 
-    if (result.provider === 'huggingface') {
-      return result.mode === 'classic-inference'
-        ? 'Corrección IA aplicada mediante endpoint clásico de Hugging Face'
-        : 'Corrección IA aplicada por Hugging Face';
+    if (result.provider === 'openai') {
+      return 'Corrección IA aplicada por OpenAI';
     }
 
-    if (/no se obtuvo respuesta válida de hugging face/i.test(reason)) {
+    if (/no se obtuvo respuesta/i.test(reason)) {
       return 'Servicio IA temporalmente no disponible; se aplicó corrección local.';
     }
 
@@ -144,7 +142,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       try {
         const result = await requestServerTranslation(inputText, timeoutMs);
 
-        if (result.provider === 'huggingface' || !isTransientBackendFailure(result) || attempt === maxAttempts) {
+        if (result.provider === 'openai' || !isTransientBackendFailure(result) || attempt === maxAttempts) {
           return result;
         }
 
@@ -237,7 +235,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
 
         if (serverText) {
           setTranslatedText(serverText);
-          setTranslationProvider(serverResult.provider || 'huggingface');
+          setTranslationProvider(serverResult.provider || 'openai');
           setTranslationModel(serverResult.model || '');
           setTranslationReason(formatBackendReason(serverResult));
           setTranslationTokenSource(serverResult.tokenSource || '');
@@ -386,7 +384,9 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                       {translatedText}
                     </p>
                     <p className="mt-4 text-xs font-semibold text-white/75">
-                      {translationProvider === 'huggingface'
+                      {translationProvider === 'openai'
+                        ? `Fuente: OpenAI${translationModel ? ` · Modelo: ${translationModel}` : ''}`
+                        : translationProvider === 'huggingface'
                         ? `Fuente: Hugging Face${translationModel ? ` · Modelo: ${translationModel}` : ''}`
                         : translationProvider === 'local-onnx'
                           ? `Fuente: modelo local${translationModel ? ` · ${translationModel}` : ''}`
