@@ -157,7 +157,15 @@ Proyecto desarrollado como demostración funcional en la **Universidad de Nariñ
 - **Contraste:** Optimizado para accesibilidad WCAG AA
 - **Inspiración:** Paleta vibrante moderna con alto contraste
 
-## 📚 Documentación Adicional
+## 🚀 Control de Despliegues (Vercel)
+
+El proyecto utiliza una estrategia de ramas para visualizar diferentes etapas:
+
+- **Rama `main`**: **Link Principal Público**. Contiene el prototipo con ergonomía optimizada, HUD alineado y diseño responsivo crítico (Etapa 2).
+- **Rama `v1-antiguo`**: **Link Secundario (Archivo)**. Contiene el primer prototipo funcional sin las mejoras de diseño actuales (Etapa 1).
+*Cada rama genera un link independiente en el dashboard de Vercel.*
+
+## � Documentación Adicional
 
 - `DESIGN_SYSTEM.md` - Sistema de diseño completo
 - `TECHNICAL_DOCUMENTATION.md` - Documentación técnica
