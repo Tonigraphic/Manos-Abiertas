@@ -1,7 +1,7 @@
 import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
 import { Badge } from '../components/lsc/Badge';
-import { Bot, Target, BookOpen, Sparkles } from 'lucide-react';
+import { Languages, Target, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface HomeViewProps {
@@ -43,7 +43,7 @@ export function HomeView({ onNavigate }: HomeViewProps) {
         </div>
 
         <h1 className="text-4xl sm:text-5xl font-bold text-[var(--color-text-primary)] mb-4">
-          Manos Abiertas<br />Asistente para la comunicación en LSC
+          Manos Abiertas<br />Comunicación en LSC
         </h1>
         <p className="text-lg sm:text-xl text-[var(--color-text-secondary)] max-w-2xl mx-auto">
           Herramienta digital integral orientada a fortalecer la comunicación
@@ -51,7 +51,7 @@ export function HomeView({ onNavigate }: HomeViewProps) {
         </p>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
         {features.map((feature, index) => {
           const Icon = feature.icon;
           return (
@@ -71,7 +71,7 @@ export function HomeView({ onNavigate }: HomeViewProps) {
                     <div className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center shadow-lg`}>
                       <Icon size={28} className="text-white" />
                     </div>
-                    <Badge variant={feature.id === 'assistant' ? 'primary' : feature.id === 'practice' ? 'accent' : 'success'}>
+                    <Badge variant={feature.id === 'translator' ? 'primary' : 'accent'}>
                       {feature.badge}
                     </Badge>
                   </div>
@@ -84,10 +84,10 @@ export function HomeView({ onNavigate }: HomeViewProps) {
                   </p>
 
                   <Button
-                    variant={feature.id === 'assistant' ? 'primary' : 'ghost'}
+                    variant={feature.id === 'translator' ? 'primary' : 'ghost'}
                     className="w-full"
                   >
-                    {feature.id === 'assistant' ? 'Comenzar' : 'Explorar'}
+                    {feature.id === 'translator' ? 'Comenzar' : 'Explorar'}
                   </Button>
                 </CardBody>
               </Card>
@@ -95,27 +95,6 @@ export function HomeView({ onNavigate }: HomeViewProps) {
           );
         })}
       </div>
-
-      <Card className="bg-gradient-to-r from-[var(--color-primary-50)] to-[var(--color-accent-50)] border-0">
-        <CardBody className="flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex-1">
-            <h3 className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">
-              ¿Listo para empezar?
-            </h3>
-            <p className="text-[var(--color-text-secondary)]">
-              Explora el asistente de reconocimiento y comienza a practicar hoy
-            </p>
-          </div>
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={() => onNavigate('assistant')}
-            rightIcon={<Bot size={20} />}
-          >
-            Ir al Asistente
-          </Button>
-        </CardBody>
-      </Card>
     </div>
   );
 }

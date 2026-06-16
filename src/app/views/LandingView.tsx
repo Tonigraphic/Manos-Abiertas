@@ -59,7 +59,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                 onEnded={() => setIsDemoActive(false)}
               />
               <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/95 via-black/40 to-transparent pointer-events-none">
-                <p className="text-xs md:text-sm uppercase tracking-[0.5em] text-white/50 font-black mb-2">Presentación Institucional</p>
+                <p className="text-xs md:text-sm uppercase tracking-[0.5em] text-white/70 font-black mb-2">Presentación Institucional</p>
                 <h2 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none">Conoce Manos Abiertas</h2>
               </div>
             </motion.div>

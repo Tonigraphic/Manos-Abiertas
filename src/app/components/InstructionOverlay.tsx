@@ -74,7 +74,7 @@ export function InstructionOverlay({
                   <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-purple-300" />
                   <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-purple-300" />
                 </div>
-                <span className="text-[8px] font-black text-purple-400 uppercase tracking-[0.2em]">Encuadre Ideal: Rostro y Torso</span>
+                <span className="text-[8px] font-black text-purple-700 uppercase tracking-[0.2em]">Encuadre Ideal: Rostro y Torso</span>
               </div>
             )}
 
