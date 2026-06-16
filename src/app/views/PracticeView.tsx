@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useLSCRecognition } from '../../hooks/useLSCRecognition';
 import { signRecognitionService, SignPattern } from '../../services/signRecognitionService';
 import { resolveVideoUrl } from '@/lib/videoUtils';
-import { InstructionOverlay } from '../../../InstructionOverlay';
+import { InstructionOverlay } from '../components/lsc/InstructionOverlay';
 
 // Función de utilidad fuera del componente para evitar recreaciones y advertencias de linting
 const normalizeSign = (value: string) => (value || '')
