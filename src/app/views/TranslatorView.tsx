@@ -173,6 +173,23 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
         show={showInstructions}
         onClose={() => setShowInstructions(false)}
         onToggle={() => setShowInstructions(prev => !prev)}
+        title="Guía del Traductor LSC"
+        subtitle="Usa esta herramienta para facilitar la comunicación entre personas sordas y oyentes:"
+        instructions={[
+          { 
+            icon: "👂", 
+            text: "Modo Oyente: Escribe en español para obtener la traducción a glosas LSC y ver videos de referencia." 
+          },
+          { 
+            icon: "🤟", 
+            text: "Modo Sordo: Escribe conceptos o glosas para obtener sugerencias gramaticales en español con IA." 
+          },
+          { 
+            icon: "🔊", 
+            text: "Reproducción: Usa el botón de audio para convertir el texto seleccionado en voz." 
+          }
+        ]}
+        showAvatar={false}
       />
 
       <div className="flex-shrink-0 p-4 md:p-6 bg-white border-b border-neutral-200 shadow-sm">

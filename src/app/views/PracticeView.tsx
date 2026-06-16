@@ -3,7 +3,7 @@ import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
 import { Badge } from '../components/lsc/Badge';
 import { Input } from '../components/lsc/Input';
-import { Camera, CameraOff, RefreshCw, BarChart2, Target, Trophy, PlayCircle, CheckCircle2, XCircle, ChevronDown, ChevronLeft, ChevronRight, Search, BookOpen, Play, X, Loader2, Eye, EyeOff, Star, Info, Home } from 'lucide-react';
+import { Camera, CameraOff, RefreshCw, BarChart2, Target, Trophy, PlayCircle, CheckCircle2, XCircle, ChevronDown, ChevronLeft, ChevronRight, Search, BookOpen, Play, X, Loader2, Eye, EyeOff, Star, Info, Home, Languages, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLSCRecognition } from '../../hooks/useLSCRecognition';
 import { signRecognitionService, SignPattern } from '../../services/signRecognitionService';
@@ -21,10 +21,10 @@ const normalizeSign = (value: string) => (value || '')
 const MIN_SUCCESS_CONFIDENCE = 95;
 
 interface PracticeViewProps {
-  onNavigateHome?: () => void;
+  onNavigate?: (view: string) => void;
 }
 
-export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
+export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
    const { state: recState, videoRef, canvasRef, startRecognition, stopRecognition } = useLSCRecognition();
    const [showModal, setShowModal] = useState(false);
    const [showInstructions, setShowInstructions] = useState(true);
@@ -437,6 +437,15 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
             show={showInstructions}
             onClose={() => setShowInstructions(false)}
             onToggle={() => setShowInstructions(prev => !prev)}
+            title="Guía de Práctica y Señas"
+            subtitle="Sigue estos pasos para mejorar tu aprendizaje de LSC con Inteligencia Artificial:"
+            instructions={[
+               { icon: "💡", text: "Asegúrate de tener una iluminación clara y frontal." },
+               { icon: "📐", text: "Tu rostro y torso deben ser visibles." },
+               { icon: "👤", text: "Mantente centrado y de frente a la cámara." },
+               { icon: "✨", text: "El sistema detectará automáticamente cuando logres la seña correcta." },
+               { icon: "📚", text: "Usa el icono del libro para consultar el diccionario en cualquier momento." }
+            ]}
          />
 
                         <video
@@ -731,7 +740,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
                                     <button
                                        type="button"
-                                       onClick={onNavigateHome}
+                                       onClick={() => onNavigate?.('home')}
                                        title="Volver al inicio"
                                        className="absolute bottom-[144px] right-0 w-10 h-10 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
                                     >
@@ -761,11 +770,11 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                      <div className="w-24 h-24 bg-white rounded-full mx-auto shadow-lg flex items-center justify-center mb-6">
                         <Trophy size={42} className="text-[var(--color-primary-600)]" />
                      </div>
-                     <h2 className="text-2xl font-black text-[var(--color-text-primary)] mb-2">¡Práctica completada!</h2>
-                     <p className="text-[var(--color-text-secondary)] font-medium mb-8">Terminaste el recorrido de las 5 señas del modelo de colores.</p>
+                     <h2 className="text-2xl font-black text-[var(--color-text-primary)] mb-1">¡Práctica completada!</h2>
+                     <p className="text-xs text-[var(--color-text-secondary)] font-medium mb-6">Terminaste el recorrido de las 5 señas del modelo de colores.</p>
 
-                     <div className="mb-8">
-                        <div className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Aciertos</div>
+                     <div className="mb-6">
+                        <div className="text-[10px] font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-1">Precisión General</div>
                         <div className="text-5xl font-black text-[var(--color-primary-600)]">{accuracy}%</div>
                         <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{correctAnswers} correctas de {attempts} intentos</p>
                      </div>
@@ -785,9 +794,21 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                         >
                            <RefreshCw size={18} /> Intentar de nuevo
                         </Button>
-                        <Button variant="ghost" className="w-full py-4 text-base font-bold text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] rounded-xl flex justify-center items-center gap-2 border-2 border-[var(--color-neutral-200)]" onClick={() => setShowModal(false)}>
-                           <BarChart2 size={18} /> Cerrar
-                        </Button>
+                        
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                           <Button variant="ghost" className="py-3 text-xs font-bold rounded-xl border-2" onClick={() => onNavigate?.('home')}>
+                              <Home size={14} className="mr-1" /> Inicio
+                           </Button>
+                           <Button variant="ghost" className="py-3 text-xs font-bold rounded-xl border-2" onClick={() => onNavigate?.('translator')}>
+                              <Languages size={14} className="mr-1" /> Traductor
+                           </Button>
+                        </div>
+
+                        <div className="mt-2">
+                           <Button variant="ghost" className="w-full py-3 text-xs font-bold text-[var(--color-text-secondary)] hover:bg-[var(--color-neutral-100)] rounded-xl flex justify-center items-center gap-2 border-2" onClick={() => onNavigate?.('feedback')}>
+                              <MessageSquare size={14} /> Enviar Sugerencia
+                           </Button>
+                        </div>
                      </div>
                   </div>
                </div>

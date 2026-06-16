@@ -1,13 +1,35 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
+interface InstructionItem {
+  icon: string;
+  text: string;
+}
+
 interface InstructionOverlayProps {
   show: boolean;
   onClose: () => void;
   onToggle: () => void;
+  title?: string;
+  subtitle?: string;
+  instructions?: InstructionItem[];
+  showAvatar?: boolean;
 }
 
-export function InstructionOverlay({ show, onClose, onToggle }: InstructionOverlayProps) {
+export function InstructionOverlay({ 
+  show, 
+  onClose, 
+  onToggle,
+  title = "Guía de Práctica",
+  subtitle = "Para que la Inteligencia Artificial reconozca tus señas correctamente, por favor ten en cuenta lo siguiente:",
+  instructions = [
+    { icon: "💡", text: "Asegúrate de tener una iluminación clara y frontal." },
+    { icon: "📐", text: "Tu rostro y torso deben ser visibles." },
+    { icon: "👤", text: "Mantente centrado frente a la cámara." },
+    { icon: "✨", text: "Detección automática al lograr la seña correcta." }
+  ],
+  showAvatar = true
+}: InstructionOverlayProps) {
   return (
     <AnimatePresence>
       {show && (
@@ -30,42 +52,39 @@ export function InstructionOverlay({ show, onClose, onToggle }: InstructionOverl
               <div className="bg-purple-50 p-3 rounded-2xl text-purple-600">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
               </div>
-              <h2 className="text-lg md:text-2xl font-black text-gray-900 tracking-tighter uppercase italic">Guía de Práctica</h2>
+              <h2 className="text-lg md:text-2xl font-black text-gray-900 tracking-tighter uppercase italic">{title}</h2>
             </div>
 
-            <div className="flex flex-col items-center justify-center mb-3 md:mb-4 gap-1.5 md:gap-2">
-              <div className="relative w-14 h-20 md:w-48 md:h-28 border-2 border-dashed border-purple-200 rounded-2xl flex items-center justify-center bg-purple-50/50 overflow-hidden shadow-inner">
-                <div className="absolute inset-0 flex flex-col items-center justify-end pb-0">
-                  <div className="w-5 h-7 md:w-9 md:h-11 bg-purple-200/80 rounded-[1.5rem] mb-1 shadow-sm border border-purple-300/30" />
-                  <div className="w-12 h-10 md:w-32 md:h-14 bg-purple-200/80 rounded-t-[1.5rem] md:rounded-t-[2rem] shadow-sm border border-purple-300/30" />
+            {showAvatar && (
+              <div className="flex flex-col items-center justify-center mb-3 md:mb-4 gap-1.5 md:gap-2">
+                <div className="relative w-14 h-20 md:w-48 md:h-28 border-2 border-dashed border-purple-200 rounded-2xl flex items-center justify-center bg-purple-50/50 overflow-hidden shadow-inner">
+                  <div className="absolute inset-0 flex flex-col items-center justify-end pb-0">
+                    <div className="w-5 h-7 md:w-9 md:h-11 bg-purple-200/80 rounded-[1.5rem] mb-1 shadow-sm border border-purple-300/30" />
+                    <div className="w-12 h-10 md:w-32 md:h-14 bg-purple-200/80 rounded-t-[1.5rem] md:rounded-t-[2rem] shadow-sm border border-purple-300/30" />
+                  </div>
+                  
+                  <motion.div 
+                    animate={{ top: ['-10%', '110%'] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent shadow-[0_0_8px_rgba(168,85,247,0.5)] z-10"
+                  />
+
+                  <div className="absolute top-2 left-2 w-2 h-2 border-t border-l border-purple-300" />
+                  <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-purple-300" />
+                  <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-purple-300" />
+                  <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-purple-300" />
                 </div>
-                
-                <motion.div 
-                  animate={{ top: ['-10%', '110%'] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                  className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-400 to-transparent shadow-[0_0_8px_rgba(168,85,247,0.5)] z-10"
-                />
-
-                <div className="absolute top-2 left-2 w-2 h-2 border-t border-l border-purple-300" />
-                <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-purple-300" />
-                <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-purple-300" />
-                <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-purple-300" />
+                <span className="text-[8px] font-black text-purple-400 uppercase tracking-[0.2em]">Encuadre Ideal: Rostro y Torso</span>
               </div>
-              <span className="text-[8px] font-black text-purple-400 uppercase tracking-[0.2em]">Encuadre Ideal: Rostro y Torso</span>
-            </div>
+            )}
 
             <div className="space-y-2 md:space-y-3">
               <p className="text-xs md:text-sm text-gray-600 font-bold leading-tight">
-                Para que la Inteligencia Artificial reconozca tus señas correctamente, por favor ten en cuenta lo siguiente:
+                {subtitle}
               </p>
               
               <ul className="space-y-2">
-                {[
-                  { icon: "💡", text: "Asegúrate de tener una iluminación clara y frontal." },
-                  { icon: "📐", text: "Tu rostro y torso deben ser visibles." },
-                  { icon: "👤", text: "Mantente centrado frente a la cámara." },
-                  { icon: "✨", text: "Detección automática al lograr la seña correcta." }
-                ].map((item, i) => (
+                {instructions.map((item, i) => (
                   <li key={i} className="flex gap-3 items-center bg-gray-50/50 p-2 md:p-2.5 rounded-xl md:rounded-2xl border border-gray-100">
                     <span className="text-lg md:text-xl shrink-0">{item.icon}</span>
                     <span className="text-[10px] md:text-xs font-bold text-gray-700 leading-tight">{item.text}</span>
