@@ -1,178 +1,135 @@
-import { Card, CardBody } from '../components/lsc/Card';
+import { useState } from 'react';
 import { Button } from '../components/lsc/Button';
 import { Badge } from '../components/lsc/Badge';
-import { Bot, Target, BookOpen, Sparkles, Video, CheckCircle, GraduationCap } from 'lucide-react';
-import { motion } from 'motion/react';
-
-// Importación del logo con la ruta corregida para el build
+import { motion, AnimatePresence } from 'motion/react';
+import { X, PlayCircle, Languages, Target, MessageSquare, Video } from 'lucide-react';
 import logoPrincipal from '../../assets/logo.png'; 
+import { resolveVideoUrl } from '../../lib/videoUtils';
 
 interface LandingViewProps {
   onNavigate: (view: string) => void;
 }
 
 export function LandingView({ onNavigate }: LandingViewProps) {
-  const features = [
-    {
-      id: 'translator',
-      title: 'Traductor LSC a Español',
-      description: 'Convierte español sordo (sin conectores o simplificado) a español escrito correcto',
-      icon: Bot,
-      gradient: 'from-blue-500 to-blue-600',
-      badge: 'Módulo Principal',
-      highlights: ['Traducción instantánea', 'Reconocimiento de voz', 'Síntesis de voz'],
-    },
-    {
-      id: 'assistant',
-      title: 'Reconocimiento LSC',
-      description: 'Reconocimiento en tiempo real de señas utilizando Inteligencia Artificial y la cámara de tu dispositivo',
-      icon: Video,
-      gradient: 'from-purple-500 to-purple-600',
-      badge: 'Innovación',
-      highlights: ['Detección en tiempo real', 'Precisión avanzada', 'Múltiples categorías'],
-    },
-    {
-      id: 'dictionary',
-      title: 'Diccionario Visual',
-      description: 'Catálogo completo de señas organizadas por categorías con videos demostrativos',
-      icon: BookOpen,
-      gradient: 'from-green-500 to-green-600',
-      badge: 'Complementario',
-      highlights: ['Búsqueda avanzada', 'Categorización', 'Videos HD'],
-    },
-    {
-      id: 'practice',
-      title: 'Práctica Gamificada',
-      description: 'Sistema de puntos, rachas diarias y ejercicios progresivos para mejorar habilidades',
-      icon: Target,
-      gradient: 'from-orange-500 to-orange-600',
-      badge: 'Popular',
-      highlights: ['Sistema de puntos', 'Racha de días', 'Logros'],
-    },
-  ];
+  const [isDemoActive, setIsDemoActive] = useState(true);
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface)] relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--color-surface)] relative overflow-hidden flex flex-col items-center justify-center">
       {/* Decoración de Fondo */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/3" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-orange-200/30 to-pink-200/30 rounded-full blur-3xl transform -translate-x-1/3 translate-y-1/3" />
+        <div className="absolute top-0 right-0 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-gradient-to-br from-[var(--color-primary-200)] to-[var(--color-primary-400)] rounded-full blur-3xl opacity-20 transform translate-x-1/3 -translate-y-1/3" />
+        <div className="absolute bottom-0 left-0 w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-gradient-to-tr from-[var(--color-accent-200)] to-[var(--color-accent-400)] rounded-full blur-3xl opacity-20 transform -translate-x-1/3 translate-y-1/3" />
       </div>
 
-      {/* Hero Section */}
-      <section className="relative pt-12 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+      {/* Modal Video Demo Automático (Capa Superior) */}
+      <AnimatePresence>
+        {isDemoActive && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-12"
           >
-            {/* Badge Institucional */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full mb-8 shadow-md border border-[var(--color-neutral-200)]">
-              <GraduationCap size={20} className="text-[var(--color-primary-600)]" />
-              <span className="text-sm font-semibold text-[var(--color-text-primary)]">
-                Universidad de Nariño - Programa de Diseño Gráfico
-              </span>
-            </div>
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="relative w-full max-w-5xl aspect-video rounded-[2.5rem] md:rounded-[4rem] overflow-hidden shadow-2xl bg-black border border-white/10"
+            >
+              <button
+                onClick={() => setIsDemoActive(false)}
+                className="absolute top-6 right-6 z-20 bg-black/60 text-white rounded-full p-3 hover:bg-black/80 transition-all active:scale-90"
+                aria-label="Cerrar video demo"
+              >
+                <X size={28} />
+              </button>
 
-            {/* LOGO AJUSTADO: Tamaño equilibrado y responsive */}
-            <div className="flex justify-center mb-8">
-              <img 
-                src={logoPrincipal} 
-                alt="Logo Manos Abiertas" 
-                className="h-32 sm:h-52 lg:h-[280px] w-auto object-contain drop-shadow-xl" 
+              <video
+                autoPlay
+                playsInline
+                crossOrigin="anonymous"
+                className="w-full h-full object-contain"
+                src={resolveVideoUrl('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4')}
+                onEnded={() => setIsDemoActive(false)}
               />
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--color-text-primary)] mb-6 leading-tight">
-              Asistente para la comunicación en LSC
-            </h1>
-
-            <p className="text-lg sm:text-xl text-[var(--color-text-secondary)] max-w-3xl mx-auto mb-10 leading-relaxed font-medium">
-              Herramienta digital integral desde el enfoque del diseño gráfico, orientada a fortalecer
-              los procesos de comunicación entre la comunidad sorda y oyente de la Universidad de Nariño.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={() => onNavigate('translator')}
-                className="w-full sm:w-auto px-6 py-4 text-base sm:px-8 sm:py-6 sm:text-lg font-bold shadow-xl hover:scale-105 transition-transform"
-              >
-                Probar Asistente
-              </Button>
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={() => {
-                  document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="w-full sm:w-auto border-2 border-[var(--color-neutral-300)] px-6 py-4 text-base sm:px-8 sm:py-6 sm:text-lg font-bold bg-white/50"
-              >
-                Ver Características
-              </Button>
-            </div>
+              <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/95 via-black/40 to-transparent pointer-events-none">
+                <p className="text-xs md:text-sm uppercase tracking-[0.5em] text-white/50 font-black mb-2">Presentación Institucional</p>
+                <h2 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none">Conoce Manos Abiertas</h2>
+              </div>
+            </motion.div>
           </motion.div>
-        </div>
-      </section>
+        )}
+      </AnimatePresence>
 
-      {/* Features Section */}
-      <section id="features" className="relative py-20 px-4 sm:px-6 lg:px-8 bg-white/60 backdrop-blur-md border-t border-neutral-100">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge variant="primary" className="mb-4 text-sm px-6 py-2 uppercase font-black tracking-widest">
-              Módulos principales
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold text-[var(--color-text-primary)] mb-4">
-              Nuestras Herramientas
-            </h2>
-            <p className="text-lg text-[var(--color-text-secondary)] max-w-2xl mx-auto font-medium">
-              Diseñamos una experiencia complementaria para fortalecer la inclusión académica en la Facultad de Artes.
-            </p>
+      {/* Contenido Principal de la Landing (Capa Inferior) */}
+      <motion.section 
+        animate={{ 
+          opacity: isDemoActive ? 0.3 : 1, 
+          scale: isDemoActive ? 0.95 : 1,
+          filter: isDemoActive ? 'blur(10px)' : 'blur(0px)' 
+        }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 w-full max-w-6xl mx-auto px-6 py-4 md:py-8 flex flex-col items-center justify-center text-center overflow-hidden"
+      >
+        <div className="w-full max-w-4xl mx-auto space-y-4 md:space-y-8">
+          {/* LOGO */}
+          <div className="flex justify-center">
+            <img 
+              src={logoPrincipal} 
+              alt="Logo Manos Abiertas" 
+              className="h-24 sm:h-32 lg:h-44 w-auto object-contain drop-shadow-2xl" 
+            />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={feature.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Card hoverable className="h-full border-none shadow-lg hover:shadow-2xl transition-all bg-white/80">
-                  <CardBody className="p-8">
-                    <div className={`w-14 h-14 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center mb-6 shadow-md`}>
-                      <feature.icon size={28} className="text-white" />
-                    </div>
-                    <Badge variant="accent" className="mb-3 px-3 py-1">{feature.badge}</Badge>
-                    <h3 className="text-xl font-bold mb-3 text-neutral-800">{feature.title}</h3>
-                    <p className="text-neutral-600 mb-6 leading-relaxed text-sm">
-                      {feature.description}
-                    </p>
-                    <ul className="space-y-2 mb-8">
-                      {feature.highlights.map((h, i) => (
-                        <li key={i} className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
-                          <CheckCircle size={16} className="text-green-500" />
-                          {h}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button 
-                      variant="primary" 
-                      className="w-full py-4 font-bold" 
-                      onClick={() => onNavigate(feature.id)}
-                    >
-                      Explorar módulo
-                    </Button>
-                  </CardBody>
-                </Card>
-              </motion.div>
-            ))}
+          <p className="text-xs sm:text-lg text-[var(--color-text-secondary)] leading-relaxed font-medium max-w-2xl mx-auto px-4">
+            Aprende, practica y comunícate usando Lengua de Señas Colombiana (LSC). ¿Qué deseas hacer hoy?
+          </p>
+
+          {/* Opciones Autónomas de Navegación */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 w-full">
+             {/* Opción Traductor */}
+             <motion.div whileHover={{ y: -5 }} className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-primary-300)] transition-all flex flex-col items-center text-center cursor-pointer group" onClick={() => onNavigate('translator')}>
+                <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-primary-100)] text-[var(--color-primary-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                   <Languages size={24} />
+                </div>
+                <h3 className="text-base font-black text-[var(--color-text-primary)] mb-1">Traductor</h3>
+                <p className="text-[10px] text-[var(--color-text-secondary)] mb-3 leading-tight">Comunícate bidireccionalmente con IA.</p>
+                <Badge variant="primary" className="text-[8px] py-1 px-3 font-black uppercase tracking-widest">En Vivo</Badge>
+             </motion.div>
+
+             {/* Opción Práctica */}
+             <motion.div whileHover={{ y: -5 }} className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-accent-300)] transition-all flex flex-col items-center text-center cursor-pointer group" onClick={() => onNavigate('practice')}>
+                <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-accent-100)] text-[var(--color-accent-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                   <Target size={24} />
+                </div>
+                <h3 className="text-base font-black text-[var(--color-text-primary)] mb-1">Práctica</h3>
+                <p className="text-[10px] text-[var(--color-text-secondary)] mb-3 leading-tight">Mejora tus habilidades con ejercicios.</p>
+                <Badge variant="accent" className="text-[8px] py-1 px-3 font-black uppercase tracking-widest">Popular</Badge>
+             </motion.div>
+
+             {/* Opción Sugerencias */}
+             <motion.div whileHover={{ y: -5 }} className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-success-300)] transition-all flex flex-col items-center text-center cursor-pointer group" onClick={() => onNavigate('feedback')}>
+                <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-success-100)] text-[var(--color-success-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                   <MessageSquare size={24} />
+                </div>
+                <h3 className="text-base font-black text-[var(--color-text-primary)] mb-1">Sugerencias</h3>
+                <p className="text-[10px] text-[var(--color-text-secondary)] mb-3 leading-tight">Ayúdanos a mejorar el diccionario.</p>
+                <Badge variant="success" className="text-[8px] py-1 px-3 font-black uppercase tracking-widest">Comunidad</Badge>
+             </motion.div>
           </div>
+
+          {/* Botón para volver a reproducir el Demo */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsDemoActive(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 mt-4 rounded-xl bg-black text-white font-black shadow-2xl hover:bg-neutral-900 transition-all border border-white/10 text-xs"
+          >
+            <PlayCircle size={18} />
+            Ver video demostrativo
+          </motion.button>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 }

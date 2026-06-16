@@ -15,9 +15,11 @@
 import * as ort from 'onnxruntime-web';
 
 // ── ONNX Runtime config ────────────────────────────────────────────────
-ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/';
+// Usamos la raíz '/' porque el script postinstall copia los .wasm a la carpeta public
+ort.env.wasm.wasmPaths = '/';
 ort.env.wasm.numThreads = 1;
-ort.env.wasm.proxy = false;
+ort.env.wasm.proxy = true;
+ort.env.wasm.allowMultiThread = false;
 
 import { HolisticLandmarks } from './handDetectionService';
 import { LSC_VOCABULARY } from '../lib/lscData';
