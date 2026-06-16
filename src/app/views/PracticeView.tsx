@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useLSCRecognition } from '../../hooks/useLSCRecognition';
 import { signRecognitionService, SignPattern } from '../../services/signRecognitionService';
 import { resolveVideoUrl } from '@/lib/videoUtils';
-import { InstructionOverlay } from '../components/lsc/InstructionOverlay';
+import { InstructionOverlay } from '../components/InstructionOverlay';
 
 // Función de utilidad fuera del componente para evitar recreaciones y advertencias de linting
 const normalizeSign = (value: string) => (value || '')
@@ -500,7 +500,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                  transition={{ type: "spring", damping: 25, stiffness: 200 }}
                                  className="absolute inset-x-0 top-2 md:top-auto md:bottom-2 z-30 p-2 md:p-4 pointer-events-none"
                               >
-                                 <div className="mx-auto max-w-[95vw] md:max-w-xl rounded-[2rem] border border-white/20 bg-black/80 backdrop-blur-xl shadow-2xl px-5 py-4 md:px-7 md:py-6 text-white">
+                                 <div className="mx-auto max-w-[95vw] md:max-w-xl rounded-[2rem] border border-white/20 bg-black/40 backdrop-blur-xl shadow-2xl px-5 py-4 md:px-7 md:py-6 text-white">
                                     <div className="flex items-start justify-between gap-6 mb-4">
                                        <div className="flex-1">
                                           <p className="text-[9px] uppercase tracking-[0.4em] text-white/40 font-black mb-1">Seña Objetivo</p>
@@ -565,7 +565,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
 
                         {!recState.isActive && !recState.isLoading && (
                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white p-6 text-center z-20 backdrop-blur-md">
-                              <div className="p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] bg-black/80 border border-white/10 backdrop-blur-xl">
+                              <div className="p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] bg-white/5 border border-white/10 backdrop-blur-xl">
                               <PlayCircle size={48} className="mb-3 text-white/40 mx-auto" />
                                  <h3 className="text-2xl font-black mb-2 tracking-tight">Listo para comenzar</h3>
                                  <p className="text-sm text-white/60 max-w-xs mb-6 leading-relaxed">Presiona el botón para iniciar la cámara y comenzar con los ejercicios de colores.</p>
@@ -585,7 +585,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                         )}
 
                         {recState.isLoading && (
-                           <div className="absolute inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-30">
+                           <div className="absolute inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center z-30">
                               <div className="text-center text-white">
                                  <Loader2 className="animate-spin w-16 h-16 text-[var(--color-primary-400)] mx-auto mb-6" />
                                  <p className="text-xl font-black tracking-widest uppercase">Iniciando...</p>
@@ -602,7 +602,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                        initial={{ opacity: 0, scale: 0.95, x: 20 }}
                                        animate={{ opacity: 1, scale: 1, x: 0 }}
                                        exit={{ opacity: 0, scale: 0.95, x: 20 }}
-                                       className="absolute top-16 md:top-20 right-2 md:right-4 bottom-32 md:bottom-32 z-50 w-[calc(100vw-1rem)] md:w-[360px] max-w-[calc(100vw-1rem)] bg-black/90 backdrop-blur-3xl border border-white/20 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden text-white"
+                                       className="absolute top-16 md:top-20 right-2 md:right-4 bottom-32 md:bottom-32 z-50 w-[calc(100vw-1rem)] md:w-[360px] max-w-[calc(100vw-1rem)] bg-black/70 backdrop-blur-3xl border border-white/20 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden text-white"
                                     >
                                        <div className="p-5 flex items-center justify-between border-b border-white/10">
                                           <div>
@@ -669,7 +669,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                                     initial={{ opacity: 0, x: -10, y: 8 }}
                                     animate={{ opacity: 1, x: 0, y: 0 }}
                                     // Ahora en la esquina inferior izquierda, aprovechando el espacio del dashboard eliminado
-                                    className="absolute bottom-6 left-6 z-30 w-[160px] md:w-[280px] max-w-[45vw] rounded-[1.2rem] md:rounded-[2rem] overflow-hidden border border-white/20 bg-black/80 backdrop-blur-2xl shadow-2xl"
+                                    className="absolute bottom-6 left-6 z-30 w-[160px] md:w-[280px] max-w-[45vw] rounded-[1.2rem] md:rounded-[2rem] overflow-hidden border border-white/20 bg-black/40 backdrop-blur-2xl shadow-2xl"
                                  >
                                     <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 text-white/80">
                                        <div className="text-[7px] md:text-[9px] font-black uppercase tracking-[0.4em] ml-2 truncate">Seña Objetivo</div>
@@ -761,13 +761,13 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                      <div className="w-24 h-24 bg-white rounded-full mx-auto shadow-lg flex items-center justify-center mb-6">
                         <Trophy size={42} className="text-[var(--color-primary-600)]" />
                      </div>
-                     <h2 className="text-2xl font-black text-[var(--color-primary-600)] mb-2">¡Práctica completada!</h2>
-                     <p className="text-[var(--color-primary-800)]/70 font-medium mb-8">Terminaste el recorrido de las 5 señas del modelo de colores.</p>
+                     <h2 className="text-2xl font-black text-[var(--color-text-primary)] mb-2">¡Práctica completada!</h2>
+                     <p className="text-[var(--color-text-secondary)] font-medium mb-8">Terminaste el recorrido de las 5 señas del modelo de colores.</p>
 
                      <div className="mb-8">
                         <div className="text-sm font-bold text-[var(--color-text-tertiary)] uppercase tracking-widest mb-2">Aciertos</div>
                         <div className="text-5xl font-black text-[var(--color-primary-600)]">{accuracy}%</div>
-                        <p className="mt-2 text-sm text-[var(--color-primary-800)]/70">{correctAnswers} correctas de {attempts} intentos</p>
+                        <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{correctAnswers} correctas de {attempts} intentos</p>
                      </div>
 
                      <div className="flex flex-col gap-3">
@@ -785,7 +785,7 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                         >
                            <RefreshCw size={18} /> Intentar de nuevo
                         </Button>
-                        <Button variant="ghost" className="w-full py-4 text-base font-bold text-[var(--color-primary-600)] hover:bg-[var(--color-neutral-100)] rounded-xl flex justify-center items-center gap-2 border-2 border-[var(--color-neutral-200)]" onClick={() => setShowModal(false)}>
+                        <Button variant="ghost" className="w-full py-4 text-base font-bold text-[var(--color-text-primary)] hover:bg-[var(--color-neutral-100)] rounded-xl flex justify-center items-center gap-2 border-2 border-[var(--color-neutral-200)]" onClick={() => setShowModal(false)}>
                            <BarChart2 size={18} /> Cerrar
                         </Button>
                      </div>
@@ -838,15 +838,15 @@ export function PracticeView({ onNavigateHome }: PracticeViewProps = {}) {
                               <Badge variant="neutral">Catálogo práctico</Badge>
                            </div>
                            <div>
-                              <p className="text-xs font-black uppercase tracking-[0.35em] text-[var(--color-primary-800)]/60 mb-2">Seña seleccionada</p>
-                              <h2 className="text-3xl font-black text-[var(--color-primary-600)] uppercase mb-3">{selectedCatalogSign.name}</h2>
-                              <p className="text-sm text-[var(--color-primary-800)]/80 leading-relaxed">
+                              <p className="text-xs font-black uppercase tracking-[0.35em] text-[var(--color-text-secondary)] mb-2">Seña seleccionada</p>
+                              <h2 className="text-3xl font-black text-[var(--color-neutral-900)] uppercase mb-3">{selectedCatalogSign.name}</h2>
+                              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
                                  Usa este catálogo para repasar la seña completa sin salir de práctica. Puedes buscar, filtrar y abrir cualquier video cuando quieras.
                               </p>
                            </div>
                            <div className="rounded-2xl bg-[var(--color-neutral-50)] border border-[var(--color-neutral-200)] p-4">
                               <div className="text-xs font-black uppercase tracking-widest text-[var(--color-text-tertiary)] mb-1">Categoría</div>
-                              <div className="text-sm font-bold text-[var(--color-primary-600)]">{getCategoryLabel(selectedCatalogSign.category)}</div>
+                              <div className="text-sm font-bold text-[var(--color-text-primary)]">{getCategoryLabel(selectedCatalogSign.category)}</div>
                            </div>
                            <div className="mt-auto flex gap-3">
                               <Button
