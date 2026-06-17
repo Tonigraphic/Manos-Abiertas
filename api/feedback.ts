@@ -14,12 +14,12 @@ export default async function handler(req: any, res: any) {
   try {
     const { userType, feedbackType, userName, userEmail, text, wordSuggestion, gifBase64, gifName } = req.body;
     
-    // El token debe configurarse en Vercel > Settings > Environment Variables como HF_TOKEN
-    const HF_TOKEN = process.env.HF_TOKEN;
-    const REPO_ID = 'manosabiertas/Manos-Abiertas-LSC'; // Repositorio destino
+    // El token de sugerencias o traducciones configurado en Vercel o local
+    const HF_TOKEN = process.env.HF_SUGGESTIONS_TOKEN || process.env.HF_TRANSLATION_TOKEN || process.env.HF_TOKEN;
+    const REPO_ID = process.env.HF_SUGGESTIONS_REPO || 'manosabiertas/Manos-Abiertas-LSC'; // Repositorio destino
     
     if (!HF_TOKEN) {
-      console.warn("No se encontró el HF_TOKEN. Solo se simulará el envío.");
+      console.warn("No se encontró ningún token de Hugging Face (HF_SUGGESTIONS_TOKEN o HF_TRANSLATION_TOKEN). Solo se simulará el envío.");
       // En desarrollo local sin token, simulamos éxito para no bloquear la UI
       return res.status(200).json({ success: true, simulated: true });
     }

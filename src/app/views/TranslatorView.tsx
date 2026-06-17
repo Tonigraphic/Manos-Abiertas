@@ -295,10 +295,16 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const playAudio = () => {
     const textToPlay = selectedSuggestion || translatorInput;
     if (!textToPlay) return;
+    if (isPlaying) {
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+      return;
+    }
     setIsPlaying(true);
     const utterance = new SpeechSynthesisUtterance(textToPlay);
     utterance.lang = 'es-CO';
     utterance.onend = () => setIsPlaying(false);
+    utterance.onerror = () => setIsPlaying(false);
     window.speechSynthesis.speak(utterance);
   };
 
@@ -382,7 +388,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                 <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">
                   {userRole === 'hearing' ? 'Escribe tu mensaje en Español' : 'Escribe las Señas (sin conectores)'}
                 </label>
-                {userRole === 'deaf' && (
+                {userRole === 'hearing' && (
                    <div className="flex gap-2 w-full sm:w-auto">
                     <button 
                       onClick={toggleRecording}
@@ -428,7 +434,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                 </div>
 
                 {matchedSigns.length > 0 && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {matchedSigns.map(sign => (
                       <div key={sign.name} className="bg-white rounded-[2rem] overflow-hidden shadow-lg border border-neutral-100">
                         <div className="aspect-video bg-black">
@@ -460,10 +466,10 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                       key={idx}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setSelectedSuggestion(opt)}
-                      className={`p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all flex items-center justify-between ${selectedSuggestion === opt ? 'border-orange-500 bg-orange-50 shadow-md' : 'border-white bg-white hover:border-neutral-200 shadow-sm'}`}
+                      className={`p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all flex items-center justify-between gap-4 ${selectedSuggestion === opt ? 'border-orange-500 bg-orange-50 shadow-md' : 'border-white bg-white hover:border-neutral-200 shadow-sm'}`}
                     >
-                      <p className={`text-base font-bold ${selectedSuggestion === opt ? 'text-orange-900' : 'text-neutral-700'}`}>{opt}</p>
-                      {selectedSuggestion === opt && <CheckCircle2 className="text-orange-500" size={20} />}
+                      <p className={`text-base font-bold flex-1 text-left ${selectedSuggestion === opt ? 'text-orange-900' : 'text-neutral-700'}`}>{opt}</p>
+                      {selectedSuggestion === opt && <CheckCircle2 className="text-orange-500 shrink-0" size={20} />}
                     </motion.div>
                   ))}
                 </div>
