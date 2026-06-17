@@ -23,15 +23,15 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: 'Missing text' });
     }
 
-    // Usar la clave de OpenAI del entorno
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    const HF_TOKEN = process.env.HF_TRANSLATION_TOKEN || process.env.HF_TOKEN;
 
-    if (!OPENAI_API_KEY) {
-      console.warn('OPENAI_API_KEY no configurado en el entorno.');
+    if (!OPENAI_API_KEY && !HF_TOKEN) {
+      console.warn('Ni OPENAI_API_KEY ni HF_TOKEN configurados en el entorno.');
       return res.status(200).json({
         success: false,
         provider: 'local-fallback',
-        reason: 'OPENAI_API_KEY no configurado en el entorno de despliegue',
+        reason: 'No hay llaves de API configuradas en el entorno (ni OpenAI ni Hugging Face)',
         translatedText: mode === 'deaf' 
           ? 'Por favor configurar API Key | Necesito configurar la API Key | Error de API Key' 
           : 'POR FAVOR CONFIGURAR API KEY',
@@ -61,31 +61,66 @@ Reglas:
 Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad mañana. | ¿Iré mañana a la universidad?`;
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini', // Utiliza un modelo rápido y eficiente de OpenAI
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: text }
-        ],
-        temperature: 0.3,
-        max_tokens: 150,
-      }),
-    });
+    let translatedText = '';
+    let providerUsed = '';
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('OpenAI API Error:', errorData);
-      throw new Error(`OpenAI API responded with status ${response.status}`);
+    // Priorizar OpenAI si está configurado
+    if (OPENAI_API_KEY) {
+      providerUsed = 'openai';
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: text }
+          ],
+          temperature: 0.3,
+          max_tokens: 150,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API responded with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      translatedText = data.choices[0]?.message?.content?.trim() || '';
+    } 
+    // Fallback a Hugging Face usando el formato compatible con OpenAI
+    else if (HF_TOKEN) {
+      providerUsed = 'huggingface';
+      // Usar el modelo configurado por el usuario en Vercel, o Llama-3 por defecto
+      const hfModel = process.env.HF_TRANSLATION_MODEL || 'meta-llama/Meta-Llama-3-8B-Instruct';
+      
+      const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${HF_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: hfModel,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: text }
+          ],
+          temperature: 0.3,
+          max_tokens: 150,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Hugging Face API responded with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      translatedText = data.choices[0]?.message?.content?.trim() || '';
     }
-
-    const data = await response.json();
-    let translatedText = data.choices[0]?.message?.content?.trim() || '';
 
     // Asegurarse de que en modo hearing no haya comillas residuales ni puntuación innecesaria
     if (mode === 'hearing') {
@@ -94,12 +129,12 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
 
     return res.status(200).json({
       success: true,
-      provider: 'openai',
+      provider: providerUsed,
       translatedText,
     });
 
   } catch (error) {
-    console.error('Error procesando traducción con OpenAI:', error);
+    console.error('Error procesando traducción:', error);
     return res.status(200).json({
       success: false,
       provider: 'error',
