@@ -712,7 +712,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                        type="button"
                                        onClick={() => setShowExampleVideo(prev => !prev)}
                                        title={showExampleVideo ? 'Ocultar guía' : 'Mostrar guía'}
-                                       className={`absolute bottom-0 right-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 pointer-events-auto ${showExampleVideo ? 'bg-white text-black' : 'bg-[var(--color-primary-600)] text-white'}`}
+                                       className={`absolute bottom-0 right-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 pointer-events-auto ${showExampleVideo ? 'bg-[var(--color-primary-600)] text-white' : 'bg-white text-black'}`}
                                     >
                                        {showExampleVideo ? <Eye size={14} /> : <EyeOff size={14} />}
                                     </button>
@@ -733,7 +733,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                        type="button"
                                        onClick={() => {
                                           handleStopPractice();
-                                          onNavigate?.('landing');
+                                          onNavigate?.('home');
                                        }}
                                        title="Volver al inicio"
                                        className="absolute bottom-[96px] right-0 w-10 h-10 rounded-xl bg-[var(--color-primary-600)] flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
