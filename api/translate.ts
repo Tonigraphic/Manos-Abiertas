@@ -95,7 +95,7 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
     else if (HF_TOKEN) {
       providerUsed = 'huggingface';
       // Usar el modelo configurado por el usuario en Vercel, o Llama-3 por defecto
-      const hfModel = process.env.HF_TRANSLATION_MODEL || 'Qwen/Qwen2.5-72B-Instruct';
+      const hfModel = process.env.HF_TRANSLATION_MODEL || 'meta-llama/Llama-3.2-3B-Instruct';
       
       const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
         method: 'POST',
@@ -115,7 +115,14 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
       });
 
       if (!response.ok) {
-        throw new Error(`Hugging Face API responded with status ${response.status}`);
+        let errorMsg = `status ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || JSON.stringify(errorData);
+        } catch (e) {
+          errorMsg += ` (Failed to parse error response: ${await response.text()})`;
+        }
+        throw new Error(`Hugging Face API Error: ${errorMsg}`);
       }
 
       const data = await response.json();
