@@ -32,19 +32,45 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const processHearingTranslation = async (text: string) => {
     setIsTranslating(true);
     try {
-      const response = await fetch('/api/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, mode: 'hearing' }),
-      });
-      const data = await response.json();
-      
-      if (data.success === false) {
-        console.error("API Error:", data.reason);
-        alert(`Error de IA: ${data.reason}`);
+      let result = text;
+      try {
+        const response = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, mode: 'hearing' }),
+        });
+        
+        const contentType = response.headers.get('content-type');
+        if (!response.ok || !contentType?.includes('application/json')) {
+          throw new Error('El backend no respondió correctamente (JSON).');
+        }
+        
+        const data = await response.json();
+        if (data.success === false) throw new Error(data.reason);
+        result = data.translatedText || text;
+      } catch (apiError) {
+        console.warn("Usando fallback de Hugging Face directo (modo local)...", apiError);
+        const token = import.meta.env.VITE_HF_TRANSLATION_TOKEN || import.meta.env.VITE_HF_TOKEN;
+        if (token) {
+          const hfRes = await fetch("https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              inputs: `[INST] Eres un traductor experto de Lengua de Señas Colombiana. Convierte la siguiente frase en español a glosas LSC (solo conceptos clave, verbos en infinitivo, sin artículos ni conectores). Frase: "${text}" [/INST]`,
+              parameters: { max_new_tokens: 50, return_full_text: false }
+            })
+          });
+          if (hfRes.ok) {
+            const hfData = await hfRes.json();
+            if (hfData[0]?.generated_text) {
+              result = hfData[0].generated_text.trim().replace(/^"|"$/g, '');
+            }
+          }
+        } else {
+          console.error("Falta configurar VITE_HF_TRANSLATION_TOKEN en .env.local");
+        }
       }
-      
-      const result = data.translatedText || text;
+
       setResultLSC(result);
 
       // Buscar coincidencias de video basadas en el resultado de la IA
@@ -64,33 +90,59 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const processDeafTranslation = async (text: string) => {
     setIsTranslating(true);
     try {
-      const response = await fetch('/api/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, mode: 'deaf' }),
-      });
-      const data = await response.json();
-      
-      if (data.success === false) {
-        console.error("API Error:", data.reason);
-        setSuggestions([translateLSCtoSpanish(text)]);
-        return; // Detener ejecución para usar el fallback local
+      let options: string[] = [];
+      try {
+        const response = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, mode: 'deaf' }),
+        });
+        
+        const contentType = response.headers.get('content-type');
+        if (!response.ok || !contentType?.includes('application/json')) {
+          throw new Error('El backend no respondió correctamente (JSON).');
+        }
+        
+        const data = await response.json();
+        if (data.success === false) throw new Error(data.reason);
+        
+        const rawText = data.translatedText || "";
+        options = rawText.split('|').map((s: string) => s.trim()).filter(Boolean);
+      } catch (apiError) {
+        console.warn("Usando fallback de Hugging Face directo (modo local)...", apiError);
+        const token = import.meta.env.VITE_HF_TRANSLATION_TOKEN || import.meta.env.VITE_HF_TOKEN;
+        if (token) {
+          const hfRes = await fetch("https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              inputs: `[INST] Eres un intérprete experto. Convierte esta secuencia de glosas de Lengua de Señas a una frase en español natural, gramaticalmente correcta y con conectores. Glosas: "${text}" [/INST]`,
+              parameters: { max_new_tokens: 60, return_full_text: false }
+            })
+          });
+          if (hfRes.ok) {
+            const hfData = await hfRes.json();
+            if (hfData[0]?.generated_text) {
+              const generated = hfData[0].generated_text.trim().replace(/^"|"$/g, '');
+              options = [generated];
+            }
+          }
+        }
       }
 
-      const rawText = data.translatedText || "";
-      
-      // Separamos las opciones devueltas por la IA (asumiendo separador | del backend)
-      const options = rawText.split('|').map((s: string) => s.trim()).filter(Boolean);
-      
       if (options.length > 0) {
         setSuggestions(options);
         setSelectedSuggestion(options[0]);
       } else {
-        setSuggestions([translateLSCtoSpanish(text)]);
+        const localFallback = translateLSCtoSpanish(text);
+        setSuggestions([localFallback]);
+        setSelectedSuggestion(localFallback);
       }
     } catch (error) {
       console.error(error);
-      setSuggestions([translateLSCtoSpanish(text)]);
+      const localFallback = translateLSCtoSpanish(text);
+      setSuggestions([localFallback]);
+      setSelectedSuggestion(localFallback);
     } finally {
       setIsTranslating(false);
     }
