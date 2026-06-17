@@ -13,9 +13,7 @@ interface NavigationProps {
 export function DesktopNavbar({ currentView, onNavigate }: NavigationProps) {
   const navItems = [
     { id: 'translator', label: 'Traductor', icon: Languages },
-    { id: 'assistant', label: 'Asistente LSC', icon: Video },
     { id: 'practice', label: 'Práctica', icon: Target },
-    { id: 'dictionary', label: 'Diccionario', icon: BookOpen },
     { id: 'feedback', label: 'Sugerencias', icon: MessageSquare },
   ];
 
@@ -83,9 +81,7 @@ export function MobileBottomNav({ currentView, onNavigate }: NavigationProps) {
   const navItems = [
     { id: 'home', label: 'Inicio', icon: Home },
     { id: 'translator', label: 'Traductor', icon: Languages },
-    { id: 'assistant', label: 'Asistente', icon: Video },
     { id: 'practice', label: 'Práctica', icon: Target },
-    { id: 'dictionary', label: 'Diccionario', icon: BookOpen },
     { id: 'feedback', label: 'Sugerencias', icon: MessageSquare },
   ];
 
