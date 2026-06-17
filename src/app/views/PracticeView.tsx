@@ -604,6 +604,75 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
 
                         {recState.isActive && (
                            <>
+                              {/* DICCIONARIO / CATÁLOGO: Ahora es una ventana flotante independiente */}
+                              <AnimatePresence>
+                                 {showCatalog && (
+                                    <motion.div
+                                       initial={{ opacity: 0, scale: 0.95, x: 20 }}
+                                       animate={{ opacity: 1, scale: 1, x: 0 }}
+                                       exit={{ opacity: 0, scale: 0.95, x: 20 }}
+                                       className="absolute top-16 md:top-20 right-2 md:right-4 bottom-32 md:bottom-32 z-50 w-[calc(100vw-1rem)] md:w-[360px] max-w-[calc(100vw-1rem)] bg-black/70 backdrop-blur-3xl border border-white/20 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden text-white"
+                                    >
+                                       <div className="p-5 flex items-center justify-between border-b border-white/10">
+                                          <div>
+                                             <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Referencia</p>
+                                             <h3 className="text-xl font-black">Diccionario LSC</h3>
+                                          </div>
+                                          <button onClick={() => setShowCatalog(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                             <X size={20} />
+                                          </button>
+                                       </div>
+                                       
+                                       <div className="p-5 flex-1 overflow-y-auto custom-scrollbar space-y-4">
+                                          <Input
+                                             value={catalogSearchTerm}
+                                             onChange={(event) => setCatalogSearchTerm(event.target.value)}
+                                             placeholder="Buscar seña..."
+                                             className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-2xl"
+                                             leftIcon={<Search className="size-4 md:size-5" />}
+                                          />
+                                          
+                                          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                             {catalogCategories.map((cat) => (
+                                                <button
+                                                   key={cat.id}
+                                                   onClick={() => setSelectedCatalogCategory(cat.id)}
+                                                   className={`px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all border ${selectedCatalogCategory === cat.id ? 'bg-white text-black border-white' : 'bg-white/5 text-white/60 border-white/10'}`}
+                                                >
+                                                   {cat.emoji} {cat.label}
+                                                </button>
+                                             ))}
+                                          </div>
+
+                                          <div className="grid gap-3">
+                                             {filteredCatalogSigns.length > 0 ? (
+                                                filteredCatalogSigns.map((sign) => (
+                                                   <button
+                                                      key={`${sign.category}-${sign.name}`}
+                                                      onClick={() => setSelectedCatalogSign(sign)}
+                                                      className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 transition-all text-left group"
+                                                   >
+                                                      <div className="h-14 w-14 rounded-lg bg-black overflow-hidden flex-shrink-0">
+                                                         <video src={resolveVideoUrl(sign.videoUrl)} muted playsInline className="w-full h-full object-contain" />
+                                                      </div>
+                                                      <div className="min-w-0">
+                                                         <p className="text-sm font-black truncate">{sign.name}</p>
+                                                         <p className="text-[10px] text-white/40 uppercase font-bold">{getCategoryLabel(sign.category)}</p>
+                                                      </div>
+                                                   </button>
+                                                ))
+                                             ) : (
+                                                <div className="py-10 text-center opacity-30">
+                                                   <BookOpen size={32} className="mx-auto mb-2" />
+                                                   <p className="text-xs font-bold uppercase">Sin resultados</p>
+                                                </div>
+                                             )}
+                                          </div>
+                                       </div>
+                                    </motion.div>
+                                 )}
+                              </AnimatePresence>
+
                               {showExampleVideo ? (
                                  <motion.div
                                     initial={{ opacity: 0, x: -10, y: 8 }}
@@ -638,7 +707,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
 
                               {/* ZONA DEL PULGAR (Distribución en L Inversa): 4 en vertical, 2 en horizontal */}
                               <div className="absolute bottom-6 right-6 z-40 w-[140px] h-[200px] pointer-events-none">
-                                    {/* EJE VERTICAL (Lateral Derecho) */}
+                                    {/* ANCLA (Esquina): Eye */}
                                     <button
                                        type="button"
                                        onClick={() => setShowExampleVideo(prev => !prev)}
@@ -646,6 +715,17 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                        className={`absolute bottom-0 right-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 pointer-events-auto ${showExampleVideo ? 'bg-white text-black' : 'bg-black/40 text-white border border-white/10 backdrop-blur-md'}`}
                                     >
                                        {showExampleVideo ? <Eye size={14} /> : <EyeOff size={14} />}
+                                    </button>
+
+                                    {/* EJE VERTICAL (Lateral Derecho) */}
+                                    {/* Diccionario */}
+                                    <button
+                                       type="button"
+                                       onClick={() => setShowCatalog(prev => !prev)}
+                                       title="Diccionario"
+                                       className={`absolute bottom-[48px] right-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 pointer-events-auto ${showCatalog ? 'bg-white text-black' : 'bg-[var(--color-primary-600)] text-white'}`}
+                                    >
+                                       <BookOpen size={14} />
                                     </button>
 
                                     {isPracticeStarted && !showInstructions && (
@@ -663,7 +743,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                        type="button"
                                        onClick={() => onNavigate?.('home')}
                                        title="Volver al inicio"
-                                       className="absolute bottom-[96px] right-0 w-10 h-10 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
+                                       className="absolute bottom-[144px] right-0 w-10 h-10 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
                                     >
                                        <Home size={14} />
                                     </button>
