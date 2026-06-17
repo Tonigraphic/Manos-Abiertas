@@ -58,19 +58,25 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
           throw new Error("Token no configurado");
         }
 
-        const hfRes = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            model: hfModel,
-            messages: [
-              { role: "system", content: "Eres un traductor experto de Lengua de Señas Colombiana. Convierte la siguiente frase en español a glosas LSC (solo conceptos clave, verbos en infinitivo, sin artículos ni conectores). Devuelve SOLO la glosa final en MAYÚSCULAS sin comillas." },
-              { role: "user", content: text }
-            ],
-            temperature: 0.3,
-            max_tokens: 50
-          })
-        });
+        let hfRes;
+        try {
+          hfRes = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              model: hfModel,
+              messages: [
+                { role: "system", content: "Eres un traductor experto de Lengua de Señas Colombiana. Convierte la siguiente frase en español a glosas LSC (solo conceptos clave, verbos en infinitivo, sin artículos ni conectores). Devuelve SOLO la glosa final en MAYÚSCULAS sin comillas." },
+                { role: "user", content: text }
+              ],
+              temperature: 0.3,
+              max_tokens: 50
+            })
+          });
+        } catch (networkError) {
+          alert("❌ Error de red: No se pudo conectar con Hugging Face. Revisa tu conexión a internet o tu configuración de DNS.");
+          throw networkError;
+        }
 
         if (!hfRes.ok) {
           const err = await hfRes.text();
@@ -136,19 +142,25 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
           throw new Error("Token no configurado");
         }
 
-        const hfRes = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            model: hfModel,
-            messages: [
-              { role: "system", content: "Eres un intérprete experto. Convierte esta secuencia de glosas de Lengua de Señas a una frase en español natural, gramaticalmente correcta y con conectores. Proporciona EXACTAMENTE TRES (3) opciones diferentes separadas por el carácter '|'." },
-              { role: "user", content: text }
-            ],
-            temperature: 0.3,
-            max_tokens: 60
-          })
-        });
+        let hfRes;
+        try {
+          hfRes = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              model: hfModel,
+              messages: [
+                { role: "system", content: "Eres un intérprete experto. Convierte esta secuencia de glosas de Lengua de Señas a una frase en español natural, gramaticalmente correcta y con conectores. Proporciona EXACTAMENTE TRES (3) opciones diferentes separadas por el carácter '|'." },
+                { role: "user", content: text }
+              ],
+              temperature: 0.3,
+              max_tokens: 60
+            })
+          });
+        } catch (networkError) {
+          alert("❌ Error de red: No se pudo conectar con Hugging Face. Revisa tu conexión a internet o tu configuración de DNS.");
+          throw networkError;
+        }
 
         if (!hfRes.ok) {
           const err = await hfRes.text();
