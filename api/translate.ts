@@ -94,10 +94,10 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
     // Fallback a Hugging Face usando el formato compatible con OpenAI
     else if (HF_TOKEN) {
       providerUsed = 'huggingface';
-      // Usar el modelo configurado por el usuario en Vercel, o Llama-3 por defecto
-      const hfModel = process.env.HF_TRANSLATION_MODEL || 'meta-llama/Llama-3.2-3B-Instruct';
+      // Usar el modelo configurado por el usuario, o Mixtral por defecto
+      const hfModel = process.env.HF_TRANSLATION_MODEL || 'mistralai/Mixtral-8x7B-Instruct-v0.1';
       
-      const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
+      const response = await fetch('https://api-inference.huggingface.co/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${HF_TOKEN}`,
@@ -115,14 +115,7 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
       });
 
       if (!response.ok) {
-        let errorMsg = `status ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMsg = errorData.error || JSON.stringify(errorData);
-        } catch (e) {
-          errorMsg += ` (Failed to parse error response: ${await response.text()})`;
-        }
-        throw new Error(`Hugging Face API Error: ${errorMsg}`);
+        throw new Error(`Hugging Face API responded with status ${response.status}`);
       }
 
       const data = await response.json();

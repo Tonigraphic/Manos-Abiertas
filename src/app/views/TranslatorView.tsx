@@ -51,19 +51,25 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       } catch (apiError) {
         console.warn("Usando fallback de Hugging Face directo (modo local)...", apiError);
         const token = import.meta.env.VITE_HF_TRANSLATION_TOKEN || import.meta.env.VITE_HF_TOKEN;
+        const hfModel = import.meta.env.VITE_HF_TRANSLATION_MODEL || "mistralai/Mixtral-8x7B-Instruct-v0.1";
         if (token) {
-          const hfRes = await fetch("https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1", {
+          const hfRes = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
             method: "POST",
             headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
             body: JSON.stringify({ 
-              inputs: `[INST] Eres un traductor experto de Lengua de Señas Colombiana. Convierte la siguiente frase en español a glosas LSC (solo conceptos clave, verbos en infinitivo, sin artículos ni conectores). Frase: "${text}" [/INST]`,
-              parameters: { max_new_tokens: 50, return_full_text: false }
+              model: hfModel,
+              messages: [
+                { role: "system", content: "Eres un traductor experto de Lengua de Señas Colombiana. Convierte la siguiente frase en español a glosas LSC (solo conceptos clave, verbos en infinitivo, sin artículos ni conectores). Devuelve SOLO la glosa final en MAYÚSCULAS sin comillas." },
+                { role: "user", content: text }
+              ],
+              temperature: 0.3,
+              max_tokens: 50
             })
           });
           if (hfRes.ok) {
             const hfData = await hfRes.json();
-            if (hfData[0]?.generated_text) {
-              result = hfData[0].generated_text.trim().replace(/^"|"$/g, '');
+            if (hfData.choices?.[0]?.message?.content) {
+              result = hfData.choices[0].message.content.trim().replace(/^"|"$/g, '');
             }
           }
         } else {
@@ -111,20 +117,26 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       } catch (apiError) {
         console.warn("Usando fallback de Hugging Face directo (modo local)...", apiError);
         const token = import.meta.env.VITE_HF_TRANSLATION_TOKEN || import.meta.env.VITE_HF_TOKEN;
+        const hfModel = import.meta.env.VITE_HF_TRANSLATION_MODEL || "mistralai/Mixtral-8x7B-Instruct-v0.1";
         if (token) {
-          const hfRes = await fetch("https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1", {
+          const hfRes = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
             method: "POST",
             headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
             body: JSON.stringify({ 
-              inputs: `[INST] Eres un intérprete experto. Convierte esta secuencia de glosas de Lengua de Señas a una frase en español natural, gramaticalmente correcta y con conectores. Glosas: "${text}" [/INST]`,
-              parameters: { max_new_tokens: 60, return_full_text: false }
+              model: hfModel,
+              messages: [
+                { role: "system", content: "Eres un intérprete experto. Convierte esta secuencia de glosas de Lengua de Señas a una frase en español natural, gramaticalmente correcta y con conectores. Proporciona EXACTAMENTE TRES (3) opciones diferentes separadas por el carácter '|'." },
+                { role: "user", content: text }
+              ],
+              temperature: 0.3,
+              max_tokens: 60
             })
           });
           if (hfRes.ok) {
             const hfData = await hfRes.json();
-            if (hfData[0]?.generated_text) {
-              const generated = hfData[0].generated_text.trim().replace(/^"|"$/g, '');
-              options = [generated];
+            if (hfData.choices?.[0]?.message?.content) {
+              const generated = hfData.choices[0].message.content.trim().replace(/^"|"$/g, '');
+              options = generated.split('|').map((s: string) => s.trim()).filter(Boolean);
             }
           }
         }
