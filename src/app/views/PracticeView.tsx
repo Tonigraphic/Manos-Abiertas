@@ -718,22 +718,12 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                     </button>
 
                                     {/* EJE VERTICAL (Lateral Derecho) */}
-                                    {/* Diccionario */}
-                                    <button
-                                       type="button"
-                                       onClick={() => setShowCatalog(prev => !prev)}
-                                       title="Diccionario"
-                                       className={`absolute bottom-[48px] right-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 pointer-events-auto ${showCatalog ? 'bg-white text-black' : 'bg-[var(--color-primary-600)] text-white'}`}
-                                    >
-                                       <BookOpen size={14} />
-                                    </button>
-
                                     {isPracticeStarted && !showInstructions && (
                                        <button
                                           type="button"
                                           onClick={handleStopPractice}
                                           title="Detener práctica"
-                                          className="absolute bottom-[96px] right-0 w-10 h-10 rounded-xl bg-red-500/80 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
+                                          className="absolute bottom-[48px] right-0 w-10 h-10 rounded-xl bg-red-500/80 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
                                        >
                                           <CameraOff size={14} />
                                        </button>
@@ -743,17 +733,27 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                        type="button"
                                        onClick={() => onNavigate?.('home')}
                                        title="Volver al inicio"
-                                       className="absolute bottom-[144px] right-0 w-10 h-10 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
+                                       className="absolute bottom-[96px] right-0 w-10 h-10 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
                                     >
                                        <Home size={14} />
                                     </button>
 
                                     {/* EJE HORIZONTAL (Parte Inferior) */}
+                                    {/* Diccionario (Ubicado entre Guía e Información) */}
+                                    <button
+                                       type="button"
+                                       onClick={() => setShowCatalog(prev => !prev)}
+                                       title="Diccionario"
+                                       className={`absolute bottom-0 right-[48px] w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 pointer-events-auto ${showCatalog ? 'bg-white text-black' : 'bg-[var(--color-primary-600)] text-white'}`}
+                                    >
+                                       <BookOpen size={14} />
+                                    </button>
+
                                     <button
                                        type="button"
                                        onClick={() => setShowInstructions(true)}
                                        title="Ver instrucciones"
-                                       className="absolute bottom-0 right-[48px] w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
+                                       className="absolute bottom-0 right-[96px] w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
                                     >
                                        <Info size={14} />
                                     </button>
