@@ -23,9 +23,9 @@ export default function App() {
       case 'assistant':
         return <AssistantView onNavigateHome={navigateHome} />;
       case 'practice':
-        return <PracticeView onNavigateHome={navigateHome} />;
+        return <PracticeView onNavigate={(view) => setCurrentView(view as View)} />;
       case 'dictionary':
-        return <DictionaryView onNavigateHome={navigateHome} />;
+        return <DictionaryView onNavigate={(view) => setCurrentView(view as View)} />;
       case 'feedback':
         return <FeedbackView onNavigateHome={navigateHome} />;
       default:
