@@ -581,7 +581,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                  <Button 
                                     onClick={() => { signRecognitionService.resetTemporalState(); handleStartPractice(); }}
                                     disabled={recState.isLoading || isModelWarming || !isModelReady}
-                                    className="bg-white text-black hover:bg-white/90 font-black px-8 py-4 text-base rounded-2xl shadow-2xl disabled:opacity-50"
+                                    className="bg-white !text-black hover:bg-white/90 font-black px-8 py-4 text-base rounded-2xl shadow-2xl disabled:opacity-50"
                                  >
                                     {recState.isLoading || isModelWarming ? (
                                        <><Loader2 className="animate-spin mr-2" size={20} /> Preparando...</>
@@ -637,7 +637,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                                 <button
                                                    key={cat.id}
                                                    onClick={() => setSelectedCatalogCategory(cat.id)}
-                                                   className={`px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all border ${selectedCatalogCategory === cat.id ? 'bg-white text-black border-white' : 'bg-white/5 text-white/60 border-white/10'}`}
+                                                   className={`px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all border ${selectedCatalogCategory === cat.id ? 'bg-white !text-black border-white' : 'bg-white/5 text-white/60 border-white/10'}`}
                                                 >
                                                    {cat.emoji} {cat.label}
                                                 </button>
@@ -712,7 +712,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                        type="button"
                                        onClick={() => setShowExampleVideo(prev => !prev)}
                                        title={showExampleVideo ? 'Ocultar guía' : 'Mostrar guía'}
-                                       className={`absolute bottom-0 right-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 pointer-events-auto ${showExampleVideo ? 'bg-[var(--color-primary-600)] text-white' : 'bg-white text-black'}`}
+                                       className={`absolute bottom-0 right-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 pointer-events-auto ${showExampleVideo ? 'bg-[var(--color-primary-600)] text-white' : 'bg-white !text-black'}`}
                                     >
                                        {showExampleVideo ? <Eye size={14} /> : <EyeOff size={14} />}
                                     </button>
@@ -747,7 +747,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                        type="button"
                                        onClick={() => setShowCatalog(prev => !prev)}
                                        title="Diccionario"
-                                       className={`absolute bottom-0 right-[48px] w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 pointer-events-auto ${showCatalog ? 'bg-white text-black' : 'bg-[var(--color-primary-600)] text-white'}`}
+                                       className={`absolute bottom-0 right-[48px] w-10 h-10 rounded-xl flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-90 pointer-events-auto ${showCatalog ? 'bg-white !text-black' : 'bg-[var(--color-primary-600)] text-white'}`}
                                     >
                                        <BookOpen size={14} />
                                     </button>

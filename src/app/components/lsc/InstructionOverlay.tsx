@@ -67,7 +67,7 @@ export function InstructionOverlay({ show, onClose }: InstructionOverlayProps) {
             </div>
 
             <div className="p-6 border-t border-white/10 bg-white/5 flex justify-end">
-              <Button onClick={onClose} className="px-8 py-3 font-bold rounded-xl bg-white text-black hover:bg-white/90">
+              <Button onClick={onClose} className="px-8 py-3 font-bold rounded-xl bg-white !text-black hover:bg-white/90">
                 ¡Entendido!
               </Button>
             </div>

@@ -97,7 +97,7 @@ export function AssistantView({ onNavigateHome }: AssistantViewProps = {}) {
                           variant={isDisabled ? 'ghost' : 'outline'} 
                           size="sm" 
                           onClick={() => { if (!isDisabled) startRecognition(cat); }} 
-                          className={`bg-white/10 hover:bg-white hover:text-black border-white/20 px-6 py-4 font-bold transition-all shadow-lg hover:scale-105 ${isDisabled ? modelDisabledClass : ''}`}
+                          className={`bg-white/10 hover:bg-white hover:!text-black border-white/20 px-6 py-4 font-bold transition-all shadow-lg hover:scale-105 ${isDisabled ? modelDisabledClass : ''}`}
                           aria-disabled={isDisabled}
                         >
                           {cat}
