@@ -80,7 +80,7 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
             { role: 'user', content: text }
           ],
           temperature: 0.3,
-          max_tokens: 150,
+          max_tokens: 1000,
         }),
       });
 
@@ -110,7 +110,7 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
             { role: 'user', content: text }
           ],
           temperature: 0.3,
-          max_tokens: 150,
+          max_tokens: 1000,
         }),
       });
 
