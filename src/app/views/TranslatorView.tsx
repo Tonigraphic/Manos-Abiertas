@@ -38,6 +38,12 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
         body: JSON.stringify({ text, mode: 'hearing' }),
       });
       const data = await response.json();
+      
+      if (data.success === false) {
+        console.error("API Error:", data.reason);
+        alert(`Error de IA: ${data.reason}`);
+      }
+      
       const result = data.translatedText || text;
       setResultLSC(result);
 
@@ -64,6 +70,13 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
         body: JSON.stringify({ text, mode: 'deaf' }),
       });
       const data = await response.json();
+      
+      if (data.success === false) {
+        console.error("API Error:", data.reason);
+        setSuggestions([translateLSCtoSpanish(text)]);
+        return; // Detener ejecución para usar el fallback local
+      }
+
       const rawText = data.translatedText || "";
       
       // Separamos las opciones devueltas por la IA (asumiendo separador | del backend)

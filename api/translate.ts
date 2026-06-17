@@ -95,7 +95,7 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
     else if (HF_TOKEN) {
       providerUsed = 'huggingface';
       // Usar el modelo configurado por el usuario en Vercel, o Llama-3 por defecto
-      const hfModel = process.env.HF_TRANSLATION_MODEL || 'meta-llama/Meta-Llama-3-8B-Instruct';
+      const hfModel = process.env.HF_TRANSLATION_MODEL || 'Qwen/Qwen2.5-72B-Instruct';
       
       const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
         method: 'POST',
