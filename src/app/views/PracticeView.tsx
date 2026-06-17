@@ -733,7 +733,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                        type="button"
                                        onClick={() => {
                                           handleStopPractice();
-                                          onNavigate?.('home');
+                                          onNavigate?.('landing');
                                        }}
                                        title="Volver al inicio"
                                        className="absolute bottom-[96px] right-0 w-10 h-10 rounded-xl bg-[var(--color-primary-600)] flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110 active:scale-90 pointer-events-auto"
