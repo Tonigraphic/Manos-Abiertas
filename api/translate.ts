@@ -97,7 +97,7 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
       // Usar el modelo configurado por el usuario, o Qwen por defecto
       const hfModel = process.env.HF_TRANSLATION_MODEL || 'Qwen/Qwen2.5-72B-Instruct';
       
-      const response = await fetch('https://api-inference.huggingface.co/v1/chat/completions', {
+      const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${HF_TOKEN}`,

@@ -60,7 +60,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
 
         let hfRes;
         try {
-          hfRes = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
+          hfRes = await fetch("https://router.huggingface.co/v1/chat/completions", {
             method: "POST",
             headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
             body: JSON.stringify({ 
@@ -98,7 +98,8 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       setResultLSC(result);
 
       // Buscar coincidencias de video basadas en el resultado de la IA
-      const words = result.toLowerCase().split(/\s+/);
+      const cleanResult = result.replace(/[¿?¡!.,;:_"'“”]/g, '').toLowerCase();
+      const words = cleanResult.split(/\s+/).filter(Boolean);
       const matches = allSigns.filter(s => 
         words.some(w => w === s.name.toLowerCase() || s.name.toLowerCase().includes(w))
       );
@@ -144,7 +145,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
 
         let hfRes;
         try {
-          hfRes = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
+          hfRes = await fetch("https://router.huggingface.co/v1/chat/completions", {
             method: "POST",
             headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
             body: JSON.stringify({ 
