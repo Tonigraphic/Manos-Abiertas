@@ -12,11 +12,11 @@
  *   Output: probabilidades por clase (softmax)
  */
 
-import * as ort from 'onnxruntime-web';
+import * as ort from 'onnxruntime-web/wasm';
 
 // ── ONNX Runtime config ────────────────────────────────────────────────
-// Usamos la raíz '/' porque el script postinstall copia los .wasm a la carpeta public
-ort.env.wasm.wasmPaths = '/';
+// Usamos CDN para evitar el bloqueo estricto de Vite sobre la importación de archivos .mjs desde la carpeta public
+ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.3/dist/';
 ort.env.wasm.numThreads = 1;
 ort.env.wasm.proxy = false; // Disabled to prevent "document is not defined" in Vite web workers
 ort.env.wasm.allowMultiThread = false;

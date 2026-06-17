@@ -29,4 +29,8 @@ export default defineConfig({
 
   // Configuración para Vercel: La base debe ser '/' para que encuentre los assets en la raíz
   base: '/',
+
+  optimizeDeps: {
+    exclude: ['onnxruntime-web']
+  }
 })

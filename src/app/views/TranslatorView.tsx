@@ -49,31 +49,43 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
         if (data.success === false) throw new Error(data.reason);
         result = data.translatedText || text;
       } catch (apiError) {
-        console.warn("Usando fallback de Hugging Face directo (modo local)...", apiError);
+        console.warn("Fallo el backend local, intentando conexión directa a Hugging Face...");
         const token = import.meta.env.VITE_HF_TRANSLATION_TOKEN || import.meta.env.VITE_HF_TOKEN;
-        const hfModel = import.meta.env.VITE_HF_TRANSLATION_MODEL || "mistralai/Mixtral-8x7B-Instruct-v0.1";
-        if (token) {
-          const hfRes = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-              model: hfModel,
-              messages: [
-                { role: "system", content: "Eres un traductor experto de Lengua de Señas Colombiana. Convierte la siguiente frase en español a glosas LSC (solo conceptos clave, verbos en infinitivo, sin artículos ni conectores). Devuelve SOLO la glosa final en MAYÚSCULAS sin comillas." },
-                { role: "user", content: text }
-              ],
-              temperature: 0.3,
-              max_tokens: 50
-            })
-          });
-          if (hfRes.ok) {
-            const hfData = await hfRes.json();
-            if (hfData.choices?.[0]?.message?.content) {
-              result = hfData.choices[0].message.content.trim().replace(/^"|"$/g, '');
-            }
+        const hfModel = import.meta.env.VITE_HF_TRANSLATION_MODEL || "Qwen/Qwen2.5-72B-Instruct";
+        
+        if (!token) {
+          alert("⚠️ Falta configurar el token VITE_HF_TRANSLATION_TOKEN en tu archivo .env.local (recuerda reiniciar el servidor).");
+          throw new Error("Token no configurado");
+        }
+
+        const hfRes = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            model: hfModel,
+            messages: [
+              { role: "system", content: "Eres un traductor experto de Lengua de Señas Colombiana. Convierte la siguiente frase en español a glosas LSC (solo conceptos clave, verbos en infinitivo, sin artículos ni conectores). Devuelve SOLO la glosa final en MAYÚSCULAS sin comillas." },
+              { role: "user", content: text }
+            ],
+            temperature: 0.3,
+            max_tokens: 50
+          })
+        });
+
+        if (!hfRes.ok) {
+          const err = await hfRes.text();
+          if (hfRes.status === 503) {
+            alert("⏳ La Inteligencia Artificial se está despertando. Por favor, intenta de nuevo en 10 segundos.");
+          } else {
+            alert(`❌ Error de Hugging Face (${hfRes.status}). Revisa la consola (F12).`);
+            console.error("Hugging Face API Error:", err);
           }
-        } else {
-          console.error("Falta configurar VITE_HF_TRANSLATION_TOKEN en .env.local");
+          throw new Error(`HF API status: ${hfRes.status}`);
+        }
+
+        const hfData = await hfRes.json();
+        if (hfData.choices?.[0]?.message?.content) {
+          result = hfData.choices[0].message.content.trim().replace(/^"|"$/g, '');
         }
       }
 
@@ -115,30 +127,44 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
         const rawText = data.translatedText || "";
         options = rawText.split('|').map((s: string) => s.trim()).filter(Boolean);
       } catch (apiError) {
-        console.warn("Usando fallback de Hugging Face directo (modo local)...", apiError);
+        console.warn("Fallo el backend local, intentando conexión directa a Hugging Face...");
         const token = import.meta.env.VITE_HF_TRANSLATION_TOKEN || import.meta.env.VITE_HF_TOKEN;
-        const hfModel = import.meta.env.VITE_HF_TRANSLATION_MODEL || "mistralai/Mixtral-8x7B-Instruct-v0.1";
-        if (token) {
-          const hfRes = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-              model: hfModel,
-              messages: [
-                { role: "system", content: "Eres un intérprete experto. Convierte esta secuencia de glosas de Lengua de Señas a una frase en español natural, gramaticalmente correcta y con conectores. Proporciona EXACTAMENTE TRES (3) opciones diferentes separadas por el carácter '|'." },
-                { role: "user", content: text }
-              ],
-              temperature: 0.3,
-              max_tokens: 60
-            })
-          });
-          if (hfRes.ok) {
-            const hfData = await hfRes.json();
-            if (hfData.choices?.[0]?.message?.content) {
-              const generated = hfData.choices[0].message.content.trim().replace(/^"|"$/g, '');
-              options = generated.split('|').map((s: string) => s.trim()).filter(Boolean);
-            }
+        const hfModel = import.meta.env.VITE_HF_TRANSLATION_MODEL || "Qwen/Qwen2.5-72B-Instruct";
+        
+        if (!token) {
+          alert("⚠️ Falta configurar el token VITE_HF_TRANSLATION_TOKEN en tu archivo .env.local (recuerda reiniciar el servidor).");
+          throw new Error("Token no configurado");
+        }
+
+        const hfRes = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            model: hfModel,
+            messages: [
+              { role: "system", content: "Eres un intérprete experto. Convierte esta secuencia de glosas de Lengua de Señas a una frase en español natural, gramaticalmente correcta y con conectores. Proporciona EXACTAMENTE TRES (3) opciones diferentes separadas por el carácter '|'." },
+              { role: "user", content: text }
+            ],
+            temperature: 0.3,
+            max_tokens: 60
+          })
+        });
+
+        if (!hfRes.ok) {
+          const err = await hfRes.text();
+          if (hfRes.status === 503) {
+            alert("⏳ La Inteligencia Artificial se está despertando. Por favor, intenta de nuevo en 10 segundos.");
+          } else {
+            alert(`❌ Error de Hugging Face (${hfRes.status}). Revisa la consola (F12).`);
+            console.error("Hugging Face API Error:", err);
           }
+          throw new Error(`HF API status: ${hfRes.status}`);
+        }
+
+        const hfData = await hfRes.json();
+        if (hfData.choices?.[0]?.message?.content) {
+          const generated = hfData.choices[0].message.content.trim().replace(/^"|"$/g, '');
+          options = generated.split('|').map((s: string) => s.trim()).filter(Boolean);
         }
       }
 

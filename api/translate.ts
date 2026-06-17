@@ -94,8 +94,8 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
     // Fallback a Hugging Face usando el formato compatible con OpenAI
     else if (HF_TOKEN) {
       providerUsed = 'huggingface';
-      // Usar el modelo configurado por el usuario, o Mixtral por defecto
-      const hfModel = process.env.HF_TRANSLATION_MODEL || 'mistralai/Mixtral-8x7B-Instruct-v0.1';
+      // Usar el modelo configurado por el usuario, o Qwen por defecto
+      const hfModel = process.env.HF_TRANSLATION_MODEL || 'Qwen/Qwen2.5-72B-Instruct';
       
       const response = await fetch('https://api-inference.huggingface.co/v1/chat/completions', {
         method: 'POST',
