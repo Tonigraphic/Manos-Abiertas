@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '../components/lsc/Button';
 import { Badge } from '../components/lsc/Badge';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, PlayCircle, Languages, Target, MessageSquare, Video, Volume2, VolumeX } from 'lucide-react';
+import { X, PlayCircle, Languages, Target, MessageSquare, Video, Volume2, VolumeX, Maximize } from 'lucide-react';
 import logoPrincipal from '../../assets/logo.png'; 
 import { resolveVideoUrl } from '@/lib/videoUtils';
 import { signRecognitionService } from '../../services/signRecognitionService';
@@ -14,11 +14,26 @@ interface LandingViewProps {
 export function LandingView({ onNavigate }: LandingViewProps) {
   const [isDemoActive, setIsDemoActive] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     // Preload the practice model silently in the background
     signRecognitionService.loadModel('Colores').catch(console.error);
   }, []);
+
+  const handleFullscreen = () => {
+    if (videoRef.current) {
+      if (videoRef.current.requestFullscreen) {
+        videoRef.current.requestFullscreen();
+      } else if ((videoRef.current as any).webkitRequestFullscreen) {
+        (videoRef.current as any).webkitRequestFullscreen();
+      } else if ((videoRef.current as any).mozRequestFullScreen) {
+        (videoRef.current as any).mozRequestFullScreen();
+      } else if ((videoRef.current as any).msRequestFullscreen) {
+        (videoRef.current as any).msRequestFullscreen();
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[var(--color-surface)] relative overflow-hidden flex flex-col items-center justify-center">
@@ -35,23 +50,24 @@ export function LandingView({ onNavigate }: LandingViewProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-12"
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-3 sm:p-6 md:p-12"
           >
             <motion.div 
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="relative w-full max-w-5xl aspect-video rounded-[2.5rem] md:rounded-[4rem] overflow-hidden shadow-2xl bg-black border border-white/10"
+              className="relative w-full max-w-5xl aspect-video rounded-2xl md:rounded-[4rem] overflow-hidden shadow-2xl bg-black border border-white/10"
             >
               <button
                 onClick={() => setIsDemoActive(false)}
-                className="absolute top-6 right-6 z-20 bg-black/60 text-white rounded-full p-3 hover:bg-black/80 transition-all active:scale-90"
+                className="absolute top-3 right-3 md:top-6 md:right-6 z-20 bg-black/60 text-white rounded-full p-2 md:p-3 hover:bg-black/80 transition-all active:scale-90 border border-white/10"
                 aria-label="Cerrar video demo"
               >
-                <X size={28} />
+                <X className="w-5 h-5 md:w-7 md:h-7" />
               </button>
 
               <video
+                ref={videoRef}
                 autoPlay
                 muted={isMuted}
                 playsInline
@@ -60,19 +76,37 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                 src="/demo.mp4"
                 onEnded={() => setIsDemoActive(false)}
               />
-              <div className="absolute top-4 left-8 z-20 pointer-events-none">
-                <h2 className="text-xs sm:text-sm md:text-base font-bold text-white uppercase tracking-widest">Conoce Manos Abiertas</h2>
+              <div className="absolute top-3 left-4 md:top-4 md:left-8 z-20 pointer-events-none">
+                <h2 className="text-[10px] sm:text-sm md:text-base font-bold text-white uppercase tracking-widest drop-shadow-md bg-black/35 px-2 py-1 rounded-md md:bg-transparent md:p-0">
+                  Conoce Manos Abiertas
+                </h2>
               </div>
-              <button
-                onClick={() => setIsMuted(!isMuted)}
-                className="absolute bottom-6 right-6 z-20 bg-black/60 text-white rounded-full px-4 py-2 hover:bg-black/80 transition-all active:scale-95 flex items-center gap-2 border border-white/10"
-                aria-label={isMuted ? "Activar sonido" : "Silenciar"}
-              >
-                {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-                <span className="text-xs font-black uppercase tracking-wider pr-1">
-                  {isMuted ? "Activar Sonido" : "Sonido Activo"}
-                </span>
-              </button>
+              
+              <div className="absolute bottom-3 left-3 right-3 md:bottom-6 md:left-6 md:right-6 z-20 flex justify-between items-center pointer-events-none">
+                {/* Botón de Pantalla Completa */}
+                <button
+                  onClick={handleFullscreen}
+                  className="pointer-events-auto bg-black/60 text-white rounded-full p-2 md:px-4 md:py-2 hover:bg-black/80 transition-all active:scale-95 flex items-center gap-2 border border-white/10"
+                  aria-label="Pantalla completa"
+                >
+                  <Maximize className="w-4 h-4 md:w-5 md:h-5" />
+                  <span className="hidden sm:inline text-xs font-black uppercase tracking-wider pr-1">
+                    Pantalla Completa
+                  </span>
+                </button>
+
+                {/* Botón Silenciar/Audio */}
+                <button
+                  onClick={() => setIsMuted(!isMuted)}
+                  className="pointer-events-auto bg-black/60 text-white rounded-full p-2 md:px-4 md:py-2 hover:bg-black/80 transition-all active:scale-95 flex items-center gap-2 border border-white/10"
+                  aria-label={isMuted ? "Activar sonido" : "Silenciar"}
+                >
+                  {isMuted ? <VolumeX className="w-4 h-4 md:w-5 md:h-5" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5" />}
+                  <span className="hidden sm:inline text-xs font-black uppercase tracking-wider pr-1">
+                    {isMuted ? "Activar Sonido" : "Sonido Activo"}
+                  </span>
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
