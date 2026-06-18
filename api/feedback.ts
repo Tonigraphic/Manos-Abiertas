@@ -74,8 +74,8 @@ ${text}
       });
     }
 
-    // Ejecutar el Commit hacia Hugging Face (Model Hub)
-    const response = await fetch(`https://huggingface.co/api/models/${REPO_ID}/commit/main`, {
+    // Ejecutar el Commit hacia Hugging Face (Model Hub) - Crear Pull Request para moderación
+    const response = await fetch(`https://huggingface.co/api/models/${REPO_ID}/commit/main?create_pr=1`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_TOKEN}`,
