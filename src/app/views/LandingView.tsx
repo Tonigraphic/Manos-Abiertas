@@ -14,12 +14,20 @@ interface LandingViewProps {
 export function LandingView({ onNavigate }: LandingViewProps) {
   const [isDemoActive, setIsDemoActive] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     // Preload the practice model silently in the background
     signRecognitionService.loadModel('Colores').catch(console.error);
   }, []);
+
+  const handleSelectOption = (option: string) => {
+    setSelectedOption(option);
+    setTimeout(() => {
+      onNavigate(option);
+    }, 380);
+  };
 
   const handleFullscreen = () => {
     if (videoRef.current) {
@@ -139,7 +147,13 @@ export function LandingView({ onNavigate }: LandingViewProps) {
           {/* Opciones Autónomas de Navegación */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 w-full">
              {/* Opción Traductor */}
-             <motion.div whileHover={{ y: -5 }} className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-primary-300)] transition-all flex flex-col items-center text-center cursor-pointer group" onClick={() => onNavigate('translator')}>
+             <motion.div 
+               whileHover={{ y: -5 }} 
+               animate={selectedOption === 'translator' ? { x: [-3, 3, -3, 3, -1.5, 1.5, 0] } : {}}
+               transition={{ duration: 0.35 }}
+               className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-primary-300)] transition-all flex flex-col items-center text-center cursor-pointer group" 
+               onClick={() => handleSelectOption('translator')}
+             >
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-primary-100)] text-[var(--color-primary-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                    <Languages size={24} />
                 </div>
@@ -148,7 +162,13 @@ export function LandingView({ onNavigate }: LandingViewProps) {
              </motion.div>
 
              {/* Opción Práctica */}
-             <motion.div whileHover={{ y: -5 }} className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-accent-300)] transition-all flex flex-col items-center text-center cursor-pointer group" onClick={() => onNavigate('practice')}>
+             <motion.div 
+               whileHover={{ y: -5 }} 
+               animate={selectedOption === 'practice' ? { x: [-3, 3, -3, 3, -1.5, 1.5, 0] } : {}}
+               transition={{ duration: 0.35 }}
+               className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-accent-300)] transition-all flex flex-col items-center text-center cursor-pointer group" 
+               onClick={() => handleSelectOption('practice')}
+             >
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-accent-100)] text-[var(--color-accent-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                    <Target size={24} />
                 </div>
@@ -157,7 +177,13 @@ export function LandingView({ onNavigate }: LandingViewProps) {
              </motion.div>
 
              {/* Opción Sugerencias */}
-             <motion.div whileHover={{ y: -5 }} className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-success-300)] transition-all flex flex-col items-center text-center cursor-pointer group" onClick={() => onNavigate('feedback')}>
+             <motion.div 
+               whileHover={{ y: -5 }} 
+               animate={selectedOption === 'feedback' ? { x: [-3, 3, -3, 3, -1.5, 1.5, 0] } : {}}
+               transition={{ duration: 0.35 }}
+               className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-success-300)] transition-all flex flex-col items-center text-center cursor-pointer group" 
+               onClick={() => handleSelectOption('feedback')}
+             >
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-success-100)] text-[var(--color-success-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                    <MessageSquare size={24} />
                 </div>

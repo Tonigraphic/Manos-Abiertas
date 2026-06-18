@@ -37,12 +37,12 @@ export default function App() {
   const showNavigation = currentView !== 'home';
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface)] text-[var(--color-text-primary)]">
+    <div className={showNavigation ? "min-h-screen bg-[var(--color-surface)] text-[var(--color-text-primary)]" : "h-[100dvh] overflow-hidden bg-[var(--color-surface)] text-[var(--color-text-primary)]"}>
       {showNavigation && (
         <DesktopNavbar currentView={currentView} onNavigate={(view) => setCurrentView(view as View)} />
       )}
 
-      <main className={showNavigation ? 'min-h-[calc(100vh-5rem)] pb-20 md:pb-0' : 'min-h-screen'}>
+      <main className={showNavigation ? 'min-h-[calc(100vh-5rem)] pb-20 md:pb-0' : 'h-[100dvh] overflow-hidden'}>
         {renderView()}
       </main>
 
