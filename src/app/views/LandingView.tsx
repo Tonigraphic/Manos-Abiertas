@@ -52,6 +52,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
 
               <video
                 autoPlay
+                muted
                 playsInline
                 crossOrigin="anonymous"
                 className="w-full h-full object-contain"
