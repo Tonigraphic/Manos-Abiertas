@@ -39,40 +39,24 @@ export default async function handler(req: any, res: any) {
       }
     });
 
-    // 1. Añadir el archivo de texto con la información de la sugerencia
-    const reportText = `
-Nombre del Colaborador: ${userName || 'Anónimo'}
-Email: ${userEmail || 'No proporcionado'}
-Tipo de Usuario: ${userType}
-Tipo de Feedback: ${feedbackType}
-${wordSuggestion ? `Sugerencia de Seña: ${wordSuggestion}\n` : ''}
-Comentarios:
-${text}
-    `.trim();
+    // Crear el reporte unificado en formato JSON para evitar subir archivos binarios directos
+    const reportData = {
+      userName: userName || 'Anónimo',
+      userEmail: userEmail || 'No proporcionado',
+      userType,
+      feedbackType,
+      wordSuggestion: wordSuggestion || '',
+      comments: text,
+      videoBase64: gifBase64 || null
+    };
 
     operations.push({
       key: 'file',
       value: {
-        path: `${folderName}/reporte.txt`,
-        content: reportText,
+        path: `${folderName}/reporte.json`,
+        content: JSON.stringify(reportData, null, 2),
       }
     });
-
-    // 2. Si hay un GIF, añadir la operación en formato base64
-    if (gifBase64) {
-      // Remover el prefix 'data:image/gif;base64,'
-      const base64Data = gifBase64.split(';base64,').pop();
-      const safeGifName = gifName.replace(/[^a-zA-Z0-9.-]/g, '_'); // Sanitizar nombre
-      
-      operations.push({
-        key: 'file',
-        value: {
-          path: `${folderName}/${safeGifName}`,
-          content: base64Data,
-          encoding: 'base64'
-        }
-      });
-    }
 
     // Ejecutar el Commit hacia Hugging Face (Model Hub) - Crear Pull Request para moderación
     const response = await fetch(`https://huggingface.co/api/models/${REPO_ID}/commit/main?create_pr=1`, {

@@ -101,29 +101,44 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
               const filesRes = await fetch(`https://huggingface.co/api/models/${suggestionsRepo}/tree/main/${folder.path}`, { headers });
               if (!filesRes.ok) return null;
               const files = await filesRes.json();
+                             const jsonFile = files.find((file: any) => file.path.endsWith('reporte.json'));
+              const txtFile = files.find((file: any) => file.path.endsWith('reporte.txt'));
               
-              const reportFile = files.find((file: any) => file.path.endsWith('reporte.txt'));
-              const mediaFile = files.find((file: any) => 
-                file.path.endsWith('.webm') || 
-                file.path.endsWith('.mp4') || 
-                file.path.endsWith('.gif')
-              );
-              
-              if (!reportFile) return null;
-              
-              // 2. Descargar reporte.txt
-              const rawRes = await fetch(`https://huggingface.co/${suggestionsRepo}/raw/main/${reportFile.path}`, { headers });
-              if (!rawRes.ok) return null;
-              const text = await rawRes.text();
-              
-              // 3. Parsear el reporte
-              const parsed = parseReport(text);
-              
-              return {
-                id: folder.path,
-                ...parsed,
-                videoUrl: mediaFile ? `https://huggingface.co/${suggestionsRepo}/resolve/main/${mediaFile.path}` : null,
-                date: getReadableDate(folder.path)
+              if (jsonFile) {
+                const rawRes = await fetch(`https://huggingface.co/${suggestionsRepo}/raw/main/${jsonFile.path}`, { headers });
+                if (!rawRes.ok) return null;
+                const data = await rawRes.json();
+                return {
+                  id: folder.path,
+                  userName: data.userName,
+                  userEmail: data.userEmail,
+                  userType: data.userType,
+                  feedbackType: data.feedbackType,
+                  wordSuggestion: data.wordSuggestion,
+                  comments: data.comments,
+                  videoUrl: data.videoBase64 || null,
+                  date: getReadableDate(folder.path)
+                };
+              } else if (txtFile) {
+                const rawRes = await fetch(`https://huggingface.co/${suggestionsRepo}/raw/main/${txtFile.path}`, { headers });
+                if (!rawRes.ok) return null;
+                const text = await rawRes.text();
+                
+                const parsed = parseReport(text);
+                const mediaFile = files.find((file: any) => 
+                  file.path.endsWith('.webm') || 
+                  file.path.endsWith('.mp4') || 
+                  file.path.endsWith('.gif')
+                );
+                
+                return {
+                  id: folder.path,
+                  ...parsed,
+                  videoUrl: mediaFile ? `https://huggingface.co/${suggestionsRepo}/resolve/main/${mediaFile.path}` : null,
+                  date: getReadableDate(folder.path)
+                };
+              } else {
+                return null;
               };
             } catch (e) {
               console.error("Error cargando sugerencia:", folder.path, e);
@@ -222,36 +237,23 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
         }
       });
 
-      const reportText = `
-Nombre del Colaborador: ${userName || 'Anónimo'}
-Email: ${userEmail || 'No proporcionado'}
-Tipo de Usuario: ${userType}
-Tipo de Feedback: ${feedbackType}
-${wordSuggestion ? `Sugerencia de Seña: ${wordSuggestion}\n` : ''}
-Comentarios:
-${feedbackText}
-      `.trim();
+      const reportData = {
+        userName: userName || 'Anónimo',
+        userEmail: userEmail || 'No proporcionado',
+        userType,
+        feedbackType,
+        wordSuggestion: wordSuggestion || '',
+        comments: feedbackText,
+        videoBase64: videoBase64 || null
+      };
 
       operations.push({
         key: 'file',
         value: {
-          path: `${folderName}/reporte.txt`,
-          content: reportText,
+          path: `${folderName}/reporte.json`,
+          content: JSON.stringify(reportData, null, 2),
         }
       });
-
-      if (videoBase64) {
-        const base64Data = videoBase64.split(';base64,').pop();
-        const safeGifName = videoName.replace(/[^a-zA-Z0-9.-]/g, '_');
-        operations.push({
-          key: 'file',
-          value: {
-            path: `${folderName}/${safeGifName}`,
-            content: base64Data,
-            encoding: 'base64'
-          }
-        });
-      }
 
       try {
         const hfRes = await fetch(`https://huggingface.co/api/models/${repoId}/commit/main?create_pr=1`, {
