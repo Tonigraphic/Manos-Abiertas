@@ -58,8 +58,8 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                 src="/demo.mp4"
                 onEnded={() => setIsDemoActive(false)}
               />
-              <div className="absolute top-0 left-0 right-0 p-6 md:p-8 bg-gradient-to-b from-black/80 via-black/30 to-transparent pointer-events-none z-10">
-                <h2 className="text-lg md:text-xl font-bold text-white uppercase tracking-wider">Conoce Manos Abiertas</h2>
+              <div className="absolute top-7 left-8 z-20 pointer-events-none">
+                <h2 className="text-xs sm:text-sm md:text-base font-bold text-white uppercase tracking-widest">Conoce Manos Abiertas</h2>
               </div>
             </motion.div>
           </motion.div>
