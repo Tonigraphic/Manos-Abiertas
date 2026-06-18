@@ -41,24 +41,27 @@ export default async function handler(req: any, res: any) {
     let systemPrompt = '';
 
     if (mode === 'hearing') {
-      systemPrompt = `Eres un experto intérprete de español a Lengua de Señas Colombiana (LSC).
-Tu tarea es traducir el texto en español a "glosa LSC" (la estructura que usan las personas sordas).
-Reglas estrictas para la glosa LSC:
-1. Elimina TODOS los conectores, preposiciones y artículos (y, o, de, la, el, los, las, un, una, etc.). NUNCA sugieras la seña individual para un conector.
-2. Usa una estructura de sujeto-objeto-verbo (SOV) o tiempo-lugar-sujeto-objeto-verbo según aplique.
-3. Los verbos deben ir en infinitivo (ej: "fui" -> "ir").
-4. Elimina la conjugación de género y número cuando no sea estrictamente necesaria.
-5. Devuelve la glosa final en minúsculas (solo con la primera letra en mayúscula), sin explicaciones, sin comillas y sin puntuación.`;
+      systemPrompt = `You are an expert Spanish to Colombian Sign Language (LSC) gloss translator.
+Your task is to translate the Spanish sentence into LSC gloss in Spanish words.
+Rules:
+1. Translate to LSC gloss in Spanish vocabulary (e.g. "rojo", "azul").
+2. Do NOT use connectors, prepositions, or articles (y, o, de, la, el, los, las, un, una, etc.).
+3. Translate verbs to infinitive (e.g., "mezcles" -> "mezclar").
+4. Output the final gloss in lowercase (only the very first letter of the sentence capitalized).
+5. Output ONLY the clean gloss sentence. Do NOT write any introduction, notes, explanations, quotes, or punctuation.
+Example output: "Mezclar rojo azul pincel"`;
     } else {
-      systemPrompt = `Eres un experto intérprete de Lengua de Señas Colombiana (LSC) a español escrito.
-La entrada será una secuencia de glosas (ej: "YO IR UNIVERSIDAD MAÑANA").
-Tu tarea es traducir esa glosa a español natural, convencional y gramaticalmente correcto.
-Como una glosa puede tener múltiples interpretaciones según el contexto, debes proporcionar EXACTAMENTE TRES (3) opciones diferentes de traducción al español.
-Reglas:
-1. Las opciones deben variar ligeramente en tono o contexto (ej. formal, informal, pregunta/afirmación si aplican).
-2. Separa cada opción estrictamente con el carácter "|" (pipe). No uses números, ni viñetas, ni saltos de línea.
-3. Devuelve SOLO las opciones separadas por "|", sin ningún otro texto explicativo.
-Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad mañana. | ¿Iré mañana a la universidad?`;
+      systemPrompt = `You are an expert Colombian Sign Language (LSC) to natural written Spanish translator.
+Your task is to translate CSL glosses (e.g., "YO IR UNIVERSIDAD MAÑANA") into natural, grammatically correct written SPANISH.
+Provide EXACTLY THREE (3) different translation options in Spanish.
+Rules:
+1. The options must be in Spanish. Absolutely NO English vocabulary is allowed.
+2. The options should vary slightly in tone or context (formal, informal, question, or statement).
+3. Separate each option strictly with the "|" (pipe) character.
+4. Do NOT use numbers (e.g. 1., 2.), bullet points, prefixes, introductory sentences (like "Aquí te dejo..."), notes, or conversational text.
+5. Respond ONLY with the three Spanish translations separated by "|".
+Example Output:
+Mañana iré a la universidad. | Yo voy a ir a la universidad mañana. | ¿Iré mañana a la universidad?`;
     }
 
     let translatedText = '';

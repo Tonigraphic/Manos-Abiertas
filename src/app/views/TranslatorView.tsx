@@ -88,7 +88,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
             body: JSON.stringify({ 
               model: hfModel,
               messages: [
-                { role: "system", content: "Eres un traductor experto de Lengua de Señas Colombiana. Convierte la siguiente frase en español a glosas LSC (solo conceptos clave, verbos en infinitivo, sin artículos ni conectores). Devuelve SOLO la glosa final en MAYÚSCULAS sin comillas." },
+                { role: "system", content: "You are an expert Spanish to Colombian Sign Language (LSC) gloss translator. Translate the Spanish sentence to LSC gloss in Spanish words. Output the final gloss in lowercase with only the very first letter capitalized. Output ONLY the clean gloss sentence without any introductions, explanations, quotes, or punctuation." },
                 { role: "user", content: text }
               ],
               temperature: 0.3,
@@ -105,7 +105,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
               body: JSON.stringify({ 
                 model: "meta-llama/Meta-Llama-3-8B-Instruct",
                 messages: [
-                  { role: "system", content: "Eres un traductor experto de Lengua de Señas Colombiana. Convierte la siguiente frase en español a glosas LSC (solo conceptos clave, verbos en infinitivo, sin artículos ni conectores). Devuelve SOLO la glosa final en MAYÚSCULAS sin comillas." },
+                  { role: "system", content: "You are an expert Spanish to Colombian Sign Language (LSC) gloss translator. Translate the Spanish sentence to LSC gloss in Spanish words. Output the final gloss in lowercase with only the very first letter capitalized. Output ONLY the clean gloss sentence without any introductions, explanations, quotes, or punctuation." },
                   { role: "user", content: text }
                 ],
                 temperature: 0.3,
@@ -213,7 +213,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
             body: JSON.stringify({ 
               model: hfModel,
               messages: [
-                { role: "system", content: "Eres un intérprete experto. Convierte esta secuencia de glosas de Lengua de Señas a una frase en español natural, gramaticalmente correcta y con conectores. Proporciona EXACTAMENTE TRES (3) opciones diferentes separadas por el carácter '|'." },
+                { role: "system", content: "You are an expert Colombian Sign Language (LSC) to natural written Spanish translator. Translate CSL glosses into natural, grammatically correct written SPANISH. Provide EXACTLY THREE (3) options in Spanish only (no English vocabulary). Separate each option strictly with '|'. Do NOT use numbers, prefixes, introductory sentences, notes, or conversational text. Output ONLY the three translations separated by '|'." },
                 { role: "user", content: text }
               ],
               temperature: 0.3,
@@ -230,7 +230,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
               body: JSON.stringify({ 
                 model: "meta-llama/Meta-Llama-3-8B-Instruct",
                 messages: [
-                  { role: "system", content: "Eres un intérprete experto. Convierte esta secuencia de glosas de Lengua de Señas a una frase en español natural, gramaticalmente correcta y con conectores. Proporciona EXACTAMENTE TRES (3) opciones diferentes separadas por el carácter '|'." },
+                  { role: "system", content: "You are an expert Colombian Sign Language (LSC) to natural written Spanish translator. Translate CSL glosses into natural, grammatically correct written SPANISH. Provide EXACTLY THREE (3) options in Spanish only (no English vocabulary). Separate each option strictly with '|'. Do NOT use numbers, prefixes, introductory sentences, notes, or conversational text. Output ONLY the three translations separated by '|'." },
                   { role: "user", content: text }
                 ],
                 temperature: 0.3,

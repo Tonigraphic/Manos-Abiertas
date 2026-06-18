@@ -27,8 +27,17 @@ export default async function handler(req: any, res: any) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const folderName = `sugerencias/${timestamp}`;
     
-    // Preparamos las operaciones para el commit de Hugging Face
+    // Preparamos las operaciones para el commit de Hugging Face (formato array de objetos { key, value })
     const operations: any[] = [];
+
+    // Añadir el encabezado del commit (summary)
+    operations.push({
+      key: 'header',
+      value: {
+        summary: `Nueva retroalimentación: ${feedbackType}`,
+        description: `Enviado por ${userName || 'Anónimo'}`
+      }
+    });
 
     // 1. Añadir el archivo de texto con la información de la sugerencia
     const reportText = `
@@ -42,9 +51,11 @@ ${text}
     `.trim();
 
     operations.push({
-      operation: 'add',
-      path: `${folderName}/reporte.txt`,
-      content: reportText,
+      key: 'add',
+      value: {
+        path: `${folderName}/reporte.txt`,
+        content: reportText,
+      }
     });
 
     // 2. Si hay un GIF, añadir la operación en formato base64
@@ -54,24 +65,24 @@ ${text}
       const safeGifName = gifName.replace(/[^a-zA-Z0-9.-]/g, '_'); // Sanitizar nombre
       
       operations.push({
-        operation: 'add',
-        path: `${folderName}/${safeGifName}`,
-        content: base64Data,
-        encoding: 'base64'
+        key: 'add',
+        value: {
+          path: `${folderName}/${safeGifName}`,
+          content: base64Data,
+          encoding: 'base64'
+        }
       });
     }
 
     // Ejecutar el Commit hacia Hugging Face (Model Hub)
+    // El payload en esta API de Hugging Face es directamente el array de operaciones
     const response = await fetch(`https://huggingface.co/api/models/${REPO_ID}/commit/main`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        operations: operations,
-        summary: `Nueva retroalimentación: ${feedbackType}`,
-      }),
+      body: JSON.stringify(operations),
     });
 
     if (!response.ok) {

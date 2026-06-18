@@ -97,6 +97,15 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
       const folderName = `sugerencias/${timestamp}`;
       const operations: any[] = [];
 
+      // Añadir la operación del encabezado (summary)
+      operations.push({
+        key: 'header',
+        value: {
+          summary: `Nueva retroalimentación cliente: ${feedbackType}`,
+          description: `Enviado por ${userName || 'Anónimo'}`
+        }
+      });
+
       const reportText = `
 Nombre del Colaborador: ${userName || 'Anónimo'}
 Email: ${userEmail || 'No proporcionado'}
@@ -108,19 +117,23 @@ ${feedbackText}
       `.trim();
 
       operations.push({
-        operation: 'add',
-        path: `${folderName}/reporte.txt`,
-        content: reportText,
+        key: 'add',
+        value: {
+          path: `${folderName}/reporte.txt`,
+          content: reportText,
+        }
       });
 
       if (videoBase64) {
         const base64Data = videoBase64.split(';base64,').pop();
         const safeGifName = videoName.replace(/[^a-zA-Z0-9.-]/g, '_');
         operations.push({
-          operation: 'add',
-          path: `${folderName}/${safeGifName}`,
-          content: base64Data,
-          encoding: 'base64'
+          key: 'add',
+          value: {
+            path: `${folderName}/${safeGifName}`,
+            content: base64Data,
+            encoding: 'base64'
+          }
         });
       }
 
@@ -131,10 +144,7 @@ ${feedbackText}
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            operations: operations,
-            summary: `Nueva retroalimentación cliente: ${feedbackType}`,
-          }),
+          body: JSON.stringify(operations),
         });
 
         if (hfRes.ok) {
