@@ -15,12 +15,35 @@ export function LandingView({ onNavigate }: LandingViewProps) {
   const [isDemoActive, setIsDemoActive] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [showControls, setShowControls] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Preload the practice model silently in the background
     signRecognitionService.loadModel('Colores').catch(console.error);
   }, []);
+
+  const triggerShowControls = () => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    if (isDemoActive) {
+      triggerShowControls();
+    }
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, [isDemoActive]);
 
   const handleSelectOption = (option: string) => {
     setSelectedOption(option);
@@ -65,14 +88,25 @@ export function LandingView({ onNavigate }: LandingViewProps) {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
               className="relative w-full max-w-5xl aspect-video rounded-2xl md:rounded-[4rem] overflow-hidden shadow-2xl bg-black border border-white/10"
+              onMouseMove={triggerShowControls}
+              onMouseEnter={triggerShowControls}
+              onTouchStart={triggerShowControls}
             >
-              <button
-                onClick={() => setIsDemoActive(false)}
-                className="absolute top-3 right-3 md:top-6 md:right-6 z-20 bg-black/60 text-white rounded-full p-2 md:p-3 hover:bg-black/80 transition-all active:scale-90 border border-white/10"
-                aria-label="Cerrar video demo"
-              >
-                <X className="w-5 h-5 md:w-7 md:h-7" />
-              </button>
+              <AnimatePresence>
+                {showControls && (
+                  <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    onClick={() => setIsDemoActive(false)}
+                    className="absolute top-3 right-3 md:top-6 md:right-6 z-20 bg-black/60 text-white rounded-full p-2 md:p-3 hover:bg-black/80 transition-all active:scale-90 border border-white/10"
+                    aria-label="Cerrar video demo"
+                  >
+                    <X className="w-5 h-5 md:w-7 md:h-7" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
 
               <video
                 ref={videoRef}
@@ -83,38 +117,66 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                 className="w-full h-full object-contain"
                 src="/demo.mp4"
                 onEnded={() => setIsDemoActive(false)}
+                onClick={triggerShowControls}
               />
-              <div className="absolute top-3 left-4 md:top-4 md:left-8 z-20 pointer-events-none">
-                <h2 className="text-[10px] sm:text-sm md:text-base font-bold text-white uppercase tracking-widest drop-shadow-md bg-black/35 px-2 py-1 rounded-md md:bg-transparent md:p-0">
-                  Conoce Manos Abiertas
-                </h2>
-              </div>
               
-              <div className="absolute bottom-3 left-3 right-3 md:bottom-6 md:left-6 md:right-6 z-20 flex justify-between items-center pointer-events-none">
-                {/* Botón de Pantalla Completa */}
-                <button
-                  onClick={handleFullscreen}
-                  className="pointer-events-auto bg-black/60 text-white rounded-full p-2 md:px-4 md:py-2 hover:bg-black/80 transition-all active:scale-95 flex items-center gap-2 border border-white/10"
-                  aria-label="Pantalla completa"
-                >
-                  <Maximize className="w-4 h-4 md:w-5 md:h-5" />
-                  <span className="hidden sm:inline text-xs font-black uppercase tracking-wider pr-1">
-                    Pantalla Completa
-                  </span>
-                </button>
+              <AnimatePresence>
+                {showControls && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="absolute top-3 left-4 md:top-4 md:left-8 z-20 pointer-events-none"
+                  >
+                    <h2 className="text-[10px] sm:text-sm md:text-base font-bold text-white uppercase tracking-widest drop-shadow-md bg-black/35 px-2 py-1 rounded-md md:bg-transparent md:p-0">
+                      Conoce Manos Abiertas
+                    </h2>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
+              <AnimatePresence>
+                {showControls && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="absolute bottom-3 left-3 right-3 md:bottom-6 md:left-6 md:right-6 z-20 flex justify-between items-center pointer-events-none"
+                  >
+                    {/* Botón de Pantalla Completa */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFullscreen();
+                      }}
+                      className="pointer-events-auto bg-black/60 text-white rounded-full p-2 md:px-4 md:py-2 hover:bg-black/80 transition-all active:scale-95 flex items-center gap-2 border border-white/10"
+                      aria-label="Pantalla completa"
+                    >
+                      <Maximize className="w-4 h-4 md:w-5 md:h-5" />
+                      <span className="hidden sm:inline text-xs font-black uppercase tracking-wider pr-1">
+                        Pantalla Completa
+                      </span>
+                    </button>
 
-                {/* Botón Silenciar/Audio */}
-                <button
-                  onClick={() => setIsMuted(!isMuted)}
-                  className="pointer-events-auto bg-black/60 text-white rounded-full p-2 md:px-4 md:py-2 hover:bg-black/80 transition-all active:scale-95 flex items-center gap-2 border border-white/10"
-                  aria-label={isMuted ? "Activar sonido" : "Silenciar"}
-                >
-                  {isMuted ? <VolumeX className="w-4 h-4 md:w-5 md:h-5" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5" />}
-                  <span className="hidden sm:inline text-xs font-black uppercase tracking-wider pr-1">
-                    {isMuted ? "Activar Sonido" : "Sonido Activo"}
-                  </span>
-                </button>
-              </div>
+                    {/* Botón Silenciar/Audio */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsMuted(!isMuted);
+                      }}
+                      className="pointer-events-auto bg-black/60 text-white rounded-full p-2 md:px-4 md:py-2 hover:bg-black/80 transition-all active:scale-95 flex items-center gap-2 border border-white/10"
+                      aria-label={isMuted ? "Activar sonido" : "Silenciar"}
+                    >
+                      {isMuted ? <VolumeX className="w-4 h-4 md:w-5 md:h-5" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5" />}
+                      <span className="hidden sm:inline text-xs font-black uppercase tracking-wider pr-1">
+                        {isMuted ? "Activar Sonido" : "Sonido Activo"}
+                      </span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </motion.div>
         )}
