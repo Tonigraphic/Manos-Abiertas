@@ -146,6 +146,15 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
     // Asegurarse de que no haya comillas, asteriscos ni puntuación innecesaria
     translatedText = translatedText.replace(/[\*"'“”`]/g, '').trim();
 
+    if (mode === 'deaf') {
+      const parsedOptions = translatedText.split('|').map((s: string) => s.trim()).filter(Boolean);
+      const cleaned = parsedOptions.map(opt => opt.replace(/^(opci[oó]n\s+\d+:?|opc\s+\d+:?|\d+[\s.-]+)/i, '').trim()).filter(opt => {
+        const lower = opt.toLowerCase();
+        return !(lower.startsWith('aquí tienes') || lower.startsWith('estas son') || lower.startsWith('opciones de') || (lower.includes('traducción') && lower.length < 35) || lower.includes('intérprete') || lower.length < 3);
+      });
+      translatedText = cleaned.slice(0, 3).join(' | ');
+    }
+
     return res.status(200).json({
       success: true,
       provider: providerUsed,

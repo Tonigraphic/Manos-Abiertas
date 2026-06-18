@@ -9,11 +9,28 @@ import { translateLSCtoSpanish } from '../../lib/translationEngine';
 import { signRecognitionService, SignPattern } from '../../services/signRecognitionService';
 import { resolveVideoUrl } from '@/lib/videoUtils';
 
-interface TranslatorViewProps {
-  onNavigateHome?: () => void;
+function cleanTranslationOptions(options: string[]): string[] {
+  return options
+    .map(opt => {
+      // Remover prefijos comunes como "Opción X:", "X.", "1-", etc.
+      return opt
+        .replace(/^(opci[oó]n\s+\d+:?|opc\s+\d+:?|\d+[\s.-]+)/i, '')
+        .trim();
+    })
+    .filter(opt => {
+      // Filtrar opciones que son textos explicativos del LLM
+      const lower = opt.toLowerCase();
+      if (lower.startsWith('aquí tienes') || 
+          lower.startsWith('estas son') || 
+          lower.startsWith('opciones de') || 
+          (lower.includes('traducción') && lower.length < 35) ||
+          lower.includes('intérprete') ||
+          lower.length < 3) {
+        return false;
+      }
+      return true;
+    });
 }
-
-type UserRole = 'hearing' | 'deaf' | null;
 
 export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [userRole, setUserRole] = useState<UserRole>(null);
@@ -120,12 +137,29 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
 
       setResultLSC(result);
 
-      // Buscar coincidencias de video basadas en el resultado de la IA
-      const cleanResult = result.replace(/[¿?¡!.,;:_"'“”]/g, '').toLowerCase();
+      // Buscar coincidencias de video estrictas basadas en el resultado de la IA
+      const cleanResult = result.replace(/[¿?¡!.,;:_"'“”]/g, '').toLowerCase().trim();
       const words = cleanResult.split(/\s+/).filter(Boolean);
-      const matches = allSigns.filter(s => 
-        words.some(w => w === s.name.toLowerCase() || s.name.toLowerCase().includes(w))
-      );
+      
+      const matches = allSigns.filter(s => {
+        const signNameLower = s.name.toLowerCase();
+        
+        // Evitar emparejar letras individuales (longitud 1) a menos que la palabra sea exactamente de longitud 1
+        if (signNameLower.length === 1 && !words.includes(signNameLower)) {
+          return false;
+        }
+
+        // Coincidencia exacta de frase o palabra completa en el resultado traducido
+        if (cleanResult.includes(signNameLower)) {
+          const regex = new RegExp(`\\b${signNameLower}\\b`, 'i');
+          if (regex.test(cleanResult)) {
+            return true;
+          }
+        }
+        
+        // O si alguna de las palabras de la traducción es exactamente igual al nombre de la seña
+        return words.some(w => w === signNameLower);
+      });
       setMatchedSigns(matches.slice(0, 4));
     } catch (error) {
       console.error(error);
@@ -160,7 +194,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
         if (data.success === false) throw new Error(data.reason);
         
         const rawText = (data.translatedText || "").replace(/[\*"'“”`]/g, '');
-        options = rawText.split('|').map((s: string) => s.trim()).filter(Boolean);
+        options = cleanTranslationOptions(rawText.split('|').map((s: string) => s.trim()).filter(Boolean));
       } catch (apiError) {
         console.warn("Fallo el backend local o desarrollo local detectado, intentando conexión directa a Hugging Face...");
         const token = import.meta.env.VITE_HF_TRANSLATION_TOKEN || import.meta.env.VITE_HF_TOKEN;
@@ -223,7 +257,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
         const hfData = await hfRes.json();
         if (hfData.choices?.[0]?.message?.content) {
           const generated = hfData.choices[0].message.content.trim().replace(/^"|"$/g, '').replace(/[\*"'“”`]/g, '');
-          options = generated.split('|').map((s: string) => s.trim()).filter(Boolean);
+          options = cleanTranslationOptions(generated.split('|').map((s: string) => s.trim()).filter(Boolean));
         }
       }
 
