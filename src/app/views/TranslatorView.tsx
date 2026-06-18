@@ -51,7 +51,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
       } catch (apiError) {
         console.warn("Fallo el backend local, intentando conexión directa a Hugging Face...");
         const token = import.meta.env.VITE_HF_TRANSLATION_TOKEN || import.meta.env.VITE_HF_TOKEN;
-        const hfModel = import.meta.env.VITE_HF_TRANSLATION_MODEL || "Qwen/Qwen2.5-72B-Instruct";
+        const hfModel = import.meta.env.VITE_HF_TRANSLATION_MODEL || "meta-llama/Meta-Llama-3-8B-Instruct";
         
         if (!token) {
           alert("⚠️ Falta configurar el token VITE_HF_TRANSLATION_TOKEN en tu archivo .env.local (recuerda reiniciar el servidor).");
@@ -73,6 +73,24 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
               max_tokens: 50
             })
           });
+
+          // Si falla y el modelo no es el por defecto, intentar con el modelo warm de respaldo
+          if (!hfRes.ok && hfModel !== "meta-llama/Meta-Llama-3-8B-Instruct") {
+            console.warn("Fallo con el modelo principal, reintentando con Llama 3-8B...");
+            hfRes = await fetch("https://router.huggingface.co/v1/chat/completions", {
+              method: "POST",
+              headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                model: "meta-llama/Meta-Llama-3-8B-Instruct",
+                messages: [
+                  { role: "system", content: "Eres un traductor experto de Lengua de Señas Colombiana. Convierte la siguiente frase en español a glosas LSC (solo conceptos clave, verbos en infinitivo, sin artículos ni conectores). Devuelve SOLO la glosa final en MAYÚSCULAS sin comillas." },
+                  { role: "user", content: text }
+                ],
+                temperature: 0.3,
+                max_tokens: 50
+              })
+            });
+          }
         } catch (networkError) {
           alert("❌ Error de red: No se pudo conectar con Hugging Face. Revisa tu conexión a internet o tu configuración de DNS.");
           throw networkError;
@@ -158,6 +176,24 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
               max_tokens: 60
             })
           });
+
+          // Si falla y el modelo no es el por defecto, intentar con el modelo warm de respaldo
+          if (!hfRes.ok && hfModel !== "meta-llama/Meta-Llama-3-8B-Instruct") {
+            console.warn("Fallo con el modelo principal de traducción sorda, reintentando con Llama 3-8B...");
+            hfRes = await fetch("https://router.huggingface.co/v1/chat/completions", {
+              method: "POST",
+              headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                model: "meta-llama/Meta-Llama-3-8B-Instruct",
+                messages: [
+                  { role: "system", content: "Eres un intérprete experto. Convierte esta secuencia de glosas de Lengua de Señas a una frase en español natural, gramaticalmente correcta y con conectores. Proporciona EXACTAMENTE TRES (3) opciones diferentes separadas por el carácter '|'." },
+                  { role: "user", content: text }
+                ],
+                temperature: 0.3,
+                max_tokens: 60
+              })
+            });
+          }
         } catch (networkError) {
           alert("❌ Error de red: No se pudo conectar con Hugging Face. Revisa tu conexión a internet o tu configuración de DNS.");
           throw networkError;
@@ -469,36 +505,24 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                       className={`p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all flex items-center justify-between gap-4 ${selectedSuggestion === opt ? 'border-orange-500 bg-orange-50 shadow-md' : 'border-white bg-white hover:border-neutral-200 shadow-sm'}`}
                     >
                       <p className={`text-base font-bold flex-1 text-left ${selectedSuggestion === opt ? 'text-orange-900' : 'text-neutral-700'}`}>{opt}</p>
-                      {selectedSuggestion === opt && <CheckCircle2 className="text-orange-500 shrink-0" size={20} />}
+                      {selectedSuggestion === opt && (
+                        <div className="flex items-center gap-3 shrink-0">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playAudio(opt);
+                            }}
+                            className={`p-2.5 rounded-xl transition-all flex items-center justify-center ${isPlaying ? 'bg-orange-500 text-white animate-pulse' : 'bg-orange-100 text-orange-600 hover:bg-orange-200'}`}
+                            title="Reproducir Audio"
+                          >
+                            <Volume2 size={18} />
+                          </button>
+                          <CheckCircle2 className="text-orange-500 shrink-0" size={20} />
+                        </div>
+                      )}
                     </motion.div>
                   ))}
                 </div>
-
-                {selectedSuggestion && (
-                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-                    <Card className="bg-neutral-900 text-white border-none shadow-2xl overflow-hidden rounded-[2rem]">
-                      <CardBody className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-                        <div className="flex-1">
-                          <p className="text-[10px] font-black text-white/70 uppercase mb-2">Mensaje seleccionado</p>
-                          <p className="text-xl font-bold leading-tight">{selectedSuggestion}</p>
-                        </div>
-                        <button 
-                          onClick={playAudio}
-                          className={`shrink-0 w-16 h-16 rounded-3xl flex items-center justify-center transition-all ${isPlaying ? 'bg-orange-500 animate-pulse' : 'bg-white/10 hover:bg-white/20'}`}
-                        >
-                          {isPlaying ? <Volume2 size={28} /> : <Volume2 size={28} />}
-                        </button>
-                      </CardBody>
-                    </Card>
-                    
-                    <div className="flex justify-center mt-6">
-                      <p className="text-[10px] text-neutral-400 font-bold flex items-center gap-2">
-                        <CheckCircle2 size={12} className="text-emerald-500" />
-                        Listo para mostrar a una persona oyente
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
               </motion.div>
             )}
           </AnimatePresence>

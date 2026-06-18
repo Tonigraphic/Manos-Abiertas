@@ -94,10 +94,10 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
     // Fallback a Hugging Face usando el formato compatible con OpenAI
     else if (HF_TOKEN) {
       providerUsed = 'huggingface';
-      // Usar el modelo configurado por el usuario, o Qwen por defecto
-      const hfModel = process.env.HF_TRANSLATION_MODEL || 'Qwen/Qwen2.5-72B-Instruct';
+      // Usar el modelo de Llama por defecto (cálido y estable)
+      const hfModel = process.env.HF_TRANSLATION_MODEL || 'meta-llama/Meta-Llama-3-8B-Instruct';
       
-      const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
+      let response = await fetch('https://router.huggingface.co/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${HF_TOKEN}`,
@@ -113,6 +113,27 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
           max_tokens: 1000,
         }),
       });
+
+      // Si falla o responde 503 (cargando), intentar con el modelo fallback warm
+      if (!response.ok && hfModel !== 'meta-llama/Meta-Llama-3-8B-Instruct') {
+        console.warn(`Error llamando a ${hfModel}. Intentando fallback a Llama-3-8B...`);
+        response = await fetch('https://router.huggingface.co/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${HF_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'meta-llama/Meta-Llama-3-8B-Instruct',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: text }
+            ],
+            temperature: 0.3,
+            max_tokens: 1000,
+          }),
+        });
+      }
 
       if (!response.ok) {
         throw new Error(`Hugging Face API responded with status ${response.status}`);
