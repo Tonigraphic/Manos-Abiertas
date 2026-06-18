@@ -144,8 +144,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                    <Languages size={24} />
                 </div>
                <h3 className="text-base font-black text-[var(--color-primary-700)] mb-1">Traductor LSC</h3>
-                <p className="text-[10px] text-neutral-600 mb-3 leading-tight">Comunícate bidireccionalmente con IA.</p>
-                <Badge variant="primary" className="text-[8px] py-1 px-3 font-black uppercase tracking-widest">En Vivo</Badge>
+                <p className="text-[10px] text-neutral-600 mb-1 leading-tight">Comunícate en español y señas.</p>
              </motion.div>
 
              {/* Opción Práctica */}
@@ -154,8 +153,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                    <Target size={24} />
                 </div>
                <h3 className="text-base font-black text-[var(--color-accent-700)] mb-1">Práctica y Señas</h3>
-                <p className="text-[10px] text-neutral-600 mb-3 leading-tight">Mejora tus habilidades con ejercicios.</p>
-                <Badge variant="accent" className="text-[8px] py-1 px-3 font-black uppercase tracking-widest">Popular</Badge>
+                <p className="text-[10px] text-neutral-600 mb-1 leading-tight">Mejora tus habilidades con ejercicios.</p>
              </motion.div>
 
              {/* Opción Sugerencias */}
@@ -164,8 +162,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                    <MessageSquare size={24} />
                 </div>
                <h3 className="text-base font-black text-[var(--color-success-700)] mb-1">Sugerencias</h3>
-                <p className="text-[10px] text-neutral-600 mb-3 leading-tight">Ayúdanos a mejorar el diccionario.</p>
-                <Badge variant="success" className="text-[8px] py-1 px-3 font-black uppercase tracking-widest">Comunidad</Badge>
+                <p className="text-[10px] text-neutral-600 mb-1 leading-tight">Ayúdanos a fortalecer la comunicación.</p>
              </motion.div>
           </div>
 
