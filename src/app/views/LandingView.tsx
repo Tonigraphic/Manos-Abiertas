@@ -190,15 +190,15 @@ export function LandingView({ onNavigate }: LandingViewProps) {
           filter: isDemoActive ? 'blur(10px)' : 'blur(0px)' 
         }}
         transition={{ duration: 0.5 }}
-        className="relative z-10 w-full max-w-6xl mx-auto px-6 py-4 md:py-8 flex flex-col items-center justify-center text-center"
+        className="relative z-10 w-full max-w-6xl mx-auto px-6 py-2 md:py-8 flex flex-col items-center justify-center text-center"
       >
-        <div className="w-full max-w-4xl mx-auto space-y-4 md:space-y-8">
+        <div className="w-full max-w-4xl mx-auto space-y-3 sm:space-y-4 md:space-y-8">
           {/* LOGO */}
           <div className="flex justify-center items-center w-full">
             <img 
               src={logoPrincipal} 
               alt="Logo Manos Abiertas" 
-              className="h-20 sm:h-32 lg:h-44 w-auto max-w-[80%] md:max-w-full object-contain drop-shadow-2xl" 
+              className="h-16 sm:h-24 md:h-32 lg:h-44 w-auto max-w-[80%] md:max-w-full object-contain drop-shadow-2xl" 
             />
           </div>
 
@@ -207,12 +207,12 @@ export function LandingView({ onNavigate }: LandingViewProps) {
           </p>
 
           {/* Opciones Autónomas de Navegación */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 w-full">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 md:gap-6 w-full">
              {/* Opción Traductor */}
              <motion.div 
                whileHover={{ y: -5 }} 
                whileTap={{ scale: 0.95 }}
-               className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-primary-300)] transition-all flex flex-col items-center text-center cursor-pointer group select-none" 
+               className="bg-white rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-6 shadow-md md:shadow-xl border-2 border-transparent hover:border-[var(--color-primary-300)] transition-all flex flex-col items-center text-center cursor-pointer group select-none" 
                onClick={() => handleSelectOption('translator')}
              >
                <motion.div
@@ -220,10 +220,10 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                  transition={{ duration: 0.4, ease: "easeInOut" }}
                  className="flex flex-col items-center text-center w-full"
                >
-                 <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-primary-100)] text-[var(--color-primary-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <Languages size={24} />
+                 <div className="w-8 h-8 md:w-14 md:h-14 bg-[var(--color-primary-100)] text-[var(--color-primary-600)] rounded-2xl flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform">
+                    <Languages size={20} className="md:w-6 md:h-6" />
                  </div>
-                 <h3 className="text-base font-black text-[var(--color-primary-700)] mb-1">Traductor LSC</h3>
+                 <h3 className="text-sm md:text-base font-black text-[var(--color-primary-700)] mb-1">Traductor LSC</h3>
                  <p className="text-[10px] text-neutral-600 mb-1 leading-tight">Comunícate en español y señas.</p>
                </motion.div>
              </motion.div>
@@ -232,7 +232,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
              <motion.div 
                whileHover={{ y: -5 }} 
                whileTap={{ scale: 0.95 }}
-               className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-accent-300)] transition-all flex flex-col items-center text-center cursor-pointer group select-none" 
+               className="bg-white rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-6 shadow-md md:shadow-xl border-2 border-transparent hover:border-[var(--color-accent-300)] transition-all flex flex-col items-center text-center cursor-pointer group select-none" 
                onClick={() => handleSelectOption('practice')}
              >
                <motion.div
@@ -240,10 +240,10 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                  transition={{ duration: 0.4, ease: "easeInOut" }}
                  className="flex flex-col items-center text-center w-full"
                >
-                 <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-accent-100)] text-[var(--color-accent-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <Target size={24} />
+                 <div className="w-8 h-8 md:w-14 md:h-14 bg-[var(--color-accent-100)] text-[var(--color-accent-600)] rounded-2xl flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform">
+                    <Target size={20} className="md:w-6 md:h-6" />
                  </div>
-                 <h3 className="text-base font-black text-[var(--color-accent-700)] mb-1">Práctica y Señas</h3>
+                 <h3 className="text-sm md:text-base font-black text-[var(--color-accent-700)] mb-1">Práctica y Señas</h3>
                  <p className="text-[10px] text-neutral-600 mb-1 leading-tight">Mejora tus habilidades con ejercicios.</p>
                </motion.div>
              </motion.div>
@@ -252,7 +252,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
              <motion.div 
                whileHover={{ y: -5 }} 
                whileTap={{ scale: 0.95 }}
-               className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-success-300)] transition-all flex flex-col items-center text-center cursor-pointer group select-none" 
+               className="bg-white rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-6 shadow-md md:shadow-xl border-2 border-transparent hover:border-[var(--color-success-300)] transition-all flex flex-col items-center text-center cursor-pointer group select-none" 
                onClick={() => handleSelectOption('feedback')}
              >
                <motion.div
@@ -260,25 +260,36 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                  transition={{ duration: 0.4, ease: "easeInOut" }}
                  className="flex flex-col items-center text-center w-full"
                >
-                 <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-success-100)] text-[var(--color-success-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <MessageSquare size={24} />
+                 <div className="w-8 h-8 md:w-14 md:h-14 bg-[var(--color-success-100)] text-[var(--color-success-600)] rounded-2xl flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform">
+                    <MessageSquare size={20} className="md:w-6 md:h-6" />
                  </div>
-                 <h3 className="text-base font-black text-[var(--color-success-700)] mb-1">Sugerencias</h3>
+                 <h3 className="text-sm md:text-base font-black text-[var(--color-success-700)] mb-1">Sugerencias</h3>
                  <p className="text-[10px] text-neutral-600 mb-1 leading-tight">Ayúdanos a fortalecer la comunicación.</p>
                </motion.div>
              </motion.div>
           </div>
 
           {/* Botón para volver a reproducir el Demo */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsDemoActive(true)}
-            className="inline-flex items-center gap-2 px-6 py-3 mt-4 rounded-xl bg-black text-white font-black shadow-2xl hover:bg-neutral-900 transition-all border border-white/10 text-xs"
-          >
-            <PlayCircle size={18} />
-            Ver video demostrativo
-          </motion.button>
+          <div className="flex flex-col items-center gap-4 pt-1 md:pt-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsDemoActive(true)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-black text-white font-black shadow-lg hover:bg-neutral-900 transition-all border border-white/10 text-xs"
+            >
+              <PlayCircle size={16} />
+              Ver video demostrativo
+            </motion.button>
+          </div>
+
+          {/* Identidades Institucionales */}
+          <div className="pt-2 md:pt-4 flex justify-center items-center w-full border-t border-neutral-100">
+            <img 
+              src="/Identidades para plataforma.png" 
+              alt="Identidades Institucionales" 
+              className="h-8 sm:h-12 md:h-16 w-auto object-contain opacity-75 hover:opacity-100 transition-opacity" 
+            />
+          </div>
         </div>
       </motion.section>
     </div>
