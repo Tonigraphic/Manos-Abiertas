@@ -149,9 +149,10 @@ export function LandingView({ onNavigate }: LandingViewProps) {
              {/* Opción Traductor */}
              <motion.div 
                whileHover={{ y: -5 }} 
-               animate={selectedOption === 'translator' ? { x: [-3, 3, -3, 3, -1.5, 1.5, 0] } : {}}
+               whileTap={{ scale: 0.95 }}
+               animate={selectedOption === 'translator' ? { x: [-8, 8, -8, 8, -4, 4, 0] } : {}}
                transition={{ duration: 0.35 }}
-               className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-primary-300)] transition-all flex flex-col items-center text-center cursor-pointer group" 
+               className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-primary-300)] transition-all flex flex-col items-center text-center cursor-pointer group select-none" 
                onClick={() => handleSelectOption('translator')}
              >
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-primary-100)] text-[var(--color-primary-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -164,9 +165,10 @@ export function LandingView({ onNavigate }: LandingViewProps) {
              {/* Opción Práctica */}
              <motion.div 
                whileHover={{ y: -5 }} 
-               animate={selectedOption === 'practice' ? { x: [-3, 3, -3, 3, -1.5, 1.5, 0] } : {}}
+               whileTap={{ scale: 0.95 }}
+               animate={selectedOption === 'practice' ? { x: [-8, 8, -8, 8, -4, 4, 0] } : {}}
                transition={{ duration: 0.35 }}
-               className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-accent-300)] transition-all flex flex-col items-center text-center cursor-pointer group" 
+               className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-accent-300)] transition-all flex flex-col items-center text-center cursor-pointer group select-none" 
                onClick={() => handleSelectOption('practice')}
              >
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-accent-100)] text-[var(--color-accent-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -179,9 +181,10 @@ export function LandingView({ onNavigate }: LandingViewProps) {
              {/* Opción Sugerencias */}
              <motion.div 
                whileHover={{ y: -5 }} 
-               animate={selectedOption === 'feedback' ? { x: [-3, 3, -3, 3, -1.5, 1.5, 0] } : {}}
+               whileTap={{ scale: 0.95 }}
+               animate={selectedOption === 'feedback' ? { x: [-8, 8, -8, 8, -4, 4, 0] } : {}}
                transition={{ duration: 0.35 }}
-               className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-success-300)] transition-all flex flex-col items-center text-center cursor-pointer group" 
+               className="bg-white rounded-[2rem] p-4 md:p-6 shadow-xl border-2 border-transparent hover:border-[var(--color-success-300)] transition-all flex flex-col items-center text-center cursor-pointer group select-none" 
                onClick={() => handleSelectOption('feedback')}
              >
                 <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-success-100)] text-[var(--color-success-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
