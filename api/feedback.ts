@@ -51,7 +51,7 @@ ${text}
     `.trim();
 
     operations.push({
-      key: 'add',
+      key: 'file',
       value: {
         path: `${folderName}/reporte.txt`,
         content: reportText,
@@ -65,7 +65,7 @@ ${text}
       const safeGifName = gifName.replace(/[^a-zA-Z0-9.-]/g, '_'); // Sanitizar nombre
       
       operations.push({
-        key: 'add',
+        key: 'file',
         value: {
           path: `${folderName}/${safeGifName}`,
           content: base64Data,
@@ -75,14 +75,13 @@ ${text}
     }
 
     // Ejecutar el Commit hacia Hugging Face (Model Hub)
-    // El payload en esta API de Hugging Face es directamente el array de operaciones
     const response = await fetch(`https://huggingface.co/api/models/${REPO_ID}/commit/main`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_TOKEN}`,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-ndjson',
       },
-      body: JSON.stringify(operations),
+      body: operations.map(x => JSON.stringify(x)).join('\n'),
     });
 
     if (!response.ok) {

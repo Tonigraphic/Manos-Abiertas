@@ -117,7 +117,7 @@ ${feedbackText}
       `.trim();
 
       operations.push({
-        key: 'add',
+        key: 'file',
         value: {
           path: `${folderName}/reporte.txt`,
           content: reportText,
@@ -128,7 +128,7 @@ ${feedbackText}
         const base64Data = videoBase64.split(';base64,').pop();
         const safeGifName = videoName.replace(/[^a-zA-Z0-9.-]/g, '_');
         operations.push({
-          key: 'add',
+          key: 'file',
           value: {
             path: `${folderName}/${safeGifName}`,
             content: base64Data,
@@ -142,9 +142,9 @@ ${feedbackText}
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/x-ndjson',
           },
-          body: JSON.stringify(operations),
+          body: operations.map(x => JSON.stringify(x)).join('\n'),
         });
 
         if (hfRes.ok) {
