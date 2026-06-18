@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '../components/lsc/Button';
 import { Badge } from '../components/lsc/Badge';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, PlayCircle, Languages, Target, MessageSquare, Video } from 'lucide-react';
+import { X, PlayCircle, Languages, Target, MessageSquare, Video, Volume2, VolumeX } from 'lucide-react';
 import logoPrincipal from '../../assets/logo.png'; 
 import { resolveVideoUrl } from '@/lib/videoUtils';
 import { signRecognitionService } from '../../services/signRecognitionService';
@@ -13,6 +13,7 @@ interface LandingViewProps {
 
 export function LandingView({ onNavigate }: LandingViewProps) {
   const [isDemoActive, setIsDemoActive] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
 
   useEffect(() => {
     // Preload the practice model silently in the background
@@ -52,7 +53,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
 
               <video
                 autoPlay
-                muted
+                muted={isMuted}
                 playsInline
                 crossOrigin="anonymous"
                 className="w-full h-full object-contain"
@@ -62,6 +63,16 @@ export function LandingView({ onNavigate }: LandingViewProps) {
               <div className="absolute top-4 left-8 z-20 pointer-events-none">
                 <h2 className="text-xs sm:text-sm md:text-base font-bold text-white uppercase tracking-widest">Conoce Manos Abiertas</h2>
               </div>
+              <button
+                onClick={() => setIsMuted(!isMuted)}
+                className="absolute bottom-6 right-6 z-20 bg-black/60 text-white rounded-full px-4 py-2 hover:bg-black/80 transition-all active:scale-95 flex items-center gap-2 border border-white/10"
+                aria-label={isMuted ? "Activar sonido" : "Silenciar"}
+              >
+                {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                <span className="text-xs font-black uppercase tracking-wider pr-1">
+                  {isMuted ? "Activar Sonido" : "Sonido Activo"}
+                </span>
+              </button>
             </motion.div>
           </motion.div>
         )}
