@@ -120,7 +120,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
           filter: isDemoActive ? 'blur(10px)' : 'blur(0px)' 
         }}
         transition={{ duration: 0.5 }}
-        className="relative z-10 w-full max-w-6xl mx-auto px-6 py-4 md:py-8 flex flex-col items-center justify-center text-center overflow-hidden"
+        className="relative z-10 w-full max-w-6xl mx-auto px-6 py-4 md:py-8 flex flex-col items-center justify-center text-center"
       >
         <div className="w-full max-w-4xl mx-auto space-y-4 md:space-y-8">
           {/* LOGO */}
