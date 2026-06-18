@@ -361,7 +361,7 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-neutral-800">Retroalimentación</h1>
-              <p className="text-sm text-neutral-500 font-medium mt-1">Ayúdanos a mejorar el asistente LSC</p>
+              <p className="text-sm text-neutral-500 font-medium mt-1">Ayúdanos a mejorar el vocabulario LSC</p>
             </div>
           </div>
           
