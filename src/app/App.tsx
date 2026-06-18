@@ -42,7 +42,7 @@ export default function App() {
         <DesktopNavbar currentView={currentView} onNavigate={(view) => setCurrentView(view as View)} />
       )}
 
-      <main className={showNavigation ? 'min-h-[calc(100vh-5rem)]' : 'min-h-screen'}>
+      <main className={showNavigation ? 'min-h-[calc(100vh-5rem)] pb-20 md:pb-0' : 'min-h-screen'}>
         {renderView()}
       </main>
 

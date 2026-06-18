@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { Card, CardBody } from '../components/lsc/Card';
 import { Button } from '../components/lsc/Button';
 import { Badge } from '../components/lsc/Badge';
-import { Send, Languages, Mic, Volume2, MicOff, User, Hand, Play, VolumeX, CheckCircle2, Video } from 'lucide-react';
+import { Send, Languages, Mic, Volume2, MicOff, User, Hand, Play, VolumeX, CheckCircle2, Video, Maximize } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { InstructionOverlay } from '../components/InstructionOverlay';
 import { translateLSCtoSpanish } from '../../lib/translationEngine';
@@ -48,6 +48,25 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   
   const allSigns = useMemo(() => signRecognitionService.getAllSigns(), []);
 
+  const handleVideoFullscreen = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const btn = e.currentTarget;
+    const container = btn.parentElement;
+    if (container) {
+      const video = container.querySelector('video');
+      if (video) {
+        if (video.requestFullscreen) {
+          video.requestFullscreen();
+        } else if ((video as any).webkitRequestFullscreen) {
+          (video as any).webkitRequestFullscreen();
+        } else if ((video as any).mozRequestFullScreen) {
+          (video as any).mozRequestFullScreen();
+        } else if ((video as any).msRequestFullscreen) {
+          (video as any).msRequestFullscreen();
+        }
+      }
+    }
+  };
+
   const processHearingTranslation = async (text: string) => {
     setIsTranslating(true);
     try {
@@ -90,7 +109,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
             body: JSON.stringify({ 
               model: hfModel,
               messages: [
-                { role: "system", content: "You are an expert Spanish to Colombian Sign Language (LSC) gloss translator. Translate the Spanish sentence to LSC gloss in Spanish words. Output the final gloss in lowercase with only the very first letter capitalized. Output ONLY the clean gloss sentence without any introductions, explanations, quotes, or punctuation." },
+                { role: "system", content: "You are an expert Spanish to Colombian Sign Language (LSC) gloss translator. Your task is to translate the Spanish sentence into CSL/LSC gloss in Spanish words. Rules: 1. Preserve all key concepts, verbs, nouns, adjectives, colors, and especially temporal indicators/references (e.g., 'mañana', 'hoy', 'ayer'). Do NOT drop the temporal context. 2. Translate ONLY concepts present in the input sentence. Do NOT hallucinate or add extra objects/words (e.g., do not add 'pincel' if the input does not mention it). 3. Do NOT use CSL/LSC-omitted words such as connectors, prepositions, or articles. 4. Translate verbs to infinitive. 5. CSL/LSC gloss typically puts essential words in a conceptual order (often Time-Subject-Object-Verb). 6. Output the final gloss in lowercase with only the very first letter capitalized. 7. Output ONLY the clean gloss sentence without any introductions, explanations, quotes, or punctuation. Example: Input 'Necesito que traigas tus colores azul y rojo para la clase de mañana' -> Output 'Mañana clase colores azul rojo traer necesitar'" },
                 { role: "user", content: text }
               ],
               temperature: 0.3,
@@ -520,8 +539,16 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {matchedSigns.map(sign => (
                       <div key={sign.name} className="bg-white rounded-[2rem] overflow-hidden shadow-lg border border-neutral-100">
-                        <div className="aspect-video bg-black">
+                        <div className="relative aspect-video bg-black">
                           <video src={resolveVideoUrl(sign.videoUrl)} autoPlay loop muted playsInline className="w-full h-full object-contain" />
+                          <button
+                            onClick={handleVideoFullscreen}
+                            className="absolute bottom-2 right-2 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80 transition-all active:scale-90 border border-white/10"
+                            aria-label="Ver video en pantalla completa"
+                            title="Pantalla completa"
+                          >
+                            <Maximize size={14} />
+                          </button>
                         </div>
                         <div className="p-3 text-center">
                           <p className="text-xs font-black uppercase text-neutral-800">{sign.name}</p>

@@ -42,14 +42,16 @@ export default async function handler(req: any, res: any) {
 
     if (mode === 'hearing') {
       systemPrompt = `You are an expert Spanish to Colombian Sign Language (LSC) gloss translator.
-Your task is to translate the Spanish sentence into LSC gloss in Spanish words.
+Your task is to translate the Spanish sentence into CSL/LSC gloss in Spanish words.
 Rules:
-1. Translate to LSC gloss in Spanish vocabulary (e.g. "rojo", "azul").
-2. Do NOT use connectors, prepositions, or articles (y, o, de, la, el, los, las, un, una, etc.).
-3. Translate verbs to infinitive (e.g., "mezcles" -> "mezclar").
-4. Output the final gloss in lowercase (only the very first letter of the sentence capitalized).
-5. Output ONLY the clean gloss sentence. Do NOT write any introduction, notes, explanations, quotes, or punctuation.
-Example output: "Mezclar rojo azul pincel"`;
+1. Preserve all key concepts, verbs, nouns, adjectives, colors, and especially temporal indicators/references (e.g., "mañana", "hoy", "ayer"). Do NOT drop the temporal context.
+2. Translate ONLY concepts present in the input sentence. Do NOT hallucinate or add extra objects/words (e.g., do not add "pincel" if the input does not mention it).
+3. Do NOT use CSL/LSC-omitted words such as connectors, prepositions, or articles (y, o, de, la, el, los, las, un, una, etc.).
+4. Translate verbs to infinitive (e.g., "traigas" -> "traer", "necesito" -> "necesitar").
+5. CSL/LSC gloss typically puts essential words in a conceptual order (often Time-Subject-Object-Verb).
+6. Output the final gloss in lowercase (only the very first letter of the sentence capitalized).
+7. Output ONLY the clean gloss sentence. Do NOT write any introduction, notes, explanations, quotes, or punctuation.
+Example: Input "Necesito que traigas tus colores azul y rojo para la clase de mañana" -> Output "Mañana clase colores azul rojo traer necesitar"`;
     } else {
       systemPrompt = `You are an expert Colombian Sign Language (LSC) to natural written Spanish translator.
 Your task is to translate CSL glosses (e.g., "YO IR UNIVERSIDAD MAÑANA") into natural, grammatically correct written SPANISH.
