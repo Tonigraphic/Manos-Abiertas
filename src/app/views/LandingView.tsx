@@ -154,8 +154,8 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                onClick={() => handleSelectOption('translator')}
              >
                <motion.div
-                 animate={selectedOption === 'translator' ? { x: [-8, 8, -8, 8, -4, 4, 0] } : {}}
-                 transition={{ duration: 0.35 }}
+                 animate={selectedOption === 'translator' ? { y: [0, -3, 2, -1.5, 1, 0] } : {}}
+                 transition={{ duration: 0.4, ease: "easeInOut" }}
                  className="flex flex-col items-center text-center w-full"
                >
                  <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-primary-100)] text-[var(--color-primary-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -174,8 +174,8 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                onClick={() => handleSelectOption('practice')}
              >
                <motion.div
-                 animate={selectedOption === 'practice' ? { x: [-8, 8, -8, 8, -4, 4, 0] } : {}}
-                 transition={{ duration: 0.35 }}
+                 animate={selectedOption === 'practice' ? { y: [0, -3, 2, -1.5, 1, 0] } : {}}
+                 transition={{ duration: 0.4, ease: "easeInOut" }}
                  className="flex flex-col items-center text-center w-full"
                >
                  <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-accent-100)] text-[var(--color-accent-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -194,8 +194,8 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                onClick={() => handleSelectOption('feedback')}
              >
                <motion.div
-                 animate={selectedOption === 'feedback' ? { x: [-8, 8, -8, 8, -4, 4, 0] } : {}}
-                 transition={{ duration: 0.35 }}
+                 animate={selectedOption === 'feedback' ? { y: [0, -3, 2, -1.5, 1, 0] } : {}}
+                 transition={{ duration: 0.4, ease: "easeInOut" }}
                  className="flex flex-col items-center text-center w-full"
                >
                  <div className="w-10 h-10 md:w-14 md:h-14 bg-[var(--color-success-100)] text-[var(--color-success-600)] rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
