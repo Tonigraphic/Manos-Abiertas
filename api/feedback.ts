@@ -70,7 +70,7 @@ ${text}
       },
       body: JSON.stringify({
         operations: operations,
-        commit_message: `Nueva retroalimentación: ${feedbackType}`,
+        summary: `Nueva retroalimentación: ${feedbackType}`,
       }),
     });
 

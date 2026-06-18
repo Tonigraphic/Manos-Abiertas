@@ -133,7 +133,7 @@ ${feedbackText}
           },
           body: JSON.stringify({
             operations: operations,
-            commit_message: `Nueva retroalimentación cliente: ${feedbackType}`,
+            summary: `Nueva retroalimentación cliente: ${feedbackType}`,
           }),
         });
 
