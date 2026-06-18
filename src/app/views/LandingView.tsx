@@ -55,7 +55,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
                 playsInline
                 crossOrigin="anonymous"
                 className="w-full h-full object-contain"
-                src={resolveVideoUrl('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4')}
+                src="/demo.mp4"
                 onEnded={() => setIsDemoActive(false)}
               />
               <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/95 via-black/40 to-transparent pointer-events-none">
