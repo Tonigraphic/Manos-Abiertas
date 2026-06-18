@@ -36,7 +36,7 @@ export function LandingView({ onNavigate }: LandingViewProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface)] relative overflow-hidden flex flex-col items-center justify-center">
+    <div className="h-[100dvh] w-full bg-[var(--color-surface)] relative overflow-hidden flex flex-col items-center justify-center">
       {/* Decoración de Fondo */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-gradient-to-br from-[var(--color-primary-200)] to-[var(--color-primary-400)] rounded-full blur-3xl opacity-20 transform translate-x-1/3 -translate-y-1/3" />
