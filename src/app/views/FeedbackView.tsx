@@ -63,14 +63,25 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
         const data = await response.json();
         if (data.simulated) {
           console.warn("API simulada en local. Intentando conexión directa a Hugging Face para guardar los datos reales...");
-          throw new Error("Simulated backend, triggering direct HF client fallback");
+          throw { isSimulated: true };
         }
         setIsSubmitted(true);
         return;
       } else {
-        throw new Error("Local API returned error status");
+        const errorData = await response.json().catch(() => ({}));
+        throw { status: response.status, errorData };
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error && error.status) {
+        if (error.status === 403) {
+          alert(`❌ Error 403 (Acceso Denegado): Tu token en Vercel no tiene permisos de escritura en el repositorio de Hugging Face.\n\nPor favor:\n1. Asegúrate de crear el token con rol 'Write' (Escritura) en Hugging Face.\n2. Asegúrate de ser colaborador del repositorio destino.`);
+        } else {
+          alert(`❌ Error del servidor (${error.status}): ${error.errorData?.details || 'Error al procesar sugerencia.'}`);
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
       console.warn("Fallo el backend local o está simulado. Usando fallback cliente de conexión directa a Hugging Face...");
       const token = import.meta.env.VITE_HF_SUGGESTIONS_TOKEN || import.meta.env.VITE_HF_TRANSLATION_TOKEN || import.meta.env.VITE_HF_TOKEN;
       const repoId = import.meta.env.VITE_HF_SUGGESTIONS_REPO || 'manosabiertas/Manos-Abiertas-LSC';
@@ -131,7 +142,11 @@ ${feedbackText}
         } else {
           const errText = await hfRes.text();
           console.error("Hugging Face API direct commit error:", errText);
-          alert(`❌ Error al subir sugerencia a Hugging Face (${hfRes.status}).`);
+          if (hfRes.status === 403) {
+            alert(`❌ Error 403 (Acceso Denegado): Tu token no tiene permisos de escritura en el repositorio "${repoId}".\n\nPor favor:\n1. Asegúrate de crear el token con rol 'Write' (Escritura) en Hugging Face.\n2. Asegúrate de ser colaborador del repositorio "${repoId}". Si usas uno propio, configúralo en tu .env.local como: VITE_HF_SUGGESTIONS_REPO=tu-usuario/tu-repositorio.`);
+          } else {
+            alert(`❌ Error al subir sugerencia a Hugging Face (${hfRes.status}).`);
+          }
         }
       } catch (networkError) {
         console.error("Direct connection to Hugging Face failed:", networkError);

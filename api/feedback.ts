@@ -77,7 +77,11 @@ ${text}
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Hugging Face API Error:", errorText);
-      return res.status(500).json({ error: 'Error subiendo a Hugging Face' });
+      return res.status(response.status).json({ 
+        error: 'Error subiendo a Hugging Face', 
+        status: response.status,
+        details: errorText
+      });
     }
 
     return res.status(200).json({ success: true });
