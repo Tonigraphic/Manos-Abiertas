@@ -48,7 +48,7 @@ Reglas estrictas para la glosa LSC:
 2. Usa una estructura de sujeto-objeto-verbo (SOV) o tiempo-lugar-sujeto-objeto-verbo según aplique.
 3. Los verbos deben ir en infinitivo (ej: "fui" -> "ir").
 4. Elimina la conjugación de género y número cuando no sea estrictamente necesaria.
-5. Devuelve SOLO la glosa final en letras MAYÚSCULAS, sin explicaciones, sin comillas y sin puntuación.`;
+5. Devuelve la glosa final en minúsculas (solo con la primera letra en mayúscula), sin explicaciones, sin comillas y sin puntuación.`;
     } else {
       systemPrompt = `Eres un experto intérprete de Lengua de Señas Colombiana (LSC) a español escrito.
 La entrada será una secuencia de glosas (ej: "YO IR UNIVERSIDAD MAÑANA").
@@ -143,10 +143,8 @@ Ejemplo de salida: Mañana iré a la universidad. | Yo voy a ir a la universidad
       translatedText = data.choices[0]?.message?.content?.trim() || '';
     }
 
-    // Asegurarse de que en modo hearing no haya comillas residuales ni puntuación innecesaria
-    if (mode === 'hearing') {
-       translatedText = translatedText.replace(/['"]/g, '').trim();
-    }
+    // Asegurarse de que no haya comillas, asteriscos ni puntuación innecesaria
+    translatedText = translatedText.replace(/[\*"'“”`]/g, '').trim();
 
     return res.status(200).json({
       success: true,

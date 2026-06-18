@@ -34,6 +34,11 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     try {
       let result = text;
       try {
+        const isLocalDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        if (isLocalDev) {
+          throw new Error("Desarrollo local: Omitiendo backend para evitar error 404 en consola");
+        }
+
         const response = await fetch('/api/translate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -47,9 +52,9 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
         
         const data = await response.json();
         if (data.success === false) throw new Error(data.reason);
-        result = data.translatedText || text;
+        result = (data.translatedText || text).replace(/[\*"'“”`]/g, '').trim();
       } catch (apiError) {
-        console.warn("Fallo el backend local, intentando conexión directa a Hugging Face...");
+        console.warn("Fallo el backend local o desarrollo local detectado, intentando conexión directa a Hugging Face...");
         const token = import.meta.env.VITE_HF_TRANSLATION_TOKEN || import.meta.env.VITE_HF_TOKEN;
         const hfModel = import.meta.env.VITE_HF_TRANSLATION_MODEL || "meta-llama/Meta-Llama-3-8B-Instruct";
         
@@ -109,7 +114,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
 
         const hfData = await hfRes.json();
         if (hfData.choices?.[0]?.message?.content) {
-          result = hfData.choices[0].message.content.trim().replace(/^"|"$/g, '');
+          result = hfData.choices[0].message.content.trim().replace(/^"|"$/g, '').replace(/[\*"'“”`]/g, '');
         }
       }
 
@@ -135,6 +140,11 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
     try {
       let options: string[] = [];
       try {
+        const isLocalDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        if (isLocalDev) {
+          throw new Error("Desarrollo local: Omitiendo backend para evitar error 404 en consola");
+        }
+
         const response = await fetch('/api/translate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -149,10 +159,10 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
         const data = await response.json();
         if (data.success === false) throw new Error(data.reason);
         
-        const rawText = data.translatedText || "";
+        const rawText = (data.translatedText || "").replace(/[\*"'“”`]/g, '');
         options = rawText.split('|').map((s: string) => s.trim()).filter(Boolean);
       } catch (apiError) {
-        console.warn("Fallo el backend local, intentando conexión directa a Hugging Face...");
+        console.warn("Fallo el backend local o desarrollo local detectado, intentando conexión directa a Hugging Face...");
         const token = import.meta.env.VITE_HF_TRANSLATION_TOKEN || import.meta.env.VITE_HF_TOKEN;
         const hfModel = import.meta.env.VITE_HF_TRANSLATION_MODEL || "Qwen/Qwen2.5-72B-Instruct";
         
@@ -212,7 +222,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
 
         const hfData = await hfRes.json();
         if (hfData.choices?.[0]?.message?.content) {
-          const generated = hfData.choices[0].message.content.trim().replace(/^"|"$/g, '');
+          const generated = hfData.choices[0].message.content.trim().replace(/^"|"$/g, '').replace(/[\*"'“”`]/g, '');
           options = generated.split('|').map((s: string) => s.trim()).filter(Boolean);
         }
       }
@@ -466,7 +476,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                 <div className="bg-blue-700 p-6 rounded-[2rem] text-white shadow-xl">
                   <p className="text-[10px] font-black uppercase text-blue-100 mb-2">Estructura LSC (Glosas)</p>
-                  <p className="text-2xl font-black uppercase italic tracking-tighter">{resultLSC}</p>
+                  <p className="text-2xl font-black italic tracking-tighter">{resultLSC}</p>
                 </div>
 
                 {matchedSigns.length > 0 && (
