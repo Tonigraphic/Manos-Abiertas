@@ -37,7 +37,9 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
   const [translatorInput, setTranslatorInput] = useState('');
   const [resultLSC, setResultLSC] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
+  const [selectedSuggestionIdx, setSelectedSuggestionIdx] = useState<number | null>(null);
+  
+  const selectedSuggestion = selectedSuggestionIdx !== null ? suggestions[selectedSuggestionIdx] : null;
   const [matchedSigns, setMatchedSigns] = useState<SignPattern[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
@@ -261,19 +263,20 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
         }
       }
 
-      if (options.length > 0) {
-        setSuggestions(options);
-        setSelectedSuggestion(options[0]);
+      const uniqueOptions = Array.from(new Set(options));
+      if (uniqueOptions.length > 0) {
+        setSuggestions(uniqueOptions);
+        setSelectedSuggestionIdx(0);
       } else {
         const localFallback = translateLSCtoSpanish(text);
         setSuggestions([localFallback]);
-        setSelectedSuggestion(localFallback);
+        setSelectedSuggestionIdx(0);
       }
     } catch (error) {
       console.error(error);
       const localFallback = translateLSCtoSpanish(text);
       setSuggestions([localFallback]);
-      setSelectedSuggestion(localFallback);
+      setSelectedSuggestionIdx(0);
     } finally {
       setIsTranslating(false);
     }
@@ -458,7 +461,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
             </div>
           ) : (
             <>
-            <Button variant="ghost" size="sm" onClick={() => { setUserRole(null); setTranslatorInput(''); setResultLSC(''); setSuggestions([]); }} className="mb-2 text-neutral-700">
+            <Button variant="ghost" size="sm" onClick={() => { setUserRole(null); setTranslatorInput(''); setResultLSC(''); setSuggestions([]); setSelectedSuggestionIdx(null); }} className="mb-2 text-neutral-700">
               ← Cambiar de perfil
             </Button>
 
@@ -545,11 +548,11 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                     <motion.div
                       key={idx}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => setSelectedSuggestion(opt)}
-                      className={`p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all flex items-center justify-between gap-4 ${selectedSuggestion === opt ? 'border-orange-500 bg-orange-50 shadow-md' : 'border-white bg-white hover:border-neutral-200 shadow-sm'}`}
+                      onClick={() => setSelectedSuggestionIdx(idx)}
+                      className={`p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all flex items-center justify-between gap-4 ${selectedSuggestionIdx === idx ? 'border-orange-500 bg-orange-50 shadow-md' : 'border-white bg-white hover:border-neutral-200 shadow-sm'}`}
                     >
-                      <p className={`text-base font-bold flex-1 text-left ${selectedSuggestion === opt ? 'text-orange-900' : 'text-neutral-700'}`}>{opt}</p>
-                      {selectedSuggestion === opt && (
+                      <p className={`text-base font-bold flex-1 text-left ${selectedSuggestionIdx === idx ? 'text-orange-900' : 'text-neutral-700'}`}>{opt}</p>
+                      {selectedSuggestionIdx === idx && (
                         <div className="flex items-center gap-3 shrink-0">
                           <button
                             onClick={(e) => {
