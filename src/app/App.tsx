@@ -11,11 +11,8 @@ import { MaintenanceView } from './views/MaintenanceView';
 type View = 'home' | 'translator' | 'assistant' | 'practice' | 'dictionary' | 'feedback';
 
 export default function App() {
-  const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
-
-  if (isMaintenance) {
-    return <MaintenanceView />;
-  }
+  // Retornar incondicionalmente el MaintenanceView para asegurar que la página se oculte de inmediato
+  return <MaintenanceView />;
 
   const [currentView, setCurrentView] = useState<View>('home');
 
