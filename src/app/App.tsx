@@ -6,10 +6,17 @@ import { PracticeView } from './views/PracticeView';
 import { DictionaryView } from './views/DictionaryView';
 import { TranslatorView } from './views/TranslatorView';
 import { FeedbackView } from './views/FeedbackView';
+import { MaintenanceView } from './views/MaintenanceView';
 
 type View = 'home' | 'translator' | 'assistant' | 'practice' | 'dictionary' | 'feedback';
 
 export default function App() {
+  const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
+
+  if (isMaintenance) {
+    return <MaintenanceView />;
+  }
+
   const [currentView, setCurrentView] = useState<View>('home');
 
   const renderView = () => {

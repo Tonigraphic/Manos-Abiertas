@@ -86,7 +86,13 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`https://huggingface.co/api/models/${suggestionsRepo}/tree/main/sugerencias`, { headers });
+      const response = await fetch(`https://huggingface.co/api/models/${suggestionsRepo}/tree/main/sugerencias?t=${Date.now()}`, { 
+        headers: {
+          ...headers,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       if (!response.ok) {
         throw new Error('No se pudo obtener la lista de sugerencias.');
       }
@@ -98,14 +104,26 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
           .map(async (folder: any) => {
             try {
               // 1. Obtener archivos dentro del directorio
-              const filesRes = await fetch(`https://huggingface.co/api/models/${suggestionsRepo}/tree/main/${folder.path}`, { headers });
+              const filesRes = await fetch(`https://huggingface.co/api/models/${suggestionsRepo}/tree/main/${folder.path}?t=${Date.now()}`, {
+                headers: {
+                  ...headers,
+                  'Cache-Control': 'no-cache',
+                  'Pragma': 'no-cache'
+                }
+              });
               if (!filesRes.ok) return null;
               const files = await filesRes.json();
-                             const jsonFile = files.find((file: any) => file.path.endsWith('reporte.json'));
+              const jsonFile = files.find((file: any) => file.path.endsWith('reporte.json'));
               const txtFile = files.find((file: any) => file.path.endsWith('reporte.txt'));
               
               if (jsonFile) {
-                const rawRes = await fetch(`https://huggingface.co/${suggestionsRepo}/raw/main/${jsonFile.path}`, { headers });
+                const rawRes = await fetch(`https://huggingface.co/${suggestionsRepo}/raw/main/${jsonFile.path}?t=${Date.now()}`, {
+                  headers: {
+                    ...headers,
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                  }
+                });
                 if (!rawRes.ok) return null;
                 const data = await rawRes.json();
                 return {
@@ -120,7 +138,13 @@ export function FeedbackView({ onNavigateHome }: FeedbackViewProps = {}) {
                   date: getReadableDate(folder.path)
                 };
               } else if (txtFile) {
-                const rawRes = await fetch(`https://huggingface.co/${suggestionsRepo}/raw/main/${txtFile.path}`, { headers });
+                const rawRes = await fetch(`https://huggingface.co/${suggestionsRepo}/raw/main/${txtFile.path}?t=${Date.now()}`, {
+                  headers: {
+                    ...headers,
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                  }
+                });
                 if (!rawRes.ok) return null;
                 const text = await rawRes.text();
                 
