@@ -12,17 +12,6 @@ export function MaintenanceView() {
       </div>
 
       <div className="relative z-10 w-full max-w-2xl mx-auto flex flex-col items-center justify-center text-center space-y-8">
-        {/* Animated Badge */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-full text-xs font-black uppercase tracking-wider shadow-sm"
-        >
-          <Lock className="w-3.5 h-3.5" />
-          <span>Acceso Temporalmente Oculto</span>
-        </motion.div>
-
         {/* LOGO */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -55,7 +44,7 @@ export function MaintenanceView() {
               Estamos en mantenimiento
             </h1>
             <p className="text-sm text-neutral-500 font-medium">
-              Volveremos pronto. Estamos actualizando la plataforma y registrando los derechos de autor para brindarte la mejor experiencia segura.
+              Volveremos pronto. Estamos realizando algunas mejoras para brindarte la mejor experiencia.
             </p>
           </div>
 
