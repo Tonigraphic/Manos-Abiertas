@@ -51,11 +51,11 @@ export function MaintenanceView() {
           <div className="border-t border-neutral-100 pt-6 flex flex-col items-center gap-2">
             <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Contacto</span>
             <a
-              href="mailto:contacto@manosabiertas.co"
+              href="mailto:javierbenavidesjurado@gmail.com"
               className="inline-flex items-center gap-2 text-sm font-black text-blue-600 hover:text-blue-700 transition-colors"
             >
               <Mail className="w-4 h-4" />
-              contacto@manosabiertas.co
+              javierbenavidesjurado@gmail.com
             </a>
           </div>
         </motion.div>

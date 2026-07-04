@@ -11,8 +11,12 @@ import { MaintenanceView } from './views/MaintenanceView';
 type View = 'home' | 'translator' | 'assistant' | 'practice' | 'dictionary' | 'feedback';
 
 export default function App() {
-  // Retornar incondicionalmente el MaintenanceView para asegurar que la página se oculte de inmediato
-  return <MaintenanceView />;
+  // Para activar/desactivar el mantenimiento, cambia la variable VITE_MAINTENANCE_MODE en tu .env o Vercel
+  const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
+
+  if (isMaintenance) {
+    return <MaintenanceView />;
+  }
 
   const [currentView, setCurrentView] = useState<View>('home');
 
