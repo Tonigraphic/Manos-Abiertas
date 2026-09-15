@@ -55,7 +55,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
 
   // Background Filter State: 'none' | 'chroma_green' | 'chroma_blue' | 'segmentation'
   const [bgFilter, setBgFilter] = useState<BgFilterMode>('none');
-  const [chromaSensitivity, setChromaSensitivity] = useState<number>(35);
+  const [chromaSensitivity, setChromaSensitivity] = useState<number>(40);
 
   // Status map stored in localStorage
   const [progressMap, setProgressMap] = useState<Record<string, { status: 'recorded' | 'uploaded'; base64?: string; hfUrl?: string; timestamp?: string; duration?: number }>>(() => {
@@ -85,6 +85,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
   const [recordedDuration, setRecordedDuration] = useState<number>(0);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordedBase64, setRecordedBase64] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string>('Enciende la cámara para comenzar');
@@ -144,14 +145,14 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
     }
   }, [approvedMap]);
 
-  // Draw camera frame + background filter + hand landmarks overlay
+  // Render video frame on canvas + background filter + hand landmarks
   const renderCanvasFrame = useCallback((results?: Results) => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
     
     if (!canvas || !video || video.readyState < 2 || video.videoWidth === 0) return;
 
-    if (canvas.width !== video.videoWidth) {
+    if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
     }
@@ -162,32 +163,31 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
     const w = canvas.width;
     const h = canvas.height;
 
-    // Save context state
     ctx.save();
     
-    // Mirror horizontal for natural webcam experience
+    // Mirror horizontal for natural webcam view
     ctx.translate(w, 0);
     ctx.scale(-1, 1);
 
     if (bgFilter === 'none') {
-      // Draw normal video frame
       ctx.drawImage(video, 0, 0, w, h);
-    } else if (bgFilter === 'segmentation' && results?.segmentationMask) {
-      // White background using MediaPipe Holistic segmentation mask
+    } else if (bgFilter === 'segmentation') {
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, w, h);
 
-      // Draw person using segmentation mask
-      ctx.drawImage(results.segmentationMask, 0, 0, w, h);
-      ctx.globalCompositeOperation = 'source-in';
-      ctx.drawImage(video, 0, 0, w, h);
-      ctx.globalCompositeOperation = 'source-over';
+      if (results?.segmentationMask) {
+        ctx.drawImage(results.segmentationMask, 0, 0, w, h);
+        ctx.globalCompositeOperation = 'source-in';
+        ctx.drawImage(video, 0, 0, w, h);
+        ctx.globalCompositeOperation = 'source-over';
+      } else {
+        ctx.drawImage(video, 0, 0, w, h);
+      }
     } else if (bgFilter === 'chroma_green' || bgFilter === 'chroma_blue') {
-      // Chroma Key filter (Green Screen / Blue Screen -> Pure White)
       ctx.drawImage(video, 0, 0, w, h);
       const imgData = ctx.getImageData(0, 0, w, h);
       const data = imgData.data;
-      const sens = chromaSensitivity / 100;
+      const sensFactor = (100 - chromaSensitivity) / 100;
 
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i];
@@ -196,17 +196,15 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
 
         let isKeyColor = false;
         if (bgFilter === 'chroma_green') {
-          // Green Key Condition
-          isKeyColor = (g > 70 && g > r * (1.1 + sens * 0.3) && g > b * (1.1 + sens * 0.3));
+          isKeyColor = (g > 45 && g > r * (1.05 + sensFactor * 0.25) && g > b * (1.05 + sensFactor * 0.25));
         } else if (bgFilter === 'chroma_blue') {
-          // Blue Key Condition
-          isKeyColor = (b > 70 && b > r * (1.1 + sens * 0.3) && b > g * (1.1 + sens * 0.3));
+          isKeyColor = (b > 45 && b > r * (1.05 + sensFactor * 0.25) && b > g * (1.05 + sensFactor * 0.25));
         }
 
         if (isKeyColor) {
-          data[i] = 255;     // Red -> White
-          data[i + 1] = 255; // Green -> White
-          data[i + 2] = 255; // Blue -> White
+          data[i] = 255;     // R -> White
+          data[i + 1] = 255; // G -> White
+          data[i + 2] = 255; // B -> White
         }
       }
       ctx.putImageData(imgData, 0, 0);
@@ -254,7 +252,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
         noHandsCounterRef.current = 0;
         
         // If not recording, automatically start recording!
-        if (!isRecordingRef.current && !recordedBase64) {
+        if (!isRecordingRef.current && !previewUrl && !recordedBase64) {
           triggerAutoStartRecording();
         }
       } else {
@@ -268,7 +266,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
         }
       }
     }
-  }, [renderCanvasFrame, recordMode, recordedBase64]);
+  }, [renderCanvasFrame, recordMode, previewUrl, recordedBase64]);
 
   // MediaPipe frame loop
   useEffect(() => {
@@ -284,7 +282,6 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
           handDetectionService.onResults(handleMediaPipeResults);
           await handDetectionService.detectHands(videoRef.current);
         } catch (e) {
-          // Fallback render if holistic detection is pending
           renderCanvasFrame();
         }
       } else if (stream && videoRef.current) {
@@ -322,7 +319,6 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
       });
       setStream(s);
 
-      // Attach stream to videoRef
       if (videoRef.current) {
         videoRef.current.srcObject = s;
         videoRef.current.play().catch(e => console.warn(e));
@@ -373,15 +369,9 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
       mimeType = 'video/mp4';
     }
 
-    // If background filter is applied or canvas is available, record directly from canvasStream!
+    // Capture stream from Canvas to preserve white background / chroma filter
     let recordStream: MediaStream = stream!;
-    if (canvasRef.current && bgFilter !== 'none') {
-      try {
-        recordStream = (canvasRef.current as any).captureStream(30);
-      } catch (e) {
-        recordStream = stream!;
-      }
-    } else if (canvasRef.current) {
+    if (canvasRef.current) {
       try {
         recordStream = (canvasRef.current as any).captureStream(30);
       } catch (e) {
@@ -407,7 +397,11 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
       const blob = new Blob(chunksRef.current, { type: mimeType });
       setRecordedBlob(blob);
 
-      // Convert to base64
+      // Instant preview URL using ObjectURL
+      const objUrl = URL.createObjectURL(blob);
+      setPreviewUrl(objUrl);
+
+      // Convert to base64 for upload
       const reader = new FileReader();
       reader.onloadend = () => {
         const b64 = reader.result as string;
@@ -458,6 +452,10 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
   };
 
   const retakeRecording = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
     setRecordedBlob(null);
     setRecordedBase64(null);
     setUploadSuccess(false);
@@ -470,7 +468,11 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
   };
 
   const handleUploadToHuggingFace = async () => {
-    if (!currentItem || !recordedBase64) return;
+    const b64 = recordedBase64 || progressMap[currentItem?.label]?.base64;
+    if (!currentItem || !b64) {
+      alert("No hay video grabado para esta seña.");
+      return;
+    }
 
     setIsUploading(true);
     const token = import.meta.env.VITE_HF_SUGGESTIONS_TOKEN || import.meta.env.VITE_HF_TRANSLATION_TOKEN || import.meta.env.VITE_HF_TOKEN;
@@ -483,7 +485,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
         body: JSON.stringify({
           word: currentItem.label,
           category: currentItem.category,
-          videoBase64: recordedBase64,
+          videoBase64: b64,
           fileName: `${currentItem.label.toUpperCase()}.webm`
         })
       });
@@ -528,7 +530,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
               recordedBy: 'Valentina Mora',
               duration: recordedDuration,
               recordedAt: new Date().toISOString(),
-              videoBase64: recordedBase64
+              videoBase64: b64
             }, null, 2)
           }
         }
@@ -552,7 +554,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
             ...prev,
             [currentItem.label]: {
               status: 'uploaded',
-              base64: recordedBase64,
+              base64: b64,
               hfUrl: computedUrl,
               duration: recordedDuration,
               timestamp: new Date().toISOString()
@@ -612,6 +614,8 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
   const recordedCount = Object.values(progressMap).filter(v => v.status === 'recorded' || v.status === 'uploaded').length;
   const uploadedCount = Object.values(progressMap).filter(v => v.status === 'uploaded').length;
   const progressPercent = Math.round((recordedCount / (totalCount || 1)) * 100);
+
+  const hasCurrentRecording = !!(previewUrl || recordedBase64 || progressMap[currentItem?.label]?.base64);
 
   return (
     <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-slate-900 text-slate-100">
@@ -861,19 +865,28 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
               {/* Mensaje de Estado / Guía */}
               <div className="bg-purple-950/40 border border-purple-500/30 text-purple-200 px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-between mb-2">
                 <span>{statusMessage}</span>
-                {isHandsDetected && stream && !recordedBase64 && (
+                {isHandsDetected && stream && !hasCurrentRecording && (
                   <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 animate-pulse">
                     ✓ Manos en encuadre
                   </span>
                 )}
               </div>
 
-              {/* AREA DEL VIEWPORT (CÁMARA Y CANVAS EN TIEMPO REAL) */}
-              <div className="relative flex-1 bg-black rounded-3xl overflow-hidden border-2 border-slate-700 flex items-center justify-center min-h-[320px]">
+              {/* AREA DEL VIEWPORT (CÁMARA Y CANVAS EN TIEMPO REAL / PREVIEW) */}
+              <div className="relative flex-1 bg-black rounded-3xl overflow-hidden border-2 border-slate-700 flex items-center justify-center min-h-[340px]">
                 
+                {/* Elemento Video Oculto fuera de pantalla para mantener la decodificación de la webcam a 30fps */}
+                <video 
+                  ref={videoRef}
+                  autoPlay 
+                  muted 
+                  playsInline 
+                  style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0.001, pointerEvents: 'none', top: '-9999px', left: '-9999px' }}
+                />
+
                 {/* Indicador superior durante la grabación */}
                 {isRecording && (
-                  <div className="absolute top-0 left-0 right-0 z-20 p-4 bg-gradient-to-b from-black/80 to-transparent">
+                  <div className="absolute top-0 left-0 right-0 z-30 p-4 bg-gradient-to-b from-black/80 to-transparent">
                     <div className="flex items-center justify-between text-xs font-bold text-white mb-1">
                       <span className="flex items-center gap-2 text-red-400 animate-pulse">
                         <span className="w-3 h-3 rounded-full bg-red-500" /> GRABANDO SEÑA...
@@ -891,30 +904,28 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                   </div>
                 )}
 
-                {/* Previsualización del video grabado */}
-                {recordedBase64 ? (
-                  <div className="relative w-full h-full flex flex-col items-center justify-center bg-black">
+                {/* PREVISUALIZACIÓN DEL VIDEO GRABADO (REPETIR O ACEPTAR/SUBIR) */}
+                {hasCurrentRecording ? (
+                  <div className="relative w-full h-full flex flex-col items-center justify-center bg-slate-950 p-2 rounded-2xl z-20">
                     <video 
-                      src={recordedBase64} 
+                      src={previewUrl || recordedBase64 || progressMap[currentItem?.label]?.base64 || ''} 
                       autoPlay 
                       loop 
                       controls 
-                      className="max-h-[320px] w-auto rounded-2xl object-contain" 
+                      playsInline
+                      className="max-h-[320px] w-full rounded-2xl object-contain bg-black border border-slate-700 shadow-2xl" 
                     />
-                    <div className="absolute top-3 left-3 bg-emerald-600/90 text-white text-xs px-3 py-1 rounded-full font-bold shadow-lg flex items-center gap-1">
-                      <CheckCircle2 size={14} /> Duración: {recordedDuration} segundos
+                    <div className="mt-2 flex items-center justify-between w-full px-3">
+                      <span className="text-emerald-400 text-xs font-bold flex items-center gap-1 bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-500/30">
+                        <CheckCircle2 size={14} /> Duración de seña: {recordedDuration || progressMap[currentItem?.label]?.duration || '2.5'}s
+                      </span>
+                      <span className="text-slate-400 text-xs font-medium hidden sm:inline">
+                        Previsualiza tu video antes de subirlo
+                      </span>
                     </div>
                   </div>
                 ) : stream ? (
                   <div className="relative w-full h-full flex items-center justify-center bg-black">
-                    {/* Elemento Video Oculto/Interno para alimentar la cámara */}
-                    <video 
-                      ref={videoRef}
-                      autoPlay 
-                      muted 
-                      playsInline 
-                      className="hidden" 
-                    />
                     {/* Canvas principal que renderiza la cámara en tiempo real + Filtro Croma/Fondo Blanco */}
                     <canvas 
                       ref={canvasRef}
@@ -935,22 +946,22 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                 )}
               </div>
 
-              {/* Botones de Control de Grabación */}
+              {/* Botones de Control de Grabación / Previsualización */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-700">
-                {recordedBase64 ? (
-                  <>
+                {hasCurrentRecording ? (
+                  <div className="w-full flex flex-col sm:flex-row gap-3">
                     <Button 
                       onClick={retakeRecording} 
                       variant="outline" 
-                      className="bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700 font-bold rounded-2xl"
+                      className="flex-1 bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700 font-bold py-3 rounded-2xl flex items-center justify-center gap-2"
                     >
-                      <RefreshCw size={18} className="mr-2" /> Volver a Grabar
+                      <RefreshCw size={18} /> Volver a Grabar (Repetir)
                     </Button>
 
                     <Button 
                       onClick={handleUploadToHuggingFace} 
                       disabled={isUploading || uploadSuccess}
-                      className={`font-bold px-6 py-3 rounded-2xl text-white shadow-lg transition-all ${
+                      className={`flex-1 font-bold py-3 rounded-2xl text-white shadow-lg flex items-center justify-center gap-2 transition-all ${
                         uploadSuccess 
                           ? 'bg-emerald-600 hover:bg-emerald-500' 
                           : 'bg-purple-600 hover:bg-purple-500 shadow-purple-500/30'
@@ -959,12 +970,12 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                       {isUploading ? (
                         <>Subiendo a Hugging Face...</>
                       ) : uploadSuccess ? (
-                        <><CheckCircle2 size={20} className="mr-2" /> ¡Subido con Éxito!</>
+                        <><CheckCircle2 size={20} /> ¡Subido con Éxito!</>
                       ) : (
-                        <><UploadCloud size={20} className="mr-2" /> Subir a Hugging Face</>
+                        <><UploadCloud size={20} /> Subir a Hugging Face</>
                       )}
                     </Button>
-                  </>
+                  </div>
                 ) : isRecording ? (
                   <Button 
                     onClick={stopRecording} 
