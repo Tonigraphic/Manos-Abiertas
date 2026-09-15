@@ -4,7 +4,7 @@ import { Button } from '../components/lsc/Button';
 import { Badge } from '../components/lsc/Badge';
 import { 
   Video, Camera, Play, CheckCircle2, AlertCircle, RefreshCw, UploadCloud, 
-  ChevronLeft, ChevronRight, Search, Sparkles, Eye, Download, ShieldCheck, Heart, Hand, Sliders
+  ChevronLeft, ChevronRight, Search, Sparkles, Eye, Download, ShieldCheck, Heart, Hand, Sliders, Palette
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LSC_VOCABULARY } from '../../lib/lscData';
@@ -20,6 +20,8 @@ interface VocabularyItem {
 interface ValentinaRecorderViewProps {
   onNavigateHome?: () => void;
 }
+
+type BgFilterMode = 'none' | 'chroma_green' | 'chroma_blue' | 'segmentation';
 
 const STORAGE_KEY_PROGRESS = 'valentina_recordings_progress';
 const STORAGE_KEY_APPROVED = 'valentina_approved_videos';
@@ -50,6 +52,10 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
 
   // Auto vs Manual Mode
   const [recordMode, setRecordMode] = useState<'auto' | 'manual'>('auto');
+
+  // Background Filter State: 'none' | 'chroma_green' | 'chroma_blue' | 'segmentation'
+  const [bgFilter, setBgFilter] = useState<BgFilterMode>('none');
+  const [chromaSensitivity, setChromaSensitivity] = useState<number>(35);
 
   // Status map stored in localStorage
   const [progressMap, setProgressMap] = useState<Record<string, { status: 'recorded' | 'uploaded'; base64?: string; hfUrl?: string; timestamp?: string; duration?: number }>>(() => {
@@ -102,6 +108,14 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
     isRecordingRef.current = isRecording;
   }, [isRecording]);
 
+  // Ensure camera stream is assigned to video element immediately
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(e => console.warn("Error reproduciendo stream en video element:", e));
+    }
+  }, [stream]);
+
   // Filtered vocabulary items
   const filteredVocab = allVocabItems.current.filter(item => {
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
@@ -130,46 +144,102 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
     }
   }, [approvedMap]);
 
-  // Draw hand landmarks overlay
-  const drawLandmarks = useCallback((ctx: CanvasRenderingContext2D, results: Results, w: number, h: number) => {
-    ctx.clearRect(0, 0, w, h);
-
-    // Left hand - purple
-    if (results.leftHandLandmarks) {
-      ctx.fillStyle = '#a855f7';
-      for (const p of results.leftHandLandmarks) {
-        ctx.beginPath();
-        ctx.arc((1 - p.x) * w, p.y * h, 5, 0, 2 * Math.PI);
-        ctx.fill();
-      }
-    }
-
-    // Right hand - purple
-    if (results.rightHandLandmarks) {
-      ctx.fillStyle = '#a855f7';
-      for (const p of results.rightHandLandmarks) {
-        ctx.beginPath();
-        ctx.arc((1 - p.x) * w, p.y * h, 5, 0, 2 * Math.PI);
-        ctx.fill();
-      }
-    }
-  }, []);
-
-  // Handle MediaPipe Results callback
-  const handleMediaPipeResults = useCallback((results: Results) => {
+  // Draw camera frame + background filter + hand landmarks overlay
+  const renderCanvasFrame = useCallback((results?: Results) => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
     
-    if (canvas && video && video.videoWidth > 0) {
-      if (canvas.width !== video.videoWidth) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+    if (!canvas || !video || video.readyState < 2 || video.videoWidth === 0) return;
+
+    if (canvas.width !== video.videoWidth) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    }
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // Save context state
+    ctx.save();
+    
+    // Mirror horizontal for natural webcam experience
+    ctx.translate(w, 0);
+    ctx.scale(-1, 1);
+
+    if (bgFilter === 'none') {
+      // Draw normal video frame
+      ctx.drawImage(video, 0, 0, w, h);
+    } else if (bgFilter === 'segmentation' && results?.segmentationMask) {
+      // White background using MediaPipe Holistic segmentation mask
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw person using segmentation mask
+      ctx.drawImage(results.segmentationMask, 0, 0, w, h);
+      ctx.globalCompositeOperation = 'source-in';
+      ctx.drawImage(video, 0, 0, w, h);
+      ctx.globalCompositeOperation = 'source-over';
+    } else if (bgFilter === 'chroma_green' || bgFilter === 'chroma_blue') {
+      // Chroma Key filter (Green Screen / Blue Screen -> Pure White)
+      ctx.drawImage(video, 0, 0, w, h);
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+      const sens = chromaSensitivity / 100;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        let isKeyColor = false;
+        if (bgFilter === 'chroma_green') {
+          // Green Key Condition
+          isKeyColor = (g > 70 && g > r * (1.1 + sens * 0.3) && g > b * (1.1 + sens * 0.3));
+        } else if (bgFilter === 'chroma_blue') {
+          // Blue Key Condition
+          isKeyColor = (b > 70 && b > r * (1.1 + sens * 0.3) && b > g * (1.1 + sens * 0.3));
+        }
+
+        if (isKeyColor) {
+          data[i] = 255;     // Red -> White
+          data[i + 1] = 255; // Green -> White
+          data[i + 2] = 255; // Blue -> White
+        }
       }
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        drawLandmarks(ctx, results, canvas.width, canvas.height);
+      ctx.putImageData(imgData, 0, 0);
+    } else {
+      ctx.drawImage(video, 0, 0, w, h);
+    }
+
+    // Draw hand landmarks (mirrored coordinates)
+    if (results) {
+      if (results.leftHandLandmarks) {
+        ctx.fillStyle = '#a855f7';
+        for (const p of results.leftHandLandmarks) {
+          ctx.beginPath();
+          ctx.arc(p.x * w, p.y * h, 5, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      }
+      if (results.rightHandLandmarks) {
+        ctx.fillStyle = '#a855f7';
+        for (const p of results.rightHandLandmarks) {
+          ctx.beginPath();
+          ctx.arc(p.x * w, p.y * h, 5, 0, 2 * Math.PI);
+          ctx.fill();
+        }
       }
     }
+
+    ctx.restore();
+  }, [bgFilter, chromaSensitivity]);
+
+  // Handle MediaPipe Results callback
+  const handleMediaPipeResults = useCallback((results: Results) => {
+    renderCanvasFrame(results);
 
     const hasLeft = !!results.leftHandLandmarks && results.leftHandLandmarks.length > 0;
     const hasRight = !!results.rightHandLandmarks && results.rightHandLandmarks.length > 0;
@@ -198,7 +268,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
         }
       }
     }
-  }, [drawLandmarks, recordMode, recordedBase64]);
+  }, [renderCanvasFrame, recordMode, recordedBase64]);
 
   // MediaPipe frame loop
   useEffect(() => {
@@ -210,15 +280,17 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
         try {
           if (!handDetectionService.initialized) {
             await handDetectionService.initialize();
-            handDetectionService.onResults(handleMediaPipeResults);
-          } else {
-            handDetectionService.onResults(handleMediaPipeResults);
           }
+          handDetectionService.onResults(handleMediaPipeResults);
           await handDetectionService.detectHands(videoRef.current);
         } catch (e) {
-          console.warn("Hand detection error:", e);
+          // Fallback render if holistic detection is pending
+          renderCanvasFrame();
         }
+      } else if (stream && videoRef.current) {
+        renderCanvasFrame();
       }
+
       if (isRunning) {
         animFrameRef.current = requestAnimationFrame(runDetectionLoop);
       }
@@ -234,7 +306,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
         cancelAnimationFrame(animFrameRef.current);
       }
     };
-  }, [stream, handleMediaPipeResults]);
+  }, [stream, handleMediaPipeResults, renderCanvasFrame]);
 
   // Clean up on unmount
   useEffect(() => {
@@ -249,6 +321,13 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
         video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } 
       });
       setStream(s);
+
+      // Attach stream to videoRef
+      if (videoRef.current) {
+        videoRef.current.srcObject = s;
+        videoRef.current.play().catch(e => console.warn(e));
+      }
+
       setStatusMessage(
         recordMode === 'auto' 
           ? '🖐️ Detección activa: Levanta las manos al encuadre para empezar a grabar.' 
@@ -284,7 +363,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
   };
 
   const executeRecording = () => {
-    if (!stream) return;
+    if (!stream && !canvasRef.current) return;
     chunksRef.current = [];
 
     let mimeType = 'video/webm';
@@ -294,7 +373,23 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
       mimeType = 'video/mp4';
     }
 
-    const mediaRecorder = new MediaRecorder(stream, { mimeType });
+    // If background filter is applied or canvas is available, record directly from canvasStream!
+    let recordStream: MediaStream = stream!;
+    if (canvasRef.current && bgFilter !== 'none') {
+      try {
+        recordStream = (canvasRef.current as any).captureStream(30);
+      } catch (e) {
+        recordStream = stream!;
+      }
+    } else if (canvasRef.current) {
+      try {
+        recordStream = (canvasRef.current as any).captureStream(30);
+      } catch (e) {
+        recordStream = stream!;
+      }
+    }
+
+    const mediaRecorder = new MediaRecorder(recordStream, { mimeType });
 
     mediaRecorder.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) {
@@ -534,7 +629,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                 <Badge variant="accent">Señas LSC</Badge>
               </div>
               <p className="text-xs sm:text-sm text-slate-400 font-medium">
-                Detección inteligente: Inicia al subir las manos y finaliza al bajarlas (máx 6s).
+                Detección inteligente de manos & Filtro de Fondo Blanco (Croma Key / IA).
               </p>
             </div>
           </div>
@@ -597,7 +692,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
             {/* Columna Izquierda: Lista de Vocabulario y Filtros */}
-            <div className="lg:col-span-4 bg-slate-800 rounded-3xl p-4 border border-slate-700 flex flex-col h-[580px]">
+            <div className="lg:col-span-4 bg-slate-800 rounded-3xl p-4 border border-slate-700 flex flex-col h-[620px]">
               <div className="mb-3 space-y-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 text-slate-400" size={18} />
@@ -667,11 +762,11 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
               </div>
             </div>
 
-            {/* Columna Derecha: Grabador de Video & Detección por Manos */}
-            <div className="lg:col-span-8 bg-slate-800 rounded-3xl p-6 border border-slate-700 flex flex-col justify-between min-h-[580px]">
+            {/* Columna Derecha: Grabador de Video & Viewport con Filtros */}
+            <div className="lg:col-span-8 bg-slate-800 rounded-3xl p-6 border border-slate-700 flex flex-col justify-between min-h-[620px]">
               
               {/* Header de la Seña Actual y Controles de Navegación */}
-              <div className="flex items-center justify-between pb-4 border-b border-slate-700">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-700">
                 <div>
                   <span className="text-xs text-purple-400 font-bold uppercase tracking-widest">{currentItem?.category}</span>
                   <h2 className="text-3xl font-extrabold text-white mt-0.5 tracking-wider">{currentItem?.label}</h2>
@@ -702,32 +797,66 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                 </div>
               </div>
 
-              {/* Selector de Modo de Grabación */}
-              <div className="flex items-center justify-between bg-slate-900/80 p-3 rounded-2xl my-2 border border-slate-700">
-                <div className="flex items-center gap-2">
-                  <Hand className="text-purple-400" size={20} />
-                  <span className="text-xs font-bold text-slate-200">Modo de Grabación:</span>
+              {/* Panel de Controles: Modo y Filtro de Fondo Blanco / Croma */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-900/80 p-3 rounded-2xl my-2 border border-slate-700">
+                {/* Selector de Modo */}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <Hand size={16} className="text-purple-400" /> Detección:
+                  </span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setRecordMode('auto')}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
+                        recordMode === 'auto' ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      🖐️ Auto
+                    </button>
+                    <button
+                      onClick={() => setRecordMode('manual')}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
+                        recordMode === 'manual' ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      👆 Botón
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setRecordMode('auto')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      recordMode === 'auto' ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:text-white'
-                    }`}
+                {/* Selector de Filtro de Fondo Blanco */}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <Palette size={16} className="text-emerald-400" /> Fondo Blanco:
+                  </span>
+                  <select
+                    value={bgFilter}
+                    onChange={(e) => setBgFilter(e.target.value as BgFilterMode)}
+                    className="bg-slate-800 text-white text-xs font-bold px-2.5 py-1 rounded-xl border border-slate-700 focus:outline-none focus:border-purple-500"
                   >
-                    🖐️ Auto (Por Manos)
-                  </button>
-                  <button
-                    onClick={() => setRecordMode('manual')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      recordMode === 'manual' ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    👆 Manual (Botón)
-                  </button>
+                    <option value="none">📷 Original (Sin Filtro)</option>
+                    <option value="chroma_green">🟩 Croma Verde → Blanco</option>
+                    <option value="chroma_blue">🟦 Croma Azul → Blanco</option>
+                    <option value="segmentation">🤖 Silueta IA → Blanco</option>
+                  </select>
                 </div>
               </div>
+
+              {/* Ajuste de Sensibilidad Croma Key cuando está activo */}
+              {(bgFilter === 'chroma_green' || bgFilter === 'chroma_blue') && (
+                <div className="flex items-center gap-3 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-700/60 mb-2">
+                  <span className="text-[11px] font-bold text-slate-300">Sensibilidad Croma:</span>
+                  <input 
+                    type="range" 
+                    min="10" 
+                    max="80" 
+                    value={chromaSensitivity} 
+                    onChange={(e) => setChromaSensitivity(Number(e.target.value))}
+                    className="flex-1 accent-purple-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer"
+                  />
+                  <span className="text-[11px] font-mono font-bold text-purple-400">{chromaSensitivity}%</span>
+                </div>
+              )}
 
               {/* Mensaje de Estado / Guía */}
               <div className="bg-purple-950/40 border border-purple-500/30 text-purple-200 px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-between mb-2">
@@ -739,7 +868,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                 )}
               </div>
 
-              {/* Área de Visualización, Cámara y Canvas de Manos */}
+              {/* AREA DEL VIEWPORT (CÁMARA Y CANVAS EN TIEMPO REAL) */}
               <div className="relative flex-1 bg-black rounded-3xl overflow-hidden border-2 border-slate-700 flex items-center justify-center min-h-[320px]">
                 
                 {/* Indicador superior durante la grabación */}
@@ -777,19 +906,19 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                     </div>
                   </div>
                 ) : stream ? (
-                  <div className="relative w-full h-full">
-                    {/* Video element */}
+                  <div className="relative w-full h-full flex items-center justify-center bg-black">
+                    {/* Elemento Video Oculto/Interno para alimentar la cámara */}
                     <video 
                       ref={videoRef}
                       autoPlay 
                       muted 
                       playsInline 
-                      className="w-full h-full object-cover transform -scale-x-100" 
+                      className="hidden" 
                     />
-                    {/* Canvas overlay for MediaPipe hands */}
+                    {/* Canvas principal que renderiza la cámara en tiempo real + Filtro Croma/Fondo Blanco */}
                     <canvas 
                       ref={canvasRef}
-                      className="absolute inset-0 w-full h-full pointer-events-none"
+                      className="w-full h-full object-contain max-h-[340px]"
                     />
                   </div>
                 ) : (
@@ -797,7 +926,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                     <Camera size={64} className="mb-4 text-purple-400 opacity-80" />
                     <p className="text-lg font-bold text-white mb-2">Cámara Apagada</p>
                     <p className="text-xs text-slate-400 max-w-sm mb-6">
-                      Haz clic abajo para encender la cámara y usar la detección automática de manos para grabar la seña <strong className="text-purple-300">{currentItem?.label}</strong>.
+                      Haz clic abajo para encender la cámara y visualizar la seña <strong className="text-purple-300">{currentItem?.label}</strong> en tiempo real con fondo blanco opcional.
                     </p>
                     <Button onClick={startCamera} className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-3 rounded-2xl shadow-lg">
                       <Camera size={20} className="mr-2" /> Activar Cámara

@@ -32,8 +32,8 @@ export class HandDetectionService {
       this.holistic.setOptions({
         modelComplexity: 1,
         smoothLandmarks: true,
-        enableSegmentation: false,
-        smoothSegmentation: false,
+        enableSegmentation: true,
+        smoothSegmentation: true,
         refineFaceLandmarks: true,
         minDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5,
