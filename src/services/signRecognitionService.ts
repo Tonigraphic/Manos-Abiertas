@@ -22,7 +22,7 @@ ort.env.wasm.proxy = false; // Disabled to prevent "document is not defined" in 
 ort.env.wasm.allowMultiThread = false;
 
 import { HolisticLandmarks } from './handDetectionService';
-import { LSC_VOCABULARY } from '../lib/lscData';
+import { LSC_VOCABULARY, getApprovedVideoUrl } from '../lib/lscData';
 
 // ── Interfaces ─────────────────────────────────────────────────────────
 export interface RecognizedSign {
@@ -89,6 +89,11 @@ export class SignRecognitionService {
 
   constructor() {
     this.initializePatterns();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('valentina_videos_updated', () => {
+        this.initializePatterns();
+      });
+    }
   }
 
   private initializePatterns(): void {
@@ -100,13 +105,14 @@ export class SignRecognitionService {
       const categoryId = catIdMap[category] || 'all';
 
       signs.forEach(sign => {
+        const finalUrl = getApprovedVideoUrl(sign.label, sign.url);
         this.patterns.set(sign.label.toUpperCase(), {
           name: sign.label,
           description: `Seña para ${sign.label} en LSC`,
           category: categoryId,
           difficulty: categoryId === 'office' || categoryId === 'design' ? 'Intermedio' : 'Fácil',
           requiredHands: 1,
-          videoUrl: sign.url,
+          videoUrl: finalUrl,
         });
       });
     });

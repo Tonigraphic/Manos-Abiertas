@@ -15,6 +15,7 @@ export function DesktopNavbar({ currentView, onNavigate }: NavigationProps) {
     { id: 'translator', label: 'Traductor', icon: Languages },
     { id: 'practice', label: 'Práctica', icon: Target },
     { id: 'feedback', label: 'Sugerencias', icon: MessageSquare },
+    { id: 'valentina', label: 'Estudio Valentina 🎥', icon: Video },
   ];
 
   return (
@@ -82,6 +83,7 @@ export function MobileBottomNav({ currentView, onNavigate }: NavigationProps) {
     { id: 'home', label: 'Inicio', icon: Home },
     { id: 'translator', label: 'Traductor', icon: Languages },
     { id: 'practice', label: 'Práctica', icon: Target },
+    { id: 'valentina', label: 'Estudio 🎥', icon: Video },
     { id: 'feedback', label: 'Sugerencias', icon: MessageSquare },
   ];
 
