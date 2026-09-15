@@ -86,6 +86,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordedBase64, setRecordedBase64] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isViewingSavedRecording, setIsViewingSavedRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string>('Enciende la cámara para comenzar');
@@ -103,11 +104,17 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
   const isHandsDetectedRef = useRef(false);
   const noHandsCounterRef = useRef(0);
   const recordingStartTimeRef = useRef<number>(0);
+  const isHasActivePreviewRef = useRef(false);
 
   // Sync refs with state
   useEffect(() => {
     isRecordingRef.current = isRecording;
   }, [isRecording]);
+
+  const hasActivePreview = !!(previewUrl || recordedBase64 || isViewingSavedRecording);
+  useEffect(() => {
+    isHasActivePreviewRef.current = hasActivePreview;
+  }, [hasActivePreview]);
 
   // Ensure camera stream is assigned to video element immediately
   useEffect(() => {
@@ -125,6 +132,26 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
   });
 
   const currentItem = filteredVocab[currentIndex] || filteredVocab[0] || allVocabItems.current[0];
+  const savedItemData = currentItem ? progressMap[currentItem.label] : undefined;
+
+  // Reset active recording session when word changes
+  const handleSelectWord = (idx: number) => {
+    setCurrentIndex(idx);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setRecordedBlob(null);
+    setRecordedBase64(null);
+    setIsViewingSavedRecording(false);
+    setUploadSuccess(false);
+    noHandsCounterRef.current = 0;
+    setStatusMessage(
+      recordMode === 'auto' 
+        ? '🖐️ Detección activa: Levanta las manos al encuadre para empezar a grabar.' 
+        : 'Presiona "Iniciar Grabación" cuando estés lista.'
+    );
+  };
 
   // Save progress to local storage
   useEffect(() => {
@@ -251,8 +278,8 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
       if (handsInFrame) {
         noHandsCounterRef.current = 0;
         
-        // If not recording, automatically start recording!
-        if (!isRecordingRef.current && !previewUrl && !recordedBase64) {
+        // Only trigger auto-start if there is NO active recording / preview
+        if (!isRecordingRef.current && !isHasActivePreviewRef.current) {
           triggerAutoStartRecording();
         }
       } else {
@@ -266,7 +293,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
         }
       }
     }
-  }, [renderCanvasFrame, recordMode, previewUrl, recordedBase64]);
+  }, [renderCanvasFrame, recordMode]);
 
   // MediaPipe frame loop
   useEffect(() => {
@@ -348,7 +375,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
   };
 
   const triggerAutoStartRecording = () => {
-    if (!stream || isRecordingRef.current) return;
+    if (!stream || isRecordingRef.current || isHasActivePreviewRef.current) return;
     executeRecording();
   };
 
@@ -400,8 +427,9 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
       // Instant preview URL using ObjectURL
       const objUrl = URL.createObjectURL(blob);
       setPreviewUrl(objUrl);
+      setIsViewingSavedRecording(false);
 
-      // Convert to base64 for upload
+      // Convert to base64 for upload & store in progressMap
       const reader = new FileReader();
       reader.onloadend = () => {
         const b64 = reader.result as string;
@@ -451,6 +479,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
     setStatusMessage('✅ Grabación finalizada. Previsualiza y sube a Hugging Face.');
   };
 
+  // Re-take / Overwrite Recording Action
   const retakeRecording = () => {
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
@@ -458,8 +487,15 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
     setPreviewUrl(null);
     setRecordedBlob(null);
     setRecordedBase64(null);
+    setIsViewingSavedRecording(false);
     setUploadSuccess(false);
     noHandsCounterRef.current = 0;
+    
+    // Ensure camera stream is active so she can immediately record again!
+    if (!stream) {
+      startCamera();
+    }
+
     setStatusMessage(
       recordMode === 'auto' 
         ? '🖐️ Detección activa: Levanta las manos al encuadre para empezar a grabar.' 
@@ -468,7 +504,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
   };
 
   const handleUploadToHuggingFace = async () => {
-    const b64 = recordedBase64 || progressMap[currentItem?.label]?.base64;
+    const b64 = recordedBase64 || (currentItem ? progressMap[currentItem.label]?.base64 : undefined);
     if (!currentItem || !b64) {
       alert("No hay video grabado para esta seña.");
       return;
@@ -528,7 +564,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
               word: currentItem.label,
               category: currentItem.category,
               recordedBy: 'Valentina Mora',
-              duration: recordedDuration,
+              duration: recordedDuration || savedItemData?.duration || 2.5,
               recordedAt: new Date().toISOString(),
               videoBase64: b64
             }, null, 2)
@@ -556,7 +592,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
               status: 'uploaded',
               base64: b64,
               hfUrl: computedUrl,
-              duration: recordedDuration,
+              duration: recordedDuration || savedItemData?.duration || 2.5,
               timestamp: new Date().toISOString()
             }
           }));
@@ -576,15 +612,13 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
 
   const handleNextWord = () => {
     if (currentIndex < filteredVocab.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      retakeRecording();
+      handleSelectWord(currentIndex + 1);
     }
   };
 
   const handlePrevWord = () => {
     if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-      retakeRecording();
+      handleSelectWord(currentIndex - 1);
     }
   };
 
@@ -615,7 +649,8 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
   const uploadedCount = Object.values(progressMap).filter(v => v.status === 'uploaded').length;
   const progressPercent = Math.round((recordedCount / (totalCount || 1)) * 100);
 
-  const hasCurrentRecording = !!(previewUrl || recordedBase64 || progressMap[currentItem?.label]?.base64);
+  // Active Video URL for preview player
+  const activePreviewSrc = previewUrl || recordedBase64 || (isViewingSavedRecording ? savedItemData?.base64 : null);
 
   return (
     <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-5rem)] pb-20 md:pb-0 flex flex-col bg-slate-900 text-slate-100">
@@ -704,7 +739,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                     type="text"
                     placeholder="Buscar seña o palabra..."
                     value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentIndex(0); }}
+                    onChange={(e) => { setSearchTerm(e.target.value); handleSelectWord(0); }}
                     className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-purple-500"
                   />
                 </div>
@@ -713,7 +748,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                   {categories.map(cat => (
                     <button
                       key={cat.id}
-                      onClick={() => { setSelectedCategory(cat.id); setCurrentIndex(0); }}
+                      onClick={() => { setSelectedCategory(cat.id); handleSelectWord(0); }}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
                         selectedCategory === cat.id 
                           ? 'bg-purple-600 text-white' 
@@ -735,7 +770,7 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                   return (
                     <button
                       key={item.label}
-                      onClick={() => { setCurrentIndex(idx); retakeRecording(); }}
+                      onClick={() => handleSelectWord(idx)}
                       className={`w-full p-3 rounded-2xl flex items-center justify-between text-left transition-all ${
                         isSelected 
                           ? 'bg-purple-600/30 border-2 border-purple-500 text-white shadow-md' 
@@ -862,15 +897,38 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                 </div>
               )}
 
+              {/* Banner de Grabación Previa si la palabra ya fue grabada */}
+              {savedItemData?.base64 && !activePreviewSrc && !isRecording && (
+                <div className="bg-yellow-950/40 border border-yellow-500/30 text-yellow-200 px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-between mb-2">
+                  <span>📹 Seña con grabación previa ({savedItemData.duration || '2.5'}s)</span>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setIsViewingSavedRecording(true)} 
+                      className="px-3 py-1 rounded-lg bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 text-[11px] font-bold border border-yellow-500/40 transition-all flex items-center gap-1"
+                    >
+                      <Eye size={12} /> Ver Previa
+                    </button>
+                    <button 
+                      onClick={retakeRecording} 
+                      className="px-3 py-1 rounded-lg bg-purple-600 text-white hover:bg-purple-500 text-[11px] font-bold transition-all flex items-center gap-1"
+                    >
+                      <RefreshCw size={12} /> Grabar Nueva Versión
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Mensaje de Estado / Guía */}
-              <div className="bg-purple-950/40 border border-purple-500/30 text-purple-200 px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-between mb-2">
-                <span>{statusMessage}</span>
-                {isHandsDetected && stream && !hasCurrentRecording && (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 animate-pulse">
-                    ✓ Manos en encuadre
-                  </span>
-                )}
-              </div>
+              {!savedItemData?.base64 || activePreviewSrc || isRecording ? (
+                <div className="bg-purple-950/40 border border-purple-500/30 text-purple-200 px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-between mb-2">
+                  <span>{statusMessage}</span>
+                  {isHandsDetected && stream && !activePreviewSrc && (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30 animate-pulse">
+                      ✓ Manos en encuadre
+                    </span>
+                  )}
+                </div>
+              ) : null}
 
               {/* AREA DEL VIEWPORT (CÁMARA Y CANVAS EN TIEMPO REAL / PREVIEW) */}
               <div className="relative flex-1 bg-black rounded-3xl overflow-hidden border-2 border-slate-700 flex items-center justify-center min-h-[340px]">
@@ -905,10 +963,10 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                 )}
 
                 {/* PREVISUALIZACIÓN DEL VIDEO GRABADO (REPETIR O ACEPTAR/SUBIR) */}
-                {hasCurrentRecording ? (
+                {activePreviewSrc ? (
                   <div className="relative w-full h-full flex flex-col items-center justify-center bg-slate-950 p-2 rounded-2xl z-20">
                     <video 
-                      src={previewUrl || recordedBase64 || progressMap[currentItem?.label]?.base64 || ''} 
+                      src={activePreviewSrc} 
                       autoPlay 
                       loop 
                       controls 
@@ -917,10 +975,10 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
                     />
                     <div className="mt-2 flex items-center justify-between w-full px-3">
                       <span className="text-emerald-400 text-xs font-bold flex items-center gap-1 bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-500/30">
-                        <CheckCircle2 size={14} /> Duración de seña: {recordedDuration || progressMap[currentItem?.label]?.duration || '2.5'}s
+                        <CheckCircle2 size={14} /> Duración de seña: {recordedDuration || savedItemData?.duration || '2.5'}s
                       </span>
-                      <span className="text-slate-400 text-xs font-medium hidden sm:inline">
-                        Previsualiza tu video antes de subirlo
+                      <span className="text-slate-400 text-xs font-medium">
+                        ¿Quieres corregir? Presiona "Volver a Grabar"
                       </span>
                     </div>
                   </div>
@@ -948,14 +1006,14 @@ export function ValentinaRecorderView({ onNavigateHome }: ValentinaRecorderViewP
 
               {/* Botones de Control de Grabación / Previsualización */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-700">
-                {hasCurrentRecording ? (
+                {activePreviewSrc ? (
                   <div className="w-full flex flex-col sm:flex-row gap-3">
                     <Button 
                       onClick={retakeRecording} 
                       variant="outline" 
                       className="flex-1 bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-700 font-bold py-3 rounded-2xl flex items-center justify-center gap-2"
                     >
-                      <RefreshCw size={18} /> Volver a Grabar (Repetir)
+                      <RefreshCw size={18} /> Volver a Grabar (Corregir)
                     </Button>
 
                     <Button 
