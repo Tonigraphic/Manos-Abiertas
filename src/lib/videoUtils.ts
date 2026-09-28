@@ -1,8 +1,15 @@
+const HF_VIDEO_BASE_URL = 'https://huggingface.co/manosabiertas/Manos-Abiertas-LSC/resolve/main';
+
 /**
- * Utilidad para resolver rutas de video de forma segura entre entornos (Local, Vercel, etc.)
+ * Resuelve videos locales y videos publicados en Hugging Face.
  */
 export function resolveVideoUrl(url: string | undefined): string {
   if (!url) return '';
+
+  if (url.startsWith('/videos/')) {
+    const fileName = url.slice('/videos/'.length);
+    return `${HF_VIDEO_BASE_URL}/${encodeURIComponent(fileName)}`;
+  }
   
   // Si es una URL externa absoluta, se devuelve tal cual
   if (url.startsWith('http')) {
