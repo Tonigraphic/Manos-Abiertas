@@ -42,6 +42,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
    const [catalogSearchTerm, setCatalogSearchTerm] = useState('');
    const [selectedCatalogCategory, setSelectedCatalogCategory] = useState('all');
    const [selectedCatalogSign, setSelectedCatalogSign] = useState<SignPattern | null>(null);
+   const [selectedCatalogVariantIndex, setSelectedCatalogVariantIndex] = useState(0);
    const [feedback, setFeedback] = useState<'success' | 'error' | null>(null);
 
    const processedRecognitionRef = useRef<string>('');
@@ -137,6 +138,13 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
          return matchesSearch && matchesCategory;
       });
    }, [allCatalogSigns, catalogSearchTerm, selectedCatalogCategory]);
+
+   const selectCatalogSign = (sign: SignPattern) => {
+      setSelectedCatalogSign(sign);
+      setSelectedCatalogVariantIndex(0);
+   };
+
+   const selectedCatalogVideo = selectedCatalogSign?.videoVariants?.[selectedCatalogVariantIndex]?.videoUrl ?? selectedCatalogSign?.videoUrl;
 
    const accuracy = attempts > 0 ? Math.round((correctAnswers / attempts) * 100) : 0;
    const progress = practiceSigns.length ? Math.round((currentIndex / practiceSigns.length) * 100) : 0;
@@ -649,7 +657,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                                 filteredCatalogSigns.map((sign) => (
                                                    <button
                                                       key={`${sign.category}-${sign.name}`}
-                                                      onClick={() => setSelectedCatalogSign(sign)}
+                                                      onClick={() => selectCatalogSign(sign)}
                                                       className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 transition-all text-left group"
                                                    >
                                                       <div className="h-14 w-14 rounded-lg bg-black overflow-hidden flex-shrink-0">
@@ -843,10 +851,10 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                         <X size={20} className="text-[var(--color-neutral-900)]" />
                      </button>
                      <div className="flex flex-col md:flex-row">
-                        <div className="w-full md:w-3/5 bg-black aspect-video flex items-center justify-center">
+                        <div className="relative w-full md:w-3/5 bg-black aspect-video flex items-center justify-center">
                            <video
-                              key={selectedCatalogSign.videoUrl}
-                              src={resolveVideoUrl(selectedCatalogSign.videoUrl)}
+                           key={selectedCatalogVideo}
+                           src={resolveVideoUrl(selectedCatalogVideo)}
                               autoPlay
                               loop
                               muted
@@ -856,6 +864,20 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                               onContextMenu={(e) => e.preventDefault()}
                               className="w-full h-full object-contain bg-black"
                            />
+                           {selectedCatalogSign.videoVariants && selectedCatalogSign.videoVariants.length > 1 && (
+                              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 rounded-xl bg-black/70 p-2">
+                                 {selectedCatalogSign.videoVariants.map((variant, index) => (
+                                    <button
+                                       key={variant.label}
+                                       type="button"
+                                       onClick={() => setSelectedCatalogVariantIndex(index)}
+                                       className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${selectedCatalogVariantIndex === index ? 'bg-[var(--color-primary-600)] text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}
+                                    >
+                                       {variant.label}
+                                    </button>
+                                 ))}
+                              </div>
+                           )}
                         </div>
                         <div className="w-full md:w-2/5 p-6 sm:p-8 flex flex-col gap-4">
                            <div className="flex items-center gap-2">
