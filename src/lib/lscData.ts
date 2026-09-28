@@ -139,14 +139,7 @@ export const LSC_DICTIONARY: Record<string, VocabularySign[]> = {
         { label: 'Forma 2', url: '/videos/SEPARAR_FORMA_2.mp4' },
       ],
     },
-    {
-      label: 'TEXTURA',
-      url: '/videos/TEXTURA_FORMA_1.mp4',
-      variants: [
-        { label: 'Forma 1', url: '/videos/TEXTURA_FORMA_1.mp4' },
-        { label: 'Forma 2', url: '/videos/TEXTURA_FORMA_2.mp4' },
-      ],
-    },
+    { label: 'TEXTURA', url: '/videos/TEXTURA.mp4' },
     { label: 'VOLUMEN', url: '/videos/VOLUMEN.mp4' },
   ],
   Oficina: [

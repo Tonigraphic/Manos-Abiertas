@@ -161,6 +161,24 @@ export function DictionaryView({ onNavigate }: DictionaryViewProps = {}) {
                         <Badge variant="neutral" className="text-[9px] uppercase">{getCategoryLabel(sign.category)}</Badge>
                         <Badge variant={getDifficultyColor(sign.difficulty)} className="text-[9px] uppercase">{sign.difficulty}</Badge>
                       </div>
+                      {sign.videoVariants && sign.videoVariants.length > 1 && (
+                        <div className="flex gap-1 mt-2">
+                          {sign.videoVariants.map((variant, variantIndex) => (
+                            <button
+                              key={variant.label}
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleSelectSign(sign);
+                                setSelectedVariantIndex(variantIndex);
+                              }}
+                              className="flex-1 rounded-md bg-[var(--color-primary-50)] px-1.5 py-1 text-[10px] font-bold text-[var(--color-primary-700)] hover:bg-[var(--color-primary-100)]"
+                            >
+                              {variant.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </CardBody>
                   </Card>
                 </motion.div>
