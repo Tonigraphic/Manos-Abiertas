@@ -661,7 +661,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                                       className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 transition-all text-left group"
                                                    >
                                                       <div className="h-14 w-14 rounded-lg bg-black overflow-hidden flex-shrink-0">
-                                                         <video src={resolveVideoUrl(sign.videoUrl)} muted playsInline className="w-full h-full object-contain" />
+                                                         <video src={resolveVideoUrl(sign.videoUrl)} muted playsInline preload="none" className="w-full h-full object-contain" />
                                                       </div>
                                                       <div className="min-w-0">
                                                          <p className="text-sm font-black truncate">{sign.name}</p>
@@ -860,6 +860,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                               muted
                               playsInline
                               controls
+                              preload="auto"
                               controlsList="nodownload nomute"
                               onContextMenu={(e) => e.preventDefault()}
                               className="w-full h-full object-contain bg-black"

@@ -207,6 +207,7 @@ export function DictionaryView({ onNavigate }: DictionaryViewProps = {}) {
                         key={selectedVideo}
                         src={resolveVideoUrl(selectedVideo)}
                         autoPlay loop muted playsInline controls
+                        preload="auto"
                         className="w-full h-full object-contain"
                       />
                       {selectedSign.videoVariants && selectedSign.videoVariants.length > 1 && (
