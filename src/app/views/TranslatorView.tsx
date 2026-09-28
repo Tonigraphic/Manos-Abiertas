@@ -540,7 +540,7 @@ export function TranslatorView({ onNavigateHome }: TranslatorViewProps = {}) {
                     {matchedSigns.map(sign => (
                       <div key={sign.name} className="bg-white rounded-[2rem] overflow-hidden shadow-lg border border-neutral-100">
                         <div className="relative aspect-video bg-black">
-                          <video src={resolveVideoUrl(sign.videoUrl)} autoPlay loop muted playsInline preload="metadata" className="w-full h-full object-contain" />
+                          <video src={resolveVideoUrl(sign.videoUrl)} autoPlay loop muted playsInline preload="auto" className="w-full h-full object-contain" />
                           <button
                             onClick={handleVideoFullscreen}
                             className="absolute bottom-2 right-2 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80 transition-all active:scale-90 border border-white/10"
