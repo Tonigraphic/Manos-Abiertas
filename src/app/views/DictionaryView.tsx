@@ -17,6 +17,7 @@ export function DictionaryView({ onNavigate }: DictionaryViewProps = {}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSign, setSelectedSign] = useState<SignPattern | null>(null);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [allSigns, setAllSigns] = useState<SignPattern[]>([]);
 
   useEffect(() => {
@@ -28,6 +29,11 @@ export function DictionaryView({ onNavigate }: DictionaryViewProps = {}) {
     acc[sign.category] = (acc[sign.category] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  const handleSelectSign = (sign: SignPattern) => {
+    setSelectedSign(sign);
+    setSelectedVariantIndex(0);
+  };
 
   // Mapeo para mostrar nombres en español en las etiquetas de los recuadros
   const getCategoryLabel = (category: string) => {
@@ -76,6 +82,8 @@ export function DictionaryView({ onNavigate }: DictionaryViewProps = {}) {
       default: return '🤟';
     }
   };
+
+  const selectedVideo = selectedSign?.videoVariants?.[selectedVariantIndex]?.videoUrl ?? selectedSign?.videoUrl;
 
   return (
     <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-5rem)] flex flex-col bg-[var(--color-surface)] relative overflow-hidden">
@@ -137,7 +145,7 @@ export function DictionaryView({ onNavigate }: DictionaryViewProps = {}) {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {filteredSigns.map((sign, index) => (
                 <motion.div key={sign.name} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.02 }}>
-                  <Card hoverable className="overflow-hidden cursor-pointer h-full border-[var(--color-neutral-200)]" onClick={() => setSelectedSign(sign)}>
+                  <Card hoverable className="overflow-hidden cursor-pointer h-full border-[var(--color-neutral-200)]" onClick={() => handleSelectSign(sign)}>
                     <div className="aspect-square bg-gradient-to-br from-[var(--color-primary-50)] to-[var(--color-accent-50)] flex items-center justify-center relative group">
                       <span className="text-4xl group-hover:scale-110 transition-transform duration-300">{getCategoryEmoji(sign.category)}</span>
                       <div className="absolute inset-0 bg-[var(--color-primary-600)]/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -174,14 +182,34 @@ export function DictionaryView({ onNavigate }: DictionaryViewProps = {}) {
                 <X size={20} className="text-[var(--color-neutral-900)]" />
               </button>
               <div className="flex flex-col md:flex-row">
-                <div className="w-full md:w-3/5 bg-black aspect-video flex items-center justify-center">
+                <div className="relative w-full md:w-3/5 bg-black aspect-video flex items-center justify-center">
                   {selectedSign.videoUrl ? (
-                    <video
-                      key={selectedSign.videoUrl}
-                      src={resolveVideoUrl(selectedSign.videoUrl)}
-                      autoPlay loop muted playsInline controls
-                      className="w-full h-full object-contain"
-                    />
+                    <>
+                      <video
+                        key={selectedVideo}
+                        src={resolveVideoUrl(selectedVideo)}
+                        autoPlay loop muted playsInline controls
+                        className="w-full h-full object-contain"
+                      />
+                      {selectedSign.videoVariants && selectedSign.videoVariants.length > 1 && (
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 rounded-xl bg-black/70 p-2">
+                          {selectedSign.videoVariants.map((variant, index) => (
+                            <button
+                              key={variant.label}
+                              type="button"
+                              onClick={() => setSelectedVariantIndex(index)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                                selectedVariantIndex === index
+                                  ? 'bg-[var(--color-primary-600)] text-white'
+                                  : 'bg-white/20 text-white hover:bg-white/30'
+                              }`}
+                            >
+                              {variant.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="text-white text-center p-10">
                       <Play size={48} className="mx-auto mb-4 opacity-20" />

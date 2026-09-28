@@ -22,7 +22,7 @@ ort.env.wasm.proxy = false; // Disabled to prevent "document is not defined" in 
 ort.env.wasm.allowMultiThread = false;
 
 import { HolisticLandmarks } from './handDetectionService';
-import { LSC_VOCABULARY } from '../lib/lscData';
+import { LSC_DICTIONARY, LSC_VOCABULARY } from '../lib/lscData';
 
 // ── Interfaces ─────────────────────────────────────────────────────────
 export interface RecognizedSign {
@@ -39,6 +39,10 @@ export interface SignPattern {
   difficulty: 'Fácil' | 'Intermedio' | 'Avanzado';
   requiredHands: 1 | 2;
   videoUrl?: string;
+  videoVariants?: Array<{
+    label: string;
+    videoUrl: string;
+  }>;
 }
 
 // ── Constantes del modelo ──────────────────────────────────────────────
@@ -92,7 +96,7 @@ export class SignRecognitionService {
   }
 
   private initializePatterns(): void {
-    Object.entries(LSC_VOCABULARY).forEach(([category, signs]) => {
+    Object.entries(LSC_DICTIONARY).forEach(([category, signs]) => {
       const catIdMap: Record<string, string> = {
         'Abecedario': 'alphabet', 'Colores': 'colors',
         'Saludos': 'greetings', 'Oficina': 'office', 'Diseño': 'design'
@@ -107,6 +111,10 @@ export class SignRecognitionService {
           difficulty: categoryId === 'office' || categoryId === 'design' ? 'Intermedio' : 'Fácil',
           requiredHands: 1,
           videoUrl: sign.url,
+          videoVariants: sign.variants?.map(variant => ({
+            label: variant.label,
+            videoUrl: variant.url,
+          })),
         });
       });
     });

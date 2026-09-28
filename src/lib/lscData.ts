@@ -76,3 +76,96 @@ export const LSC_VOCABULARY = {
   ]
 };
 
+export interface VocabularySign {
+  label: string;
+  url: string;
+  variants?: Array<{
+    label: string;
+    url: string;
+  }>;
+}
+
+export const LSC_DICTIONARY: Record<string, VocabularySign[]> = {
+  Abecedario: LSC_VOCABULARY.Abecedario,
+  Colores: [
+    { label: 'AMARILLO', url: '/videos/AMARILLO.mp4' },
+    { label: 'AMARILLO NARANJA', url: '/videos/AMARILLO_NARANJA.mp4' },
+    { label: 'AMARILLO VERDE', url: '/videos/AMARILLO_VERDE.mp4' },
+    { label: 'AZUL', url: '/videos/AZUL.mp4' },
+    { label: 'AZUL VERDE', url: '/videos/AZUL_VERDE.mp4' },
+    { label: 'AZUL VIOLETA', url: '/videos/AZUL_VIOLETA.mp4' },
+    { label: 'BLANCO', url: '/videos/BLANCO.mp4' },
+    { label: 'CAFÉ', url: '/videos/CAFE.mp4' },
+    { label: 'COLORES', url: '/videos/COLORES.mp4' },
+    { label: 'CREMA', url: '/videos/CREMA.mp4' },
+    { label: 'GRIS', url: '/videos/GRIS.mp4' },
+    { label: 'MEZCLAR', url: '/videos/MEZCLAR.mp4' },
+    { label: 'MORADO', url: '/videos/MORADO_VIOLETA.mp4' },
+    { label: 'NARANJA', url: '/videos/NARANJA.mp4' },
+    { label: 'NEGRO', url: '/videos/NEGRO.mp4' },
+    { label: 'ROJO', url: '/videos/ROJO.mp4' },
+    { label: 'ROJO NARANJA', url: '/videos/ROJO_NARANJA.mp4' },
+    { label: 'ROJO VIOLETA', url: '/videos/ROJO_VIOLETA.mp4' },
+    { label: 'VERDE', url: '/videos/VERDE.mp4' },
+    { label: 'VIOLETA', url: '/videos/VIOLETA.mp4' },
+  ],
+  Diseño: [
+    { label: 'AGUA', url: '/videos/AGUA.mp4' },
+    { label: 'CAPAS', url: '/videos/CAPAS.mp4' },
+    { label: 'HOJAS', url: '/videos/HOJAS.mp4' },
+    {
+      label: 'LÁPIZ',
+      url: '/videos/LÁPIZ_FORMA_1.mp4',
+      variants: [
+        { label: 'Forma 1', url: '/videos/LÁPIZ_FORMA_1.mp4' },
+        { label: 'Forma 2', url: '/videos/LÁPIZ_FORMA_2.mp4' },
+      ],
+    },
+    { label: 'MATERIALES', url: '/videos/MATERIALES.mp4' },
+    { label: 'PERSPECTIVA', url: '/videos/PERSPECTIVA.mp4' },
+    {
+      label: 'PINCEL',
+      url: '/videos/PINCEL_FORMA_1.mp4',
+      variants: [
+        { label: 'Forma 1', url: '/videos/PINCEL_FORMA_1.mp4' },
+        { label: 'Forma 2', url: '/videos/PINCEL_FORMA_2.mp4' },
+      ],
+    },
+    {
+      label: 'SEPARAR',
+      url: '/videos/SEPARAR_FORMA_1.mp4',
+      variants: [
+        { label: 'Forma 1', url: '/videos/SEPARAR_FORMA_1.mp4' },
+        { label: 'Forma 2', url: '/videos/SEPARAR_FORMA_2.mp4' },
+      ],
+    },
+    {
+      label: 'TEXTURA',
+      url: '/videos/TEXTURA_FORMA_1.mp4',
+      variants: [
+        { label: 'Forma 1', url: '/videos/TEXTURA_FORMA_1.mp4' },
+        { label: 'Forma 2', url: '/videos/TEXTURA_FORMA_2.mp4' },
+      ],
+    },
+    { label: 'VOLUMEN', url: '/videos/VOLUMEN.mp4' },
+  ],
+  Oficina: [
+    { label: 'ENVIAR TAREA', url: '/videos/ENVIAR_TAREA.mp4' },
+    { label: 'HORARIO', url: '/videos/HORARIO.mp4' },
+    { label: 'HORARIO DE CLASE', url: '/videos/HORARIO DE CLASE.mp4' },
+    { label: 'HORARIO DE MATERIA', url: '/videos/HORARIO DE MATERIA.mp4' },
+    { label: 'MATRÍCULA ACADÉMICA', url: '/videos/MATRICULA_ACADEMICA.mp4' },
+    { label: 'MATRÍCULA FINANCIERA', url: '/videos/MATRICULA_FINANCIERA.mp4' },
+    { label: 'MATRÍCULA MATERIAS', url: '/videos/MATRÍCULA_MATERIAS.mp4' },
+    { label: 'PROCESO DE MATRÍCULA', url: '/videos/PROCESO DE MATRÍCULA.mp4' },
+    { label: 'SOLICITAR CERTIFICADO', url: '/videos/SOLICITAR CERTIFICADO.mp4' },
+  ],
+  Saludos: [
+    { label: 'GRACIAS', url: '/videos/GRACIAS.mp4' },
+    { label: 'HOLA', url: '/videos/HOLA.mp4' },
+    { label: 'MI NOMBRE', url: '/videos/MI_NOMBRE.mp4' },
+    { label: 'MI SEÑA', url: '/videos/MI_SEÑA.mp4' },
+    { label: 'PROFESOR', url: '/videos/PROFESOR_2.mp4' },
+  ],
+};
+
