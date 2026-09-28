@@ -76,18 +76,3 @@ export const LSC_VOCABULARY = {
   ]
 };
 
-export function getApprovedVideoUrl(wordLabel: string, defaultUrl: string): string {
-  try {
-    const saved = localStorage.getItem('valentina_approved_videos');
-    if (saved) {
-      const approvedMap = JSON.parse(saved);
-      if (approvedMap && approvedMap[wordLabel]) {
-        return approvedMap[wordLabel];
-      }
-    }
-  } catch (e) {
-    // Fallback silencioso a la URL original
-  }
-  return defaultUrl;
-}
-

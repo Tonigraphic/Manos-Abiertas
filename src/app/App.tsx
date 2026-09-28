@@ -8,9 +8,7 @@ import { TranslatorView } from './views/TranslatorView';
 import { FeedbackView } from './views/FeedbackView';
 import { MaintenanceView } from './views/MaintenanceView';
 
-import { ValentinaRecorderView } from './views/ValentinaRecorderView';
-
-type View = 'home' | 'translator' | 'assistant' | 'practice' | 'dictionary' | 'feedback' | 'valentina';
+type View = 'home' | 'translator' | 'assistant' | 'practice' | 'dictionary' | 'feedback';
 
 export default function App() {
   // Para activar/desactivar el mantenimiento, cambia la variable VITE_MAINTENANCE_MODE en tu .env o Vercel
@@ -38,8 +36,6 @@ export default function App() {
         return <DictionaryView onNavigate={(view) => setCurrentView(view as View)} />;
       case 'feedback':
         return <FeedbackView onNavigateHome={navigateHome} />;
-      case 'valentina':
-        return <ValentinaRecorderView onNavigateHome={navigateHome} />;
       default:
         return <LandingView onNavigate={(view) => setCurrentView(view as View)} />;
     }
