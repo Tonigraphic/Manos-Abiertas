@@ -20,6 +20,40 @@ const normalizeSign = (value: string) => (value || '')
 // Umbral de confianza para considerar una seña como correcta (95% para evitar falsos positivos)
 const MIN_SUCCESS_CONFIDENCE = 95;
 
+function CatalogVideoPreview({ src }: { src: string }) {
+   const videoRef = useRef<HTMLVideoElement | null>(null);
+   const [shouldLoad, setShouldLoad] = useState(false);
+
+   useEffect(() => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      const observer = new IntersectionObserver(
+         ([entry]) => {
+            if (entry.isIntersecting) {
+               setShouldLoad(true);
+               observer.disconnect();
+            }
+         },
+         { rootMargin: '240px' }
+      );
+
+      observer.observe(video);
+      return () => observer.disconnect();
+   }, []);
+
+   return (
+      <video
+         ref={videoRef}
+         src={shouldLoad ? src : undefined}
+         muted
+         playsInline
+         preload={shouldLoad ? 'metadata' : 'none'}
+         className="w-full h-full object-contain"
+      />
+   );
+}
+
 interface PracticeViewProps {
   onNavigate?: (view: string) => void;
 }
@@ -661,9 +695,7 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                                       className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 transition-all text-left group"
                                                    >
                                                       <div className="h-14 w-14 rounded-lg bg-black overflow-hidden flex-shrink-0">
-                                                         <div className="w-full h-full flex items-center justify-center bg-white/10">
-                                                            <Play size={20} className="text-white/70" />
-                                                         </div>
+                                                         <CatalogVideoPreview src={resolveVideoUrl(sign.videoUrl)} />
                                                       </div>
                                                       <div className="min-w-0">
                                                          <p className="text-sm font-black truncate">{sign.name}</p>
