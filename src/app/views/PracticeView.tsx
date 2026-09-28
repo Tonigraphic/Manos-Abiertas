@@ -661,7 +661,9 @@ export function PracticeView({ onNavigate }: PracticeViewProps = {}) {
                                                       className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 transition-all text-left group"
                                                    >
                                                       <div className="h-14 w-14 rounded-lg bg-black overflow-hidden flex-shrink-0">
-                                                         <video src={resolveVideoUrl(sign.videoUrl)} muted playsInline preload="metadata" className="w-full h-full object-contain" />
+                                                         <div className="w-full h-full flex items-center justify-center bg-white/10">
+                                                            <Play size={20} className="text-white/70" />
+                                                         </div>
                                                       </div>
                                                       <div className="min-w-0">
                                                          <p className="text-sm font-black truncate">{sign.name}</p>
