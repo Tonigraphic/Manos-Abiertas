@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { DesktopNavbar, MobileBottomNav } from './components/lsc/Navigation';
 import { LandingView } from './views/LandingView';
 import { AssistantView } from './views/AssistantView';
@@ -57,6 +58,7 @@ export default function App() {
       {showNavigation && (
         <MobileBottomNav currentView={currentView} onNavigate={(view) => setCurrentView(view as View)} />
       )}
+      <Analytics />
     </div>
   );
 }
